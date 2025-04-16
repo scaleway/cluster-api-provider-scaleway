@@ -1,0 +1,5 @@
+## Append samples of your project ##
+resources:
+- infrastructure_v1alpha1_scalewaycluster.yaml
+- infrastructure_v1alpha1_scalewaymachine.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
