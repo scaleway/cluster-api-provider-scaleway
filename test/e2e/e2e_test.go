@@ -18,13 +18,13 @@ import (
 const namespace = "cluster-api-provider-scaleway-system"
 
 // serviceAccountName created for the project
-const serviceAccountName = "cluster-api-provider-scaleway-controller-manager"
+const serviceAccountName = "caps-controller-manager"
 
 // metricsServiceName is the name of the metrics service of the project
-const metricsServiceName = "cluster-api-provider-scaleway-controller-manager-metrics-service"
+const metricsServiceName = "caps-controller-manager-metrics-service"
 
 // metricsRoleBindingName is the name of the RBAC that will be created to allow get the metrics data
-const metricsRoleBindingName = "cluster-api-provider-scaleway-metrics-binding"
+const metricsRoleBindingName = "caps-metrics-binding"
 
 var _ = Describe("Manager", Ordered, func() {
 	var controllerPodName string
@@ -157,11 +157,17 @@ var _ = Describe("Manager", Ordered, func() {
 		It("should ensure the metrics endpoint is serving metrics", func() {
 			By("creating a ClusterRoleBinding for the service account to allow access to metrics")
 			cmd := exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,
-				"--clusterrole=cluster-api-provider-scaleway-metrics-reader",
+				"--clusterrole=caps-metrics-reader",
 				fmt.Sprintf("--serviceaccount=%s:%s", namespace, serviceAccountName),
 			)
 			_, err := utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create ClusterRoleBinding")
+
+			DeferCleanup(func() {
+				cmd := exec.Command("kubectl", "delete", "clusterrolebinding", metricsRoleBindingName)
+				_, err := utils.Run(cmd)
+				Expect(err).NotTo(HaveOccurred(), "Failed to delete ClusterRoleBinding")
+			})
 
 			By("validating that the metrics service is available")
 			cmd = exec.Command("kubectl", "get", "service", metricsServiceName, "-n", namespace)
