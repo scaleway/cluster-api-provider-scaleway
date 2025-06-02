@@ -3,4 +3,5 @@ resources:
 - infrastructure_v1alpha1_scalewaycluster.yaml
 - infrastructure_v1alpha1_scalewaymachine.yaml
 - infrastructure_v1alpha1_scalewayclustertemplate.yaml
+- infrastructure_v1alpha1_scalewaymachinetemplate.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
