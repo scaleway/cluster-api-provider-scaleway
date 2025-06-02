@@ -51,7 +51,7 @@ func NewCluster(ctx context.Context, params *ClusterParams) (*Cluster, error) {
 		return nil, fmt.Errorf("failed to get ScalewaySecret: %w", err)
 	}
 
-	client, err := scwClient.New(region, secret.Data)
+	c, err := scwClient.New(region, secret.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Scaleway client from ScalewaySecret: %w", err)
 	}
@@ -64,7 +64,7 @@ func NewCluster(ctx context.Context, params *ClusterParams) (*Cluster, error) {
 	return &Cluster{
 		patchHelper:     helper,
 		ScalewayCluster: params.ScalewayCluster,
-		ScalewayClient:  client,
+		ScalewayClient:  c,
 	}, nil
 }
 

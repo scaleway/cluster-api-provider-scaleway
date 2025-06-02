@@ -23,14 +23,14 @@ type scalewayClusterService struct {
 	Delete    func(context.Context) error
 }
 
-func newScalewayClusterService(scope *scope.Cluster) *scalewayClusterService {
+func newScalewayClusterService(s *scope.Cluster) *scalewayClusterService {
 	scs := &scalewayClusterService{
-		scope: scope,
+		scope: s,
 		services: []scaleway.ServiceReconciler{
-			vpc.New(scope),
-			vpcgw.New(scope),
-			lb.New(scope),
-			domain.New(scope),
+			vpc.New(s),
+			vpcgw.New(s),
+			lb.New(s),
+			domain.New(s),
 		},
 	}
 

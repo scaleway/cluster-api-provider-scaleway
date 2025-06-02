@@ -36,9 +36,9 @@ type ScalewayClusterReconciler struct {
 type scalewayClusterServiceCreator func(clusterScope *scope.Cluster) *scalewayClusterService
 
 // NewScalewayClusterReconciler returns a new ScalewayClusterReconciler.
-func NewScalewayClusterReconciler(client client.Client) *ScalewayClusterReconciler {
+func NewScalewayClusterReconciler(c client.Client) *ScalewayClusterReconciler {
 	return &ScalewayClusterReconciler{
-		Client:                       client,
+		Client:                       c,
 		createScalewayClusterService: newScalewayClusterService,
 	}
 }

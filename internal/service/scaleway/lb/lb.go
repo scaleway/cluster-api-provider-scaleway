@@ -146,11 +146,8 @@ func checkLBsReadiness(lbs []*lb.LB) error {
 	return nil
 }
 
-func getLBSpec(
-	client *client.Client,
-	spec infrav1.LoadBalancerSpec,
-) (zone scw.Zone, lbType string, err error) {
-	zone, err = client.GetZoneOrDefault(spec.Zone)
+func getLBSpec(c *client.Client, spec infrav1.LoadBalancerSpec) (zone scw.Zone, lbType string, err error) {
+	zone, err = c.GetZoneOrDefault(spec.Zone)
 	if err != nil {
 		return
 	}

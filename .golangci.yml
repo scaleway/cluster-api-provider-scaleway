@@ -1,33 +1,15 @@
+version: "2"
 run:
-  timeout: 5m
   allow-parallel-runners: true
-
-issues:
-  # don't skip warning about doc comments
-  # don't exclude the default set of lint
-  exclude-use-default: false
-  # restore some of the defaults
-  # (fill in the rest as needed)
-  exclude-rules:
-    - path: "api/*"
-      linters:
-        - lll
-    - path: "internal/*"
-      linters:
-        - dupl
-        - lll
 linters:
-  disable-all: true
+  default: none
   enable:
+    - copyloopvar
     - dupl
     - errcheck
-    - copyloopvar
     - ginkgolinter
     - goconst
     - gocyclo
-    - gofmt
-    - goimports
-    - gosimple
     - govet
     - importas
     - ineffassign
@@ -37,24 +19,56 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - typecheck
     - unconvert
     - unparam
     - unused
-
-linters-settings:
-  revive:
+  settings:
+    revive:
+      rules:
+        - name: comment-spacings
+        - name: import-shadowing
+    importas:
+      alias:
+        - pkg: sigs.k8s.io/controller-runtime/pkg/log
+          alias: logf
+        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+          alias: clusterv1
+        - pkg: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
+          alias: infrav1
+        - pkg: k8s.io/apimachinery/pkg/api/errors
+          alias: apierrors
+        - pkg: k8s.io/apimachinery/pkg/util/errors
+          alias: utilerrors
+  exclusions:
+    generated: lax
     rules:
-      - name: comment-spacings
-  importas:
-    alias:
-      - pkg: sigs.k8s.io/controller-runtime/pkg/log
-        alias: logf
-      - pkg: sigs.k8s.io/cluster-api/api/v1beta1
-        alias: clusterv1
-      - pkg: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
-        alias: infrav1
-      - pkg: k8s.io/apimachinery/pkg/api/errors
-        alias: apierrors
-      - pkg: k8s.io/apimachinery/pkg/util/errors
-        alias: utilerrors
+      - linters:
+          - lll
+        path: api/*
+      - linters:
+          - dupl
+          - lll
+        path: internal/*
+      - linters:
+          - staticcheck
+        text: "ST1019"
+      - linters:
+          - staticcheck
+        text: "ST1005"
+      - linters:
+          - staticcheck
+        text: "QF1008"
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
