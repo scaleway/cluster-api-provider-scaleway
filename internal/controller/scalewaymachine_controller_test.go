@@ -11,7 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	infrastructurev1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 )
 
 var _ = Describe("ScalewayMachine Controller", func() {
@@ -24,13 +24,13 @@ var _ = Describe("ScalewayMachine Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		scalewaymachine := &infrastructurev1alpha1.ScalewayMachine{}
+		scalewaymachine := &infrav1.ScalewayMachine{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind ScalewayMachine")
 			err := k8sClient.Get(ctx, typeNamespacedName, scalewaymachine)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &infrastructurev1alpha1.ScalewayMachine{
+				resource := &infrav1.ScalewayMachine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -43,7 +43,7 @@ var _ = Describe("ScalewayMachine Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &infrastructurev1alpha1.ScalewayMachine{}
+			resource := &infrav1.ScalewayMachine{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

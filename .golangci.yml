@@ -29,6 +29,7 @@ linters:
     - goimports
     - gosimple
     - govet
+    - importas
     - ineffassign
     - lll
     - misspell
@@ -45,3 +46,15 @@ linters-settings:
   revive:
     rules:
       - name: comment-spacings
+  importas:
+    alias:
+      - pkg: sigs.k8s.io/controller-runtime/pkg/log
+        alias: logf
+      - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        alias: clusterv1
+      - pkg: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
+        alias: infrav1
+      - pkg: k8s.io/apimachinery/pkg/api/errors
+        alias: apierrors
+      - pkg: k8s.io/apimachinery/pkg/util/errors
+        alias: utilerrors

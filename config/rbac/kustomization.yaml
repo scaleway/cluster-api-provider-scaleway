@@ -22,6 +22,9 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the {{ .ProjectName }} itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- scalewayclustertemplate_admin_role.yaml
+- scalewayclustertemplate_editor_role.yaml
+- scalewayclustertemplate_viewer_role.yaml
 - scalewaymachine_admin_role.yaml
 - scalewaymachine_editor_role.yaml
 - scalewaymachine_viewer_role.yaml

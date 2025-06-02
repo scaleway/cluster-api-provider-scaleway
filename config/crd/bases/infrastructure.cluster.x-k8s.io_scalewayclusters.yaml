@@ -8,13 +8,34 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: ScalewayCluster
     listKind: ScalewayClusterList
     plural: scalewayclusters
+    shortNames:
+    - sc
     singular: scalewaycluster
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: Host of the control plane
+      jsonPath: .spec.controlPlaneEndpoint.host
+      name: Host
+      type: string
+    - description: Port of the control plane
+      jsonPath: .spec.controlPlaneEndpoint.port
+      name: Port
+      type: integer
+    - description: Region of the cluster
+      jsonPath: .spec.region
+      name: Region
+      type: string
+    - description: Ready is true when the cluster is fully provisioned
+      jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: ScalewayCluster is the Schema for the scalewayclusters API.
@@ -39,13 +60,299 @@ spec:
           spec:
             description: ScalewayClusterSpec defines the desired state of ScalewayCluster.
             properties:
-              foo:
-                description: Foo is an example field of ScalewayCluster. Edit scalewaycluster_types.go
-                  to remove/update
+              controlPlaneEndpoint:
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    format: int32
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              failureDomains:
+                description: |-
+                  FailureDomains is a list of failure domains where the control-plane nodes will be created.
+                  Failure domains correspond to Scaleway zones inside the cluster region (e.g. fr-par-1).
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+              network:
+                description: Network contains network related options for the cluster.
+                properties:
+                  controlPlaneDNS:
+                    description: ControlPlaneDNS allows configuring a Scaleway Domain
+                      DNS Zone.
+                    properties:
+                      domain:
+                        description: |-
+                          Domain is the DNS Zone that this record should live in. It must be pre-existing in your Scaleway account.
+                          The format must be a string that conforms to the definition of a subdomain in DNS (RFC 1123).
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                      name:
+                        description: |-
+                          Name is the DNS short name of the record (non-FQDN). The format must consist of
+                          alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                        pattern: ^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$
+                        type: string
+                    required:
+                    - domain
+                    - name
+                    type: object
+                    x-kubernetes-validations:
+                    - message: Value is immutable
+                      rule: self == oldSelf
+                  controlPlaneExtraLoadBalancers:
+                    description: |-
+                      ControlPlaneExtraLoadBalancers allows configuring additional LoadBalancers.
+                      Because Scaleway LoadBalancers are currently zonal resources, you may set
+                      up to 3 additional LoadBalancers for achieving regional redundancy. It is
+                      mandatory to set the controlPlaneDNS field when you do so.
+                      This may be removed in the future, when Scaleway supports regional LoadBalancers.
+                    items:
+                      description: LoadBalancerSpec defines loadbalancer parameters.
+                      properties:
+                        ip:
+                          description: IP to use when creating a loadbalancer.
+                          format: ipv4
+                          type: string
+                        type:
+                          default: LB-S
+                          description: Load Balancer commercial offer type.
+                          type: string
+                        zone:
+                          description: |-
+                            Zone where to create the loadbalancer. Must be in the same region as the
+                            cluster. Defaults to the first zone of the region.
+                          type: string
+                      type: object
+                    maxItems: 3
+                    type: array
+                  controlPlaneLoadBalancer:
+                    description: ControlPlaneLoadBalancer contains loadbalancer settings.
+                    properties:
+                      allowedRanges:
+                        description: |-
+                          AllowedRanges allows to set a list of allowed IP ranges that can access
+                          the cluster through the loadbalancer. When unset, all IP ranges are allowed.
+                          To allow the cluster to work properly, public IPs of nodes and Public
+                          Gateways will automatically be allowed. However, if this field is set,
+                          you MUST manually allow IPs of the nodes of your management cluster.
+                        items:
+                          description: CIDR is an IP address range in CIDR notation
+                            (for example, "10.0.0.0/8" or "fd00::/8").
+                          maxLength: 43
+                          minLength: 1
+                          type: string
+                          x-kubernetes-validations:
+                          - message: value must be a valid CIDR network address
+                            rule: isCIDR(self)
+                        maxItems: 30
+                        type: array
+                        x-kubernetes-list-type: set
+                      ip:
+                        description: IP to use when creating a loadbalancer.
+                        format: ipv4
+                        type: string
+                      port:
+                        description: Port configured on the Load Balancer. It must
+                          be valid port range (1-65535).
+                        format: int32
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                      type:
+                        default: LB-S
+                        description: Load Balancer commercial offer type.
+                        type: string
+                      zone:
+                        description: |-
+                          Zone where to create the loadbalancer. Must be in the same region as the
+                          cluster. Defaults to the first zone of the region.
+                        type: string
+                    type: object
+                    x-kubernetes-validations:
+                    - message: port cannot be added or removed
+                      rule: has(self.port) == has(oldSelf.port)
+                    - message: ip cannot be added or removed
+                      rule: has(self.ip) == has(oldSelf.ip)
+                    - message: ip is immutable
+                      rule: '!has(oldSelf.ip) || self.ip == oldSelf.ip'
+                    - message: zone cannot be added or removed
+                      rule: has(self.zone) == has(oldSelf.zone)
+                    - message: zone is immutable
+                      rule: '!has(oldSelf.zone) || self.zone == oldSelf.zone'
+                  privateNetwork:
+                    description: PrivateNetwork allows attaching machines of the cluster
+                      to a Private Network.
+                    properties:
+                      enabled:
+                        description: |-
+                          Set to true to automatically attach machines to a Private Network.
+                          The Private Network is automatically created if no existing Private
+                          Network ID is provided.
+                        type: boolean
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                      id:
+                        description: Set a Private Network ID to reuse an existing
+                          Private Network.
+                        type: string
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                      subnet:
+                        description: Optional subnet for the Private Network. Only
+                          used on newly created Private Networks.
+                        type: string
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                      vpcID:
+                        description: Set the VPC ID where the new Private Network
+                          will be created.
+                        type: string
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                    required:
+                    - enabled
+                    type: object
+                    x-kubernetes-validations:
+                    - message: vpcID cannot be added or removed
+                      rule: has(self.vpcID) == has(oldSelf.vpcID)
+                    - message: id cannot be added or removed
+                      rule: has(self.id) == has(oldSelf.id)
+                    - message: subnet cannot be added or removed
+                      rule: has(self.subnet) == has(oldSelf.subnet)
+                    - message: subnet cannot be set when id is set
+                      rule: has(self.id) && !has(self.subnet) || !has(self.id)
+                    - message: vpcID cannot be set when id is set
+                      rule: has(self.id) && !has(self.vpcID) || !has(self.id)
+                  publicGateways:
+                    description: |-
+                      PublicGateways allows to create Public Gateways that will be attached to the
+                      Private Network of the cluster.
+                    items:
+                      description: PublicGatewaySpec defines Public Gateway settings
+                        for the cluster.
+                      properties:
+                        ip:
+                          description: IP to use when creating a Public Gateway.
+                          format: ipv4
+                          type: string
+                        type:
+                          default: VPC-GW-S
+                          description: Public Gateway commercial offer type.
+                          type: string
+                        zone:
+                          description: |-
+                            Zone where to create the Public Gateway. Must be in the same region as the
+                            cluster. Defaults to the first zone of the region.
+                          type: string
+                      type: object
+                    maxItems: 6
+                    type: array
+                type: object
+                x-kubernetes-validations:
+                - message: controlPlaneDNS is required when controlPlaneExtraLoadBalancers
+                    is set
+                  rule: '!has(self.controlPlaneExtraLoadBalancers) || has(self.controlPlaneDNS)'
+                - message: controlPlaneDNS cannot be added or removed
+                  rule: has(self.controlPlaneDNS) == has(oldSelf.controlPlaneDNS)
+                - message: privateNetwork cannot be added or removed
+                  rule: has(self.privateNetwork) == has(oldSelf.privateNetwork)
+                - message: privateNetwork is required when publicGateways is set
+                  rule: '!has(self.publicGateways) || has(self.privateNetwork) &&
+                    self.privateNetwork.enabled'
+              region:
+                description: Region represents the region where the cluster will be
+                  hosted.
+                maxLength: 10
+                minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              scalewaySecretName:
+                description: |-
+                  ScalewaySecretName is the name of the secret that contains the Scaleway client parameters.
+                  The following keys are required: SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID.
+                  The following key is optional: SCW_API_URL.
+                type: string
+            required:
+            - region
+            - scalewaySecretName
             type: object
+            x-kubernetes-validations:
+            - message: controlPlaneEndpoint is required once set
+              rule: '!has(oldSelf.controlPlaneEndpoint) || has(self.controlPlaneEndpoint)'
           status:
             description: ScalewayClusterStatus defines the observed state of ScalewayCluster.
+            properties:
+              failureDomains:
+                additionalProperties:
+                  description: |-
+                    FailureDomainSpec is the Schema for Cluster API failure domains.
+                    It allows controllers to understand how many failure domains a cluster can optionally span across.
+                  properties:
+                    attributes:
+                      additionalProperties:
+                        type: string
+                      description: attributes is a free form map of attributes an
+                        infrastructure provider might use or require.
+                      type: object
+                    controlPlane:
+                      description: controlPlane determines if this failure domain
+                        is suitable for use by control plane machines.
+                      type: boolean
+                  type: object
+                description: FailureDomains is a list of failure domain objects synced
+                  from the infrastructure provider.
+                type: object
+              network:
+                description: Network contains information about network resources
+                  of the cluster.
+                properties:
+                  extraLoadBalancerIPs:
+                    description: ExtraLoadBalancerIPs is a list of IPs of the extra
+                      loadbalancers.
+                    items:
+                      type: string
+                    type: array
+                  loadBalancerIP:
+                    description: LoadBalancerIP is the public IP of the cluster control-plane.
+                    type: string
+                  privateNetworkID:
+                    description: PrivateNetworkID is set if the cluster has an associated
+                      Private Network.
+                    type: string
+                  publicGatewayIDs:
+                    description: PublicGatewayIDs is a list of Public Gateway IDs.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              ready:
+                description: |-
+                  Ready denotes that the Scaleway cluster infrastructure is fully provisioned.
+                  NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+                  The value of this field is never updated after provisioning is completed.
+                type: boolean
             type: object
         type: object
     served: true

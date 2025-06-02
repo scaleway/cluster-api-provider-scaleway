@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	infrastructurev1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 )
 
 // ScalewayMachineReconciler reconciles a ScalewayMachine object
@@ -41,7 +41,7 @@ func (r *ScalewayMachineReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 // SetupWithManager sets up the controller with the Manager.
 func (r *ScalewayMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrastructurev1alpha1.ScalewayMachine{}).
+		For(&infrav1.ScalewayMachine{}).
 		Named("scalewaymachine").
 		Complete(r)
 }

@@ -24,6 +24,8 @@ type ScalewayMachineStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:path=scalewaymachines,scope=Namespaced,categories=cluster-api,shortName=sm
+// +kubebuilder:storageversion
 
 // ScalewayMachine is the Schema for the scalewaymachines API.
 type ScalewayMachine struct {

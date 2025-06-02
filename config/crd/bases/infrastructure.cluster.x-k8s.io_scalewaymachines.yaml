@@ -8,9 +8,13 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: ScalewayMachine
     listKind: ScalewayMachineList
     plural: scalewaymachines
+    shortNames:
+    - sm
     singular: scalewaymachine
   scope: Namespaced
   versions:

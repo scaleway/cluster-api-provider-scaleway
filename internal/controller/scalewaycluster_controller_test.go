@@ -11,7 +11,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	infrastructurev1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
 var _ = Describe("ScalewayCluster Controller", func() {
@@ -22,28 +23,29 @@ var _ = Describe("ScalewayCluster Controller", func() {
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
+			Namespace: "default",
 		}
-		scalewaycluster := &infrastructurev1alpha1.ScalewayCluster{}
+		scalewaycluster := &infrav1.ScalewayCluster{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind ScalewayCluster")
 			err := k8sClient.Get(ctx, typeNamespacedName, scalewaycluster)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &infrastructurev1alpha1.ScalewayCluster{
+				resource := &infrav1.ScalewayCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: infrav1.ScalewayClusterSpec{
+						Region: string(scw.RegionFrPar),
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 		})
 
 		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &infrastructurev1alpha1.ScalewayCluster{}
+			resource := &infrav1.ScalewayCluster{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -53,16 +55,14 @@ var _ = Describe("ScalewayCluster Controller", func() {
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &ScalewayClusterReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:                       k8sClient,
+				createScalewayClusterService: newScalewayClusterService,
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
 		})
 	})
 })
