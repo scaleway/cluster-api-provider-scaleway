@@ -8,8 +8,8 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
-// DesiredResourceListManager is an interface for managing a list of desired resources.
-type DesiredResourceListManager[D, R any] interface {
+// ResourceReconciler defines a set of methods for managing resources in a desired state.
+type ResourceReconciler[D, R any] interface {
 	// ListResources lists the resources that currently exist.
 	ListResources(ctx context.Context) ([]R, error)
 	// DeleteResource deletes a resource.
@@ -34,24 +34,24 @@ type DesiredResourceListManager[D, R any] interface {
 	ShouldKeepResource(resource R, desired D) bool
 }
 
-// DesiredResourceListEnsure contains a DesiredResourceListManager.
-type DesiredResourceListEnsure[D, R any] struct {
-	DesiredResourceListManager[D, R]
+// ResourceEnsurer is a utility that ensures a list of desired resources
+type ResourceEnsurer[D, R any] struct {
+	ResourceReconciler[D, R]
 }
 
 // Do ensures that the desired resources are provisioned. It also removes orphan resources.
-func (drle *DesiredResourceListEnsure[D, R]) Do(ctx context.Context, desired []D) ([]R, error) {
-	desiredResourcesByZone, err := drle.indexDesiredResourcesByZone(desired)
+func (e *ResourceEnsurer[D, R]) Do(ctx context.Context, desired []D) ([]R, error) {
+	desiredResourcesByZone, err := e.indexDesiredResourcesByZone(desired)
 	if err != nil {
 		return nil, err
 	}
 
-	existingResources, err := drle.ensureExistingResources(ctx, desiredResourcesByZone)
+	existingResources, err := e.ensureExistingResources(ctx, desiredResourcesByZone)
 	if err != nil {
 		return nil, err
 	}
 
-	createdResources, err := drle.createMissingResources(ctx, existingResources, desiredResourcesByZone)
+	createdResources, err := e.createMissingResources(ctx, existingResources, desiredResourcesByZone)
 	if err != nil {
 		return nil, err
 	}
@@ -60,11 +60,11 @@ func (drle *DesiredResourceListEnsure[D, R]) Do(ctx context.Context, desired []D
 }
 
 // indexDesiredResourcesByZone indexes desired resources by zone.
-func (drle *DesiredResourceListEnsure[D, R]) indexDesiredResourcesByZone(desired []D) (map[scw.Zone][]D, error) {
+func (e *ResourceEnsurer[D, R]) indexDesiredResourcesByZone(desired []D) (map[scw.Zone][]D, error) {
 	desiredResourcesByZone := make(map[scw.Zone][]D)
 
 	for _, d := range desired {
-		zone, err := drle.GetDesiredZone(d)
+		zone, err := e.GetDesiredZone(d)
 		if err != nil {
 			return nil, err
 		}
@@ -77,11 +77,11 @@ func (drle *DesiredResourceListEnsure[D, R]) indexDesiredResourcesByZone(desired
 
 // ensureExistingResources lists existing infra and removes everything that doesn't
 // match currently desired resources.
-func (drle *DesiredResourceListEnsure[D, R]) ensureExistingResources(
+func (e *ResourceEnsurer[D, R]) ensureExistingResources(
 	ctx context.Context,
 	desiredResourcesByZone map[scw.Zone][]D,
 ) ([]R, error) {
-	resources, err := drle.ListResources(ctx)
+	resources, err := e.ListResources(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,18 +91,18 @@ func (drle *DesiredResourceListEnsure[D, R]) ensureExistingResources(
 	for _, resource := range resources {
 		keep := false
 
-		for i, desiredResource := range desiredResourcesByZone[drle.GetResourceZone(resource)] {
-			if drle.GetResourceName(resource) != drle.GetDesiredResourceName(i) {
+		for i, desiredResource := range desiredResourcesByZone[e.GetResourceZone(resource)] {
+			if e.GetResourceName(resource) != e.GetDesiredResourceName(i) {
 				continue
 			}
 
-			if !drle.ShouldKeepResource(resource, desiredResource) {
+			if !e.ShouldKeepResource(resource, desiredResource) {
 				continue
 			}
 
 			keep = true
 
-			resource, err = drle.UpdateResource(ctx, resource, desiredResource)
+			resource, err = e.UpdateResource(ctx, resource, desiredResource)
 			if err != nil {
 				return nil, fmt.Errorf("failed to update resource: %w", err)
 			}
@@ -111,7 +111,7 @@ func (drle *DesiredResourceListEnsure[D, R]) ensureExistingResources(
 		}
 
 		if !keep {
-			if err := drle.DeleteResource(ctx, resource); err != nil {
+			if err := e.DeleteResource(ctx, resource); err != nil {
 				return nil, fmt.Errorf("failed to delete resource: %w", err)
 			}
 
@@ -124,7 +124,7 @@ func (drle *DesiredResourceListEnsure[D, R]) ensureExistingResources(
 	return keptResources, nil
 }
 
-func (drle *DesiredResourceListEnsure[D, R]) createMissingResources(
+func (e *ResourceEnsurer[D, R]) createMissingResources(
 	ctx context.Context,
 	existingResources []R,
 	desiredResourcesByZone map[scw.Zone][]D,
@@ -133,16 +133,16 @@ func (drle *DesiredResourceListEnsure[D, R]) createMissingResources(
 
 	for zone, desiredResources := range desiredResourcesByZone {
 		for i, desiredResource := range desiredResources {
-			desiredName := drle.GetDesiredResourceName(i)
+			desiredName := e.GetDesiredResourceName(i)
 
 			// Skip if desired resource currently exists among existing resources.
 			if slices.ContainsFunc(existingResources, func(resource R) bool {
-				return desiredName == drle.GetResourceName(resource) && drle.GetResourceZone(resource) == zone
+				return desiredName == e.GetResourceName(resource) && e.GetResourceZone(resource) == zone
 			}) {
 				continue
 			}
 
-			resource, err := drle.CreateResource(ctx, zone, desiredName, desiredResource)
+			resource, err := e.CreateResource(ctx, zone, desiredName, desiredResource)
 			if err != nil {
 				return nil, err
 			}

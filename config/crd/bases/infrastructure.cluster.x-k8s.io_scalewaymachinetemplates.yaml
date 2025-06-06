@@ -56,11 +56,94 @@ spec:
                     description: ScalewayMachineSpec defines the desired state of
                       ScalewayMachine.
                     properties:
-                      foo:
-                        description: Foo is an example field of ScalewayMachine. Edit
-                          scalewaymachine_types.go to remove/update
+                      commercialType:
+                        default: PRO2-S
+                        description: CommercialType of instance (e.g. PRO2-S).
                         type: string
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                      image:
+                        description: Image ID, Name or Label to use to create the
+                          instance.
+                        properties:
+                          id:
+                            description: ID of the image.
+                            type: string
+                          label:
+                            description: Label of the image.
+                            type: string
+                          name:
+                            description: Name of the image.
+                            type: string
+                        type: object
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                        - message: exactly one of id, name or label must be set
+                          rule: '(has(self.id) ? 1 : 0) + (has(self.name) ? 1 : 0)
+                            + (has(self.label) ? 1 : 0) == 1'
+                      providerID:
+                        description: ProviderID must match the provider ID as seen
+                          on the node object corresponding to this machine.
+                        type: string
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                      publicNetwork:
+                        description: PublicNetwork allows attaching public IPs to
+                          the instance.
+                        properties:
+                          enableIPv4:
+                            description: EnableIPv4 defines whether server has IPv4
+                              address enabled.
+                            type: boolean
+                          enableIPv6:
+                            description: EnableIPv6 defines whether server has IPv6
+                              addresses enabled.
+                            type: boolean
+                        type: object
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                      rootVolume:
+                        description: RootVolume defines the characteristics of the
+                          system (root) volume.
+                        properties:
+                          iops:
+                            description: IOPS is the number of IOPS requested for
+                              the disk. This is only applicable for block volumes.
+                            format: int64
+                            type: integer
+                          size:
+                            default: 20
+                            description: Size of the root volume in GB. Defaults to
+                              20 GB.
+                            format: int64
+                            minimum: 8
+                            type: integer
+                          type:
+                            default: block
+                            description: |-
+                              Type of the root volume. Can be local or block. Note that not all types
+                              of instances support local volumes.
+                            enum:
+                            - local
+                            - block
+                            type: string
+                        type: object
+                        x-kubernetes-validations:
+                        - message: Value is immutable
+                          rule: self == oldSelf
+                    required:
+                    - commercialType
+                    - image
                     type: object
+                    x-kubernetes-validations:
+                    - message: rootVolume cannot be added or removed
+                      rule: has(self.rootVolume) == has(oldSelf.rootVolume)
+                    - message: publicNetwork cannot be added or removed
+                      rule: has(self.publicNetwork) == has(oldSelf.publicNetwork)
                 required:
                 - spec
                 type: object

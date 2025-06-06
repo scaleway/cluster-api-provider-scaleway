@@ -457,3 +457,35 @@ func (c *Client) UpdateLBACL(
 
 	return nil
 }
+
+func (c *Client) RemoveBackendServer(ctx context.Context, zone scw.Zone, backendID, ip string) error {
+	if err := c.validateZone(c.lb, zone); err != nil {
+		return err
+	}
+
+	if _, err := c.lb.RemoveBackendServers(&lb.ZonedAPIRemoveBackendServersRequest{
+		Zone:      zone,
+		BackendID: backendID,
+		ServerIP:  []string{ip},
+	}, scw.WithContext(ctx)); err != nil {
+		return newCallError("RemoveBackendServers", err)
+	}
+
+	return nil
+}
+
+func (c *Client) AddBackendServer(ctx context.Context, zone scw.Zone, backendID, ip string) error {
+	if err := c.validateZone(c.lb, zone); err != nil {
+		return err
+	}
+
+	if _, err := c.lb.AddBackendServers(&lb.ZonedAPIAddBackendServersRequest{
+		Zone:      zone,
+		BackendID: backendID,
+		ServerIP:  []string{ip},
+	}, scw.WithContext(ctx)); err != nil {
+		return newCallError("AddBackendServers", err)
+	}
+
+	return nil
+}

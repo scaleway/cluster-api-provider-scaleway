@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
 var _ = Describe("ScalewayMachine Controller", func() {
@@ -35,7 +36,11 @@ var _ = Describe("ScalewayMachine Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: infrav1.ScalewayMachineSpec{
+						Image: infrav1.ImageSpec{
+							Label: scw.StringPtr("ubuntu_focal"),
+						},
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
@@ -53,8 +58,8 @@ var _ = Describe("ScalewayMachine Controller", func() {
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &ScalewayMachineReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:                       k8sClient,
+				createScalewayMachineService: newScalewayMachineService,
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{

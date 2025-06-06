@@ -192,10 +192,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayCluster")
 		os.Exit(1)
 	}
-	if err = (&controller.ScalewayMachineReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	if err = controller.NewScalewayMachineReconciler(mgr.GetClient()).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayMachine")
 		os.Exit(1)
 	}

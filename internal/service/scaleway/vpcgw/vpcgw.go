@@ -40,8 +40,8 @@ func (s *Service) ensureGateways(ctx context.Context, delete bool) ([]*vpcgw.Gat
 		desired = s.ScalewayCluster.Spec.Network.PublicGateways
 	}
 
-	drle := &common.DesiredResourceListEnsure[infrav1.PublicGatewaySpec, *vpcgw.Gateway]{
-		DesiredResourceListManager: &desiredResourceListManager{s.Cluster},
+	drle := &common.ResourceEnsurer[infrav1.PublicGatewaySpec, *vpcgw.Gateway]{
+		ResourceReconciler: &desiredResourceListManager{s.Cluster},
 	}
 	return drle.Do(ctx, desired)
 }

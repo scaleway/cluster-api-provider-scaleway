@@ -39,6 +39,8 @@ linters:
           alias: apierrors
         - pkg: k8s.io/apimachinery/pkg/util/errors
           alias: utilerrors
+        - pkg: github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb/util
+          alias: lbutil
   exclusions:
     generated: lax
     rules:

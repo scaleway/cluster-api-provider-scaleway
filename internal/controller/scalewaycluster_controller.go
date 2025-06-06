@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
@@ -63,11 +62,11 @@ func (r *ScalewayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, scalewayCluster.ObjectMeta)
 	if err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 	if cluster == nil {
 		log.Info("Cluster Controller has not yet set OwnerRef")
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	log = log.WithValues("cluster", cluster.Name)
@@ -79,7 +78,7 @@ func (r *ScalewayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		ScalewayCluster: scalewayCluster,
 	})
 	if err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	defer func() {
@@ -112,18 +111,18 @@ func (r *ScalewayClusterReconciler) reconcileDelete(ctx context.Context, cluster
 		if errors.As(err, &reconcileError) {
 			if reconcileError.IsTransient() {
 				log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayCluster, retrying: %s", reconcileError.Error()))
-				return reconcile.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
+				return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
 			}
 		}
 
-		return reconcile.Result{}, fmt.Errorf("failed to delete cluster services: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to delete cluster services: %w", err)
 	}
 
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(scalewayCluster, infrav1.ClusterFinalizer)
 
 	if err := r.releaseScalewaySecret(ctx, scalewayCluster); err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -138,7 +137,7 @@ func (r *ScalewayClusterReconciler) reconcileNormal(ctx context.Context, cluster
 	// Register our finalizer immediately to avoid orphaning Scaleway resources on delete
 	if controllerutil.AddFinalizer(scalewayCluster, infrav1.ClusterFinalizer) {
 		if err := clusterScope.PatchObject(ctx); err != nil {
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -148,14 +147,14 @@ func (r *ScalewayClusterReconciler) reconcileNormal(ctx context.Context, cluster
 		if errors.As(err, &reconcileError) {
 			if reconcileError.IsTerminal() {
 				log.Error(err, "Failed to reconcile ScalewayCluster")
-				return reconcile.Result{}, nil
+				return ctrl.Result{}, nil
 			} else if reconcileError.IsTransient() {
 				log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayCluster, retrying: %s", reconcileError.Error()))
-				return reconcile.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
+				return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
 			}
 		}
 
-		return reconcile.Result{}, fmt.Errorf("failed to reconcile cluster services: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile cluster services: %w", err)
 	}
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull them

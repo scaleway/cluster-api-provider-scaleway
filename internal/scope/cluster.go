@@ -25,6 +25,7 @@ const defaultFrontendControlPlanePort = 6443
 type Cluster struct {
 	patchHelper *patch.Helper
 
+	Cluster         *clusterv1.Cluster
 	ScalewayCluster *infrav1.ScalewayCluster
 	ScalewayClient  *scwClient.Client
 }
@@ -65,6 +66,7 @@ func NewCluster(ctx context.Context, params *ClusterParams) (*Cluster, error) {
 		patchHelper:     helper,
 		ScalewayCluster: params.ScalewayCluster,
 		ScalewayClient:  c,
+		Cluster:         params.Cluster,
 	}, nil
 }
 
@@ -89,13 +91,13 @@ func (c *Cluster) ResourceName(suffixes ...string) string {
 		name.WriteString(suffix)
 	}
 
-	return name.String()
+	return truncateString(name.String())
 }
 
 // ResourceTags returns the tags that resources created for the cluster should have.
 // It is possible to provide additional tags that will be added to the default tags.
 func (c *Cluster) ResourceTags(additional ...string) []string {
-	return append([]string{fmt.Sprintf("caps-cluster=%s", c.ScalewayCluster.Name)}, additional...)
+	return append([]string{fmt.Sprintf("caps-scalewaycluster=%s", c.ScalewayCluster.Name)}, additional...)
 }
 
 // HasPrivateNetwork returns true if the cluster has a Private Network.

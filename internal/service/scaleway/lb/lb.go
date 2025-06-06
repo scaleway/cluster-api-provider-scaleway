@@ -16,6 +16,7 @@ import (
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/common"
+	lbutil "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb/util"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -23,9 +24,6 @@ import (
 )
 
 const (
-	// lbDefaultType is the default type of LB to be created if no type is provided by user.
-	lbDefaultType = "LB-S"
-
 	// LB Tags.
 	capsMainLBTag    = "caps-loadbalancer=main"
 	capsExtraLBTag   = "caps-loadbalancer=extra"
@@ -146,27 +144,13 @@ func checkLBsReadiness(lbs []*lb.LB) error {
 	return nil
 }
 
-func getLBSpec(c *client.Client, spec infrav1.LoadBalancerSpec) (zone scw.Zone, lbType string, err error) {
-	zone, err = c.GetZoneOrDefault(spec.Zone)
-	if err != nil {
-		return
-	}
-
-	lbType = lbDefaultType
-	if spec.Type != nil {
-		lbType = *spec.Type
-	}
-
-	return
-}
-
 func (s *Service) ensureLB(ctx context.Context) (*lb.LB, error) {
 	var spec infrav1.LoadBalancerSpec
 	if s.ScalewayCluster.Spec.Network != nil && s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer != nil {
 		spec = s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.LoadBalancerSpec
 	}
 
-	zone, lbType, err := getLBSpec(s.ScalewayClient, spec)
+	zone, lbType, err := lbutil.LBSpec(s.ScalewayClient, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +198,7 @@ func (s *Service) ensureDeleteLB(ctx context.Context) error {
 		spec = s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.LoadBalancerSpec
 	}
 
-	zone, _, err := getLBSpec(s.ScalewayClient, spec)
+	zone, _, err := lbutil.LBSpec(s.ScalewayClient, spec)
 	if err != nil {
 		// If there is an error here, we can assume that no infra was created so there
 		// is nothing to delete.
@@ -260,8 +244,8 @@ func (s *Service) ensureExtraLBs(ctx context.Context, delete bool) ([]*lb.LB, er
 		desired = s.ScalewayCluster.Spec.Network.ControlPlaneExtraLoadBalancers
 	}
 
-	drle := &common.DesiredResourceListEnsure[infrav1.LoadBalancerSpec, *lb.LB]{
-		DesiredResourceListManager: &desiredResourceListManager{s.Cluster},
+	drle := &common.ResourceEnsurer[infrav1.LoadBalancerSpec, *lb.LB]{
+		ResourceReconciler: &desiredResourceListManager{s.Cluster},
 	}
 	return drle.Do(ctx, desired)
 }
@@ -331,7 +315,7 @@ func (d *desiredResourceListManager) CreateResource(
 	name string,
 	desired infrav1.LoadBalancerSpec,
 ) (*lb.LB, error) {
-	_, lbType, err := getLBSpec(d.ScalewayClient, desired)
+	_, lbType, err := lbutil.LBSpec(d.ScalewayClient, desired)
 	if err != nil {
 		return nil, err
 	}
@@ -547,7 +531,7 @@ func (s *Service) ensureACLs(
 				return fmt.Errorf("failed to list ACLs for extra LB: %w", err)
 			}
 
-			if aclEqual(mainLBACLs, extraLBACLs) {
+			if lbutil.ACLEqual(mainLBACLs, extraLBACLs) {
 				continue
 			}
 
@@ -598,7 +582,7 @@ func (s *Service) ensureACL(
 	}
 
 	// Update ACL if ips are different.
-	if acl.Match == nil || !ipsEqual(scw.StringSlicePtr(ips), acl.Match.IPSubnet) {
+	if acl.Match == nil || !lbutil.IPsEqual(scw.StringSlicePtr(ips), acl.Match.IPSubnet) {
 		return s.ScalewayClient.UpdateLBACL(ctx, frontend.LB.Zone, acl.ID, name, index, action, ips)
 	}
 
@@ -619,73 +603,4 @@ func aclsToACLSpecs(acls []*lb.ACL) []*lb.ACLSpec {
 	}
 
 	return specs
-}
-
-func compareACLs(a, b *lb.ACL) int {
-	return strings.Compare(a.Name, b.Name)
-}
-
-func removePtr[T any](list []*T) []T {
-	result := make([]T, 0, len(list))
-
-	for _, l := range list {
-		result = append(result, *l)
-	}
-
-	return result
-}
-
-func ipsEqual(a, b []*string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	sortedA := slices.Sorted(slices.Values(removePtr(a)))
-	sortedB := slices.Sorted(slices.Values(removePtr(b)))
-
-	for i, a := range sortedA {
-		if a != sortedB[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
-func aclEqual(a, b []*lb.ACL) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	// Sort both lists by name
-	slices.SortFunc(a, compareACLs)
-	slices.SortFunc(b, compareACLs)
-
-	for i, acl := range a {
-		if acl.Name != b[i].Name {
-			return false
-		}
-
-		if acl.Index != b[i].Index {
-			return false
-		}
-
-		if (acl.Action == nil) != (b[i].Action == nil) {
-			return false
-		}
-
-		if acl.Action != nil && b[i].Action != nil && acl.Action.Type != b[i].Action.Type {
-			return false
-		}
-
-		if (acl.Match == nil) != (b[i].Match == nil) {
-			return false
-		}
-
-		if acl.Match != nil && b[i].Match != nil && !ipsEqual(acl.Match.IPSubnet, b[i].Match.IPSubnet) {
-			return false
-		}
-	}
-
-	return true
 }

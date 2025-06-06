@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/scaleway/scaleway-sdk-go/api/block/v1"
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
+	"github.com/scaleway/scaleway-sdk-go/api/ipam/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
+	"github.com/scaleway/scaleway-sdk-go/api/marketplace/v2"
 	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
@@ -20,11 +23,14 @@ type Client struct {
 	region    scw.Region
 
 	// Product APIs
-	vpc      *vpc.API
-	vpcgw    *vpcgw.API
-	lb       *lb.ZonedAPI
-	domain   *domain.API
-	instance *instance.API
+	vpc         *vpc.API
+	vpcgw       *vpcgw.API
+	lb          *lb.ZonedAPI
+	domain      *domain.API
+	instance    *instance.API
+	block       *block.API
+	marketplace *marketplace.API
+	ipam        *ipam.API
 }
 
 // New returns a new Scaleway client based on the provided region and secretData.
@@ -62,13 +68,16 @@ func New(region scw.Region, secretData map[string][]byte) (*Client, error) {
 	}
 
 	return &Client{
-		projectID: projectID,
-		region:    region,
-		vpc:       vpc.NewAPI(client),
-		vpcgw:     vpcgw.NewAPI(client),
-		lb:        lb.NewZonedAPI(client),
-		domain:    domain.NewAPI(client),
-		instance:  instance.NewAPI(client),
+		projectID:   projectID,
+		region:      region,
+		vpc:         vpc.NewAPI(client),
+		vpcgw:       vpcgw.NewAPI(client),
+		lb:          lb.NewZonedAPI(client),
+		domain:      domain.NewAPI(client),
+		instance:    instance.NewAPI(client),
+		block:       block.NewAPI(client),
+		marketplace: marketplace.NewAPI(client),
+		ipam:        ipam.NewAPI(client),
 	}, nil
 }
 
