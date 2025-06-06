@@ -109,7 +109,7 @@ type desiredResourceListManager struct {
 }
 
 func (d *desiredResourceListManager) ListResources(ctx context.Context) ([]*vpcgw.Gateway, error) {
-	return d.ScalewayClient.FindGateways(ctx, d.ResourceName(), d.ResourceTags())
+	return d.ScalewayClient.FindGateways(ctx, d.ResourceTags())
 }
 
 func (d *desiredResourceListManager) DeleteResource(ctx context.Context, resource *vpcgw.Gateway) error {

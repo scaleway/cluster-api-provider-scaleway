@@ -3,16 +3,18 @@ package client
 import (
 	"context"
 	"slices"
-	"strings"
 
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
-func (c *Client) FindGateways(ctx context.Context, prefix string, tags []string) ([]*vpcgw.Gateway, error) {
+func (c *Client) FindGateways(ctx context.Context, tags []string) ([]*vpcgw.Gateway, error) {
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.vpcgw.ListGateways(&vpcgw.ListGatewaysRequest{
 		Zone:      scw.ZoneFrPar1, // Dummy value, refer to the scw.WithZones option.
-		Name:      &prefix,
 		ProjectID: &c.projectID,
 		Tags:      tags,
 	}, scw.WithContext(ctx), scw.WithAllPages(), scw.WithZones(c.productZones(c.vpcgw)...))
@@ -20,9 +22,9 @@ func (c *Client) FindGateways(ctx context.Context, prefix string, tags []string)
 		return nil, newCallError("ListGateways", err)
 	}
 
-	// Filter out Gateways that don't have the right prefix or tags.
+	// Filter out Gateways that don't have the right tags.
 	gws := slices.DeleteFunc(resp.Gateways, func(gw *vpcgw.Gateway) bool {
-		return !strings.HasPrefix(gw.Name, prefix) || !matchTags(gw.Tags, tags)
+		return !matchTags(gw.Tags, tags)
 	})
 
 	return gws, nil
@@ -81,7 +83,7 @@ func (c *Client) CreateGateway(
 	gateway, err := c.vpcgw.CreateGateway(&vpcgw.CreateGatewayRequest{
 		Zone: zone,
 		Name: name,
-		Tags: tags,
+		Tags: append(tags, createdByTag),
 		Type: gwType,
 		IPID: ipID,
 	}, scw.WithContext(ctx))

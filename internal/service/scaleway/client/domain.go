@@ -51,7 +51,7 @@ func (c *Client) SetDNSZoneRecords(ctx context.Context, zone, name string, ips [
 			Priority: 0,
 			TTL:      60,
 			Type:     domain.RecordTypeA,
-			Comment:  scw.StringPtr("Created by cluster-api-provider-scaleway"),
+			Comment:  scw.StringPtr(createdByDescription),
 		})
 	}
 

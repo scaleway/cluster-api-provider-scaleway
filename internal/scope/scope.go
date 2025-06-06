@@ -1,15 +1,12 @@
 package scope
 
-// maxResourceNameLen is the maximum length a Scaleway resource name should have.
-const maxResourceNameLen = 128
-
-// truncateString shortens a string to a maximum of 128 characters.
+// truncateString shortens a string to a maximum of maxLen characters.
 // If the string exceeds this length, it replaces the middle portion
 // with a single dash, preserving characters from the start and end.
-func truncateString(s string) string {
-	if len(s) <= maxResourceNameLen {
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
 		return s
 	}
-	n := (maxResourceNameLen - 1) / 2
-	return s[:n] + "-" + s[len(s)-(maxResourceNameLen-1-n):]
+	n := (maxLen - 1) / 2
+	return s[:n] + "-" + s[len(s)-(maxLen-1-n):]
 }

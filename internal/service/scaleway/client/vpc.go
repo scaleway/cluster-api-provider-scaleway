@@ -10,11 +10,15 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
-// FindPrivateNetwork finds an existing Private Network by name.
+// FindPrivateNetwork finds an existing Private Network by tags.
 // It returns ErrNoItemFound if no matching Private Network is found.
-func (c *Client) FindPrivateNetwork(ctx context.Context, name string, vpcID *string) (*vpc.PrivateNetwork, error) {
+func (c *Client) FindPrivateNetwork(ctx context.Context, tags []string, vpcID *string) (*vpc.PrivateNetwork, error) {
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.vpc.ListPrivateNetworks(&vpc.ListPrivateNetworksRequest{
-		Name:      scw.StringPtr(name),
+		Tags:      tags,
 		ProjectID: &c.projectID,
 		VpcID:     vpcID,
 	}, scw.WithContext(ctx), scw.WithAllPages())
@@ -22,9 +26,9 @@ func (c *Client) FindPrivateNetwork(ctx context.Context, name string, vpcID *str
 		return nil, newCallError("ListPrivateNetworks", err)
 	}
 
-	// Filter out all Private Networks that have the wrong name.
+	// Filter out all Private Networks that have the wrong tags.
 	pns := slices.DeleteFunc(resp.PrivateNetworks, func(pn *vpc.PrivateNetwork) bool {
-		return pn.Name != name
+		return !matchTags(pn.Tags, tags)
 	})
 
 	switch len(pns) {
@@ -33,7 +37,7 @@ func (c *Client) FindPrivateNetwork(ctx context.Context, name string, vpcID *str
 	case 1:
 		return pns[0], nil
 	default:
-		return nil, fmt.Errorf("%w: found %d PrivateNetworks with name %s", ErrTooManyItemsFound, len(pns), name)
+		return nil, fmt.Errorf("%w: found %d PrivateNetworks with tags %s", ErrTooManyItemsFound, len(pns), tags)
 	}
 }
 
@@ -56,7 +60,7 @@ func (c *Client) CreatePrivateNetwork(
 	params := &vpc.CreatePrivateNetworkRequest{
 		Name:  name,
 		VpcID: vpcID,
-		Tags:  tags,
+		Tags:  append(tags, createdByTag),
 	}
 
 	if subnet != nil {

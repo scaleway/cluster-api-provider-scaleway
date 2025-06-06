@@ -32,7 +32,7 @@ func (s *Service) Delete(ctx context.Context) error {
 
 	pn, err := s.ScalewayClient.FindPrivateNetwork(
 		ctx,
-		s.ResourceName(),
+		s.ResourceTags(),
 		s.ScalewayCluster.Spec.Network.PrivateNetwork.VPCID,
 	)
 	if err != nil {
@@ -48,7 +48,7 @@ func (s *Service) Delete(ctx context.Context) error {
 		// from the Private Network. As a result, we need to handle this error:
 		// scaleway-sdk-go: precondition failed: resource is still in use, Private Network must be empty to be deleted
 		if client.IsPreconditionFailedError(err) {
-			return scaleway.WithTransientError(err, time.Second)
+			return scaleway.WithTransientError(err, 5*time.Second)
 		}
 
 		return fmt.Errorf("failed to delete Private Network: %w", err)
@@ -59,6 +59,12 @@ func (s *Service) Delete(ctx context.Context) error {
 
 func (s *Service) Reconcile(ctx context.Context) error {
 	if !s.HasPrivateNetwork() {
+		return nil
+	}
+
+	if s.ScalewayCluster.Status.Network != nil &&
+		s.ScalewayCluster.Status.Network.PrivateNetworkID != nil {
+		// If the Private Network is already set in the status, we don't need to do anything.
 		return nil
 	}
 
@@ -83,7 +89,7 @@ func (s *Service) Reconcile(ctx context.Context) error {
 func (s *Service) getOrCreatePN(ctx context.Context) (*vpc.PrivateNetwork, error) {
 	pn, err := s.ScalewayClient.FindPrivateNetwork(
 		ctx,
-		s.ResourceName(),
+		s.ResourceTags(),
 		s.ScalewayCluster.Spec.Network.PrivateNetwork.VPCID,
 	)
 	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {

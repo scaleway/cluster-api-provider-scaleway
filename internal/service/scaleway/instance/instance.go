@@ -11,6 +11,7 @@ import (
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
+	servicelb "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb"
 	lbutil "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb/util"
 	"github.com/scaleway/scaleway-sdk-go/api/block/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
@@ -112,7 +113,7 @@ func (s *Service) Delete(ctx context.Context) error {
 		return nil
 	}
 
-	server, err := s.ScalewayClient.FindServer(ctx, zone, s.ResourceName())
+	server, err := s.ScalewayClient.FindServer(ctx, zone, s.ResourceTags())
 	if err != nil {
 		if client.IsNotFoundError(err) {
 			return nil
@@ -170,7 +171,7 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 		return nil, err
 	}
 
-	if server, err := s.ScalewayClient.FindServer(ctx, zone, s.ResourceName()); err == nil {
+	if server, err := s.ScalewayClient.FindServer(ctx, zone, s.ResourceTags()); err == nil {
 		return server, nil
 	} else if !client.IsNotFoundError(err) {
 		return nil, err
@@ -389,12 +390,12 @@ func (s *Service) findControlPlaneLBs(ctx context.Context) ([]*lb.LB, error) {
 		return nil, err
 	}
 
-	mainLB, err := s.ScalewayClient.FindLB(ctx, zone, s.Cluster.ResourceName())
+	mainLB, err := s.ScalewayClient.FindLB(ctx, zone, s.Cluster.ResourceTags(servicelb.CAPSMainLBTag))
 	if err != nil {
 		return nil, err
 	}
 
-	extraLBs, err := s.ScalewayClient.FindLBs(ctx, s.Cluster.ResourceName(), s.Cluster.ResourceTags())
+	extraLBs, err := s.ScalewayClient.FindLBs(ctx, s.Cluster.ResourceTags(servicelb.CAPSExtraLBTag))
 	if err != nil {
 		return nil, err
 	}
@@ -564,7 +565,7 @@ func (s *Service) ensureServerStopped(ctx context.Context, server *instance.Serv
 		}
 	}
 
-	return scaleway.WithTransientError(errors.New("server is not stopped yet"), 5*time.Second)
+	return scaleway.WithTransientError(errors.New("server is not stopped yet"), 10*time.Second)
 }
 
 func (s *Service) ensureNoPublicIPs(ctx context.Context, server *instance.Server) error {
@@ -616,7 +617,7 @@ func (s *Service) ensureBootVolumeDeleted(ctx context.Context, server *instance.
 
 	if volume != nil {
 		if volume.Status != block.VolumeStatusAvailable {
-			return scaleway.WithTransientError(fmt.Errorf("root block volume is not yet ready to be deleted (%s)", volume.Status), time.Second)
+			return scaleway.WithTransientError(fmt.Errorf("root block volume is not yet ready to be deleted (%s)", volume.Status), 2*time.Second)
 		}
 
 		return s.ScalewayClient.DeleteVolume(ctx, server.Zone, volume.ID)

@@ -10,23 +10,27 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
-func (c *Client) FindLB(ctx context.Context, zone scw.Zone, name string) (*lb.LB, error) {
+func (c *Client) FindLB(ctx context.Context, zone scw.Zone, tags []string) (*lb.LB, error) {
 	if err := c.validateZone(c.lb, zone); err != nil {
+		return nil, err
+	}
+
+	if err := validateTags(tags); err != nil {
 		return nil, err
 	}
 
 	resp, err := c.lb.ListLBs(&lb.ZonedAPIListLBsRequest{
 		Zone:      zone,
-		Name:      &name,
+		Tags:      tags,
 		ProjectID: &c.projectID,
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListLBs", err)
 	}
 
-	// Filter out all LBs that have the wrong name.
+	// Filter out all LBs that have the wrong tags.
 	lbs := slices.DeleteFunc(resp.LBs, func(lb *lb.LB) bool {
-		return lb.Name != name
+		return !matchTags(lb.Tags, tags)
 	})
 
 	switch len(lbs) {
@@ -35,7 +39,7 @@ func (c *Client) FindLB(ctx context.Context, zone scw.Zone, name string) (*lb.LB
 	case 1:
 		return lbs[0], nil
 	default:
-		return nil, fmt.Errorf("%w: found %d LBs with name %s", ErrTooManyItemsFound, len(lbs), name)
+		return nil, fmt.Errorf("%w: found %d LBs with tags %s", ErrTooManyItemsFound, len(lbs), tags)
 	}
 }
 
@@ -95,7 +99,8 @@ func (c *Client) CreateLB(
 		Name:               name,
 		Type:               lbType,
 		IPID:               ipID,
-		Tags:               tags,
+		Tags:               append(tags, createdByTag),
+		Description:        createdByDescription,
 		AssignFlexibleIP:   scw.BoolPtr(ipID == nil),
 		AssignFlexibleIPv6: scw.BoolPtr(false),
 	}, scw.WithContext(ctx))
@@ -122,11 +127,14 @@ func (c *Client) DeleteLB(ctx context.Context, zone scw.Zone, id string, release
 	return nil
 }
 
-func (c *Client) FindLBs(ctx context.Context, prefix string, tags []string) ([]*lb.LB, error) {
+func (c *Client) FindLBs(ctx context.Context, tags []string) ([]*lb.LB, error) {
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.lb.ListLBs(&lb.ZonedAPIListLBsRequest{
 		Zone:      scw.ZoneFrPar1, // Dummy value, refer to the scw.WithZones option.
 		ProjectID: &c.projectID,
-		Name:      scw.StringPtr(prefix),
 		Tags:      tags,
 	}, scw.WithContext(ctx), scw.WithAllPages(), scw.WithZones(c.productZones(c.lb)...))
 	if err != nil {
@@ -135,7 +143,7 @@ func (c *Client) FindLBs(ctx context.Context, prefix string, tags []string) ([]*
 
 	// Filter out LBs that don't have the right prefix or tags.
 	lbs := slices.DeleteFunc(resp.LBs, func(lb *lb.LB) bool {
-		return !strings.HasPrefix(lb.Name, prefix) || !matchTags(lb.Tags, tags)
+		return !matchTags(lb.Tags, tags)
 	})
 
 	return lbs, nil

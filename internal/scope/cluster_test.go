@@ -34,7 +34,7 @@ func TestCluster_ResourceName(t *testing.T) {
 				},
 			},
 			args: args{},
-			want: "caps-cluster-name",
+			want: "cluster-name",
 		},
 		{
 			name: "suffix provided",
@@ -46,7 +46,7 @@ func TestCluster_ResourceName(t *testing.T) {
 				},
 			},
 			args: args{suffixes: []string{"0"}},
-			want: "caps-cluster-name-0",
+			want: "cluster-name-0",
 		},
 	}
 	for _, tt := range tests {

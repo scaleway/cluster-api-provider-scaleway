@@ -15,6 +15,11 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+const (
+	createdByTag         = "created-by=cluster-api-provider-scaleway"
+	createdByDescription = "Created by cluster-api-provider-scaleway"
+)
+
 // Client is a wrapper over scaleway-sdk-go to access Scaleway Product APIs in
 // a specific region and project.
 type Client struct {
@@ -84,4 +89,12 @@ func matchTags(tags []string, wantedTags []string) bool {
 	}
 
 	return true
+}
+
+func validateTags(tags []string) error {
+	if len(tags) == 0 {
+		return fmt.Errorf("tags cannot be empty")
+	}
+
+	return nil
 }

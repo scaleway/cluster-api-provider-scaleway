@@ -25,9 +25,9 @@ import (
 
 const (
 	// LB Tags.
-	capsMainLBTag    = "caps-loadbalancer=main"
-	capsExtraLBTag   = "caps-loadbalancer=extra"
-	capsManagedIPTag = "caps-loadbalancer-ip=managed"
+	CAPSMainLBTag    = "caps-lb=main"
+	CAPSExtraLBTag   = "caps-lb=extra"
+	capsManagedIPTag = "caps-lb-ip=managed"
 
 	// Backend port, must match port of apiservers.
 	backendControlPlanePort = 6443
@@ -51,7 +51,7 @@ func New(clusterScope *scope.Cluster) *Service {
 }
 
 func (s *Service) Name() string {
-	return "loadbalancer"
+	return "lb"
 }
 
 func (s *Service) Reconcile(ctx context.Context) error {
@@ -155,7 +155,7 @@ func (s *Service) ensureLB(ctx context.Context) (*lb.LB, error) {
 		return nil, err
 	}
 
-	lb, err := s.ScalewayClient.FindLB(ctx, zone, s.ResourceName())
+	lb, err := s.ScalewayClient.FindLB(ctx, zone, s.ResourceTags(CAPSMainLBTag))
 	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func (s *Service) ensureLB(ctx context.Context) (*lb.LB, error) {
 		}
 
 		logf.FromContext(ctx).Info("Creating main LB", "zone", zone)
-		lb, err = s.ScalewayClient.CreateLB(ctx, zone, s.ResourceName(), lbType, ipID, s.ResourceTags(capsMainLBTag))
+		lb, err = s.ScalewayClient.CreateLB(ctx, zone, s.ResourceName(), lbType, ipID, s.ResourceTags(CAPSMainLBTag))
 		if err != nil {
 			return nil, err
 		}
@@ -205,7 +205,7 @@ func (s *Service) ensureDeleteLB(ctx context.Context) error {
 		return nil
 	}
 
-	lb, err := s.ScalewayClient.FindLB(ctx, zone, s.ResourceName())
+	lb, err := s.ScalewayClient.FindLB(ctx, zone, s.ResourceTags(CAPSMainLBTag))
 	if err != nil {
 		if errors.Is(err, client.ErrNoItemFound) {
 			return nil
@@ -255,7 +255,7 @@ type desiredResourceListManager struct {
 }
 
 func (d *desiredResourceListManager) ListResources(ctx context.Context) ([]*lb.LB, error) {
-	return d.ScalewayClient.FindLBs(ctx, d.ResourceName(), d.ResourceTags(capsExtraLBTag))
+	return d.ScalewayClient.FindLBs(ctx, d.ResourceTags(CAPSExtraLBTag))
 }
 
 func (d *desiredResourceListManager) DeleteResource(ctx context.Context, resource *lb.LB) error {
@@ -320,7 +320,7 @@ func (d *desiredResourceListManager) CreateResource(
 		return nil, err
 	}
 
-	tags := d.ResourceTags(capsExtraLBTag)
+	tags := d.ResourceTags(CAPSExtraLBTag)
 
 	var ipID *string
 	if desired.IP != nil {
@@ -485,7 +485,7 @@ func (s *Service) ensureACLs(
 
 	var publicGatewayIPs []string
 	if pnID != nil && s.HasPrivateNetwork() {
-		gws, err := s.ScalewayClient.FindGateways(ctx, s.ResourceName(), s.ResourceTags())
+		gws, err := s.ScalewayClient.FindGateways(ctx, s.ResourceTags())
 		if err != nil {
 			return err
 		}

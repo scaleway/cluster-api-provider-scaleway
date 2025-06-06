@@ -11,15 +11,19 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
-// FindServer finds an existing Instance server by name.
+// FindServer finds an existing Instance server by tags.
 // It returns ErrNoItemFound if no matching server is found.
-func (c *Client) FindServer(ctx context.Context, zone scw.Zone, name string) (*instance.Server, error) {
+func (c *Client) FindServer(ctx context.Context, zone scw.Zone, tags []string) (*instance.Server, error) {
 	if err := c.validateZone(c.instance, zone); err != nil {
 		return nil, err
 	}
 
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.instance.ListServers(&instance.ListServersRequest{
-		Name:    scw.StringPtr(name),
+		Tags:    tags,
 		Project: &c.projectID,
 		Zone:    zone,
 	}, scw.WithContext(ctx), scw.WithAllPages())
@@ -27,9 +31,9 @@ func (c *Client) FindServer(ctx context.Context, zone scw.Zone, name string) (*i
 		return nil, newCallError("ListServers", err)
 	}
 
-	// Filter out all servers that have the wrong name.
+	// Filter out all servers that have the wrong tags.
 	servers := slices.DeleteFunc(resp.Servers, func(server *instance.Server) bool {
-		return server.Name != name
+		return !matchTags(server.Tags, tags)
 	})
 
 	switch len(servers) {
@@ -38,7 +42,7 @@ func (c *Client) FindServer(ctx context.Context, zone scw.Zone, name string) (*i
 	case 1:
 		return servers[0], nil
 	default:
-		return nil, fmt.Errorf("%w: found %d servers with name %s", ErrTooManyItemsFound, len(servers), name)
+		return nil, fmt.Errorf("%w: found %d servers with tags %s", ErrTooManyItemsFound, len(servers), tags)
 	}
 }
 
@@ -75,7 +79,7 @@ func (c *Client) CreateServer(
 				Boot:       scw.BoolPtr(true),
 			},
 		},
-		Tags: tags,
+		Tags: append(tags, createdByTag),
 	}
 
 	if len(publicIPs) > 0 {
@@ -136,6 +140,10 @@ func (c *Client) FindIPs(ctx context.Context, zone scw.Zone, tags []string) ([]*
 		return nil, err
 	}
 
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.instance.ListIPs(&instance.ListIPsRequest{
 		Zone:    zone,
 		Project: &c.projectID,
@@ -160,7 +168,7 @@ func (c *Client) CreateIP(ctx context.Context, zone scw.Zone, ipType instance.IP
 
 	ip, err := c.instance.CreateIP(&instance.CreateIPRequest{
 		Zone: zone,
-		Tags: tags,
+		Tags: append(tags, createdByTag),
 		Type: ipType,
 	}, scw.WithContext(ctx))
 	if err != nil {
@@ -194,6 +202,7 @@ func (c *Client) CreatePrivateNIC(ctx context.Context, zone scw.Zone, serverID, 
 		Zone:             zone,
 		ServerID:         serverID,
 		PrivateNetworkID: privateNetworkID,
+		Tags:             []string{createdByTag},
 	}, scw.WithContext(ctx))
 	if err != nil {
 		return nil, newCallError("CreatePrivateNIC", err)
@@ -300,6 +309,10 @@ func (c *Client) UpdateInstanceVolumeTags(ctx context.Context, zone scw.Zone, vo
 
 func (c *Client) FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []string) (*instance.Volume, error) {
 	if err := c.validateZone(c.instance, zone); err != nil {
+		return nil, err
+	}
+
+	if err := validateTags(tags); err != nil {
 		return nil, err
 	}
 

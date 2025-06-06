@@ -46,6 +46,10 @@ func (c *Client) FindVolume(ctx context.Context, zone scw.Zone, tags []string) (
 		return nil, err
 	}
 
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+
 	resp, err := c.block.ListVolumes(&block.ListVolumesRequest{
 		Zone: zone,
 		Tags: tags,

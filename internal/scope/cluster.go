@@ -83,15 +83,7 @@ func (c *Cluster) Close(ctx context.Context) error {
 // ResourceNameName returns the name/prefix that resources created for the cluster should have.
 // It is possible to provide additional suffixes that will be appended to the name with a leading "-".
 func (c *Cluster) ResourceName(suffixes ...string) string {
-	name := strings.Builder{}
-	name.WriteString("caps")
-
-	for _, suffix := range append([]string{c.ScalewayCluster.Name}, suffixes...) {
-		name.WriteString("-")
-		name.WriteString(suffix)
-	}
-
-	return truncateString(name.String())
+	return truncateString(strings.Join(append([]string{c.ScalewayCluster.Name}, suffixes...), "-"), 128)
 }
 
 // ResourceTags returns the tags that resources created for the cluster should have.

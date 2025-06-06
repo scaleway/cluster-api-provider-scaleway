@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
-	"strings"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
@@ -73,28 +71,14 @@ func (m *Machine) Close(ctx context.Context) error {
 	return m.PatchObject(ctx)
 }
 
-// ResourceNameName returns the name/prefix that resources created for the machine should have.
-// It is possible to provide additional suffixes that will be appended to the name with a leading "-".
-func (m *Machine) ResourceName(suffixes ...string) string {
-	name := strings.Builder{}
-	name.WriteString("caps")
-
-	for _, suffix := range append([]string{m.ScalewayMachine.Name}, suffixes...) {
-		name.WriteString("-")
-		name.WriteString(suffix)
-	}
-
-	return truncateString(name.String())
+// ResourceNameName returns the name that resources created for the machine should have.
+func (m *Machine) ResourceName() string {
+	return truncateString(m.ScalewayMachine.Name, 63)
 }
 
 // ResourceTags returns the tags that resources created for the machine should have.
-// It is possible to provide additional tags that will be added to the default tags.
-func (m *Machine) ResourceTags(additional ...string) []string {
-	return slices.Concat(
-		m.Cluster.ResourceTags(),
-		[]string{fmt.Sprintf("caps-scalewaymachine=%s", m.ScalewayMachine.Name)},
-		additional,
-	)
+func (m *Machine) ResourceTags() []string {
+	return append(m.Cluster.ResourceTags(), fmt.Sprintf("caps-scalewaymachine=%s", m.ScalewayMachine.Name))
 }
 
 // Zone returns the zone of the machine.
