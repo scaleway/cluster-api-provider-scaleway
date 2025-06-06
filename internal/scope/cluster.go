@@ -52,7 +52,7 @@ func NewCluster(ctx context.Context, params *ClusterParams) (*Cluster, error) {
 		return nil, fmt.Errorf("failed to get ScalewaySecret: %w", err)
 	}
 
-	c, err := scwClient.New(region, secret.Data)
+	c, err := scwClient.New(region, params.ScalewayCluster.Spec.ProjectID, secret.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Scaleway client from ScalewaySecret: %w", err)
 	}

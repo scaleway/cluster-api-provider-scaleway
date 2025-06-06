@@ -10,10 +10,14 @@ const ClusterFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sc-pro
 // ScalewayClusterSpec defines the desired state of ScalewayCluster.
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.controlPlaneEndpoint) || has(self.controlPlaneEndpoint)", message="controlPlaneEndpoint is required once set"
 type ScalewayClusterSpec struct {
+	// ProjectID is the Scaleway project ID where the cluster will be created.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
+	// +kubebuilder:validation:Pattern:="^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+	ProjectID string `json:"projectID"`
+
 	// Region represents the region where the cluster will be hosted.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=10
+	// +kubebuilder:validation:Pattern:="^[a-z]{2}-[a-z]{3}$"
 	Region string `json:"region"`
 
 	// Network contains network related options for the cluster.

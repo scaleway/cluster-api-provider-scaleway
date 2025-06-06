@@ -280,11 +280,18 @@ spec:
                 - message: privateNetwork is required when publicGateways is set
                   rule: '!has(self.publicGateways) || has(self.privateNetwork) &&
                     self.privateNetwork.enabled'
+              projectID:
+                description: ProjectID is the Scaleway project ID where the cluster
+                  will be created.
+                pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
               region:
                 description: Region represents the region where the cluster will be
                   hosted.
-                maxLength: 10
-                minLength: 1
+                pattern: ^[a-z]{2}-[a-z]{3}$
                 type: string
                 x-kubernetes-validations:
                 - message: Value is immutable
@@ -296,6 +303,7 @@ spec:
                   The following key is optional: SCW_API_URL.
                 type: string
             required:
+            - projectID
             - region
             - scalewaySecretName
             type: object

@@ -35,7 +35,7 @@ type Client struct {
 
 // New returns a new Scaleway client based on the provided region and secretData.
 // The secret data must contain a default projectID and credentials.
-func New(region scw.Region, secretData map[string][]byte) (*Client, error) {
+func New(region scw.Region, projectID string, secretData map[string][]byte) (*Client, error) {
 	accessKey := string(secretData[scw.ScwAccessKeyEnv])
 	if accessKey == "" {
 		return nil, fmt.Errorf("field %s is missing in secret", scw.ScwAccessKeyEnv)
@@ -44,11 +44,6 @@ func New(region scw.Region, secretData map[string][]byte) (*Client, error) {
 	secretKey := string(secretData[scw.ScwSecretKeyEnv])
 	if secretKey == "" {
 		return nil, fmt.Errorf("field %s is missing in secret", scw.ScwSecretKeyEnv)
-	}
-
-	projectID := string(secretData[scw.ScwDefaultProjectIDEnv])
-	if projectID == "" {
-		return nil, fmt.Errorf("field %s is missing in secret", scw.ScwDefaultProjectIDEnv)
 	}
 
 	opts := []scw.ClientOption{

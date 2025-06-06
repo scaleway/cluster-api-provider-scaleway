@@ -37,7 +37,8 @@ var _ = Describe("ScalewayCluster Controller", func() {
 						Namespace: "default",
 					},
 					Spec: infrav1.ScalewayClusterSpec{
-						Region: string(scw.RegionFrPar),
+						ProjectID: "11111111-1111-1111-1111-111111111111",
+						Region:    string(scw.RegionFrPar),
 					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
