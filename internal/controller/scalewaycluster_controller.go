@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -86,6 +87,11 @@ func (r *ScalewayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			retErr = err
 		}
 	}()
+
+	if annotations.IsPaused(cluster, scalewayCluster) {
+		log.Info("ScalewayCluster or linked Cluster is marked as paused. Won't reconcile normally")
+		return ctrl.Result{}, nil
+	}
 
 	if err := r.claimScalewaySecret(ctx, scalewayCluster); err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to claim ScalewaySecret: %w", err)
