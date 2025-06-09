@@ -83,13 +83,17 @@ func (c *Cluster) Close(ctx context.Context) error {
 // ResourceNameName returns the name/prefix that resources created for the cluster should have.
 // It is possible to provide additional suffixes that will be appended to the name with a leading "-".
 func (c *Cluster) ResourceName(suffixes ...string) string {
-	return truncateString(strings.Join(append([]string{c.ScalewayCluster.Name}, suffixes...), "-"), 128)
+	return strings.Join(append([]string{c.ScalewayCluster.Name}, suffixes...), "-")
 }
 
 // ResourceTags returns the tags that resources created for the cluster should have.
 // It is possible to provide additional tags that will be added to the default tags.
 func (c *Cluster) ResourceTags(additional ...string) []string {
-	return append([]string{fmt.Sprintf("caps-scalewaycluster=%s", c.ScalewayCluster.Name)}, additional...)
+	return append(
+		[]string{
+			fmt.Sprintf("caps-namespace=%s", c.ScalewayCluster.Namespace),
+			fmt.Sprintf("caps-scalewaycluster=%s", c.ScalewayCluster.Name),
+		}, additional...)
 }
 
 // HasPrivateNetwork returns true if the cluster has a Private Network.

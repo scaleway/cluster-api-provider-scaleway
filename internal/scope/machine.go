@@ -73,7 +73,7 @@ func (m *Machine) Close(ctx context.Context) error {
 
 // ResourceNameName returns the name that resources created for the machine should have.
 func (m *Machine) ResourceName() string {
-	return truncateString(m.ScalewayMachine.Name, 63)
+	return m.ScalewayMachine.Name
 }
 
 // ResourceTags returns the tags that resources created for the machine should have.

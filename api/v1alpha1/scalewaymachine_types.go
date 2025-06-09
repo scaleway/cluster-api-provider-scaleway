@@ -100,6 +100,8 @@ type ScalewayMachineStatus struct {
 // +kubebuilder:storageversion
 
 // ScalewayMachine is the Schema for the scalewaymachines API.
+// +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 63",message="name must be between 1 and 63 characters"
+// +kubebuilder:validation:XValidation:rule="self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')",message="name must be a valid DNS label"
 type ScalewayMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
