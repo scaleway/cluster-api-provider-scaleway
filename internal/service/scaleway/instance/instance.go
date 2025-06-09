@@ -80,7 +80,7 @@ func (s *Service) Reconcile(ctx context.Context) error {
 			return fmt.Errorf("failed to ensure control-plane lbs: %w", err)
 		}
 
-		if err := s.ensureControlPlaneLBsACL(ctx, lbs, instanceIPsToStrings(server.PublicIPs)); err != nil {
+		if err := s.ensureControlPlaneLBsACL(ctx, lbs, instanceIPsToStrings(server.PublicIPs), false); err != nil {
 			return fmt.Errorf("failed to ensure control-plane lbs acls: %w", err)
 		}
 
@@ -127,7 +127,7 @@ func (s *Service) Delete(ctx context.Context) error {
 		return err
 	}
 
-	if err := s.ensureControlPlaneLBsACL(ctx, lbs, nil); err != nil && !client.IsNotFoundError(err) {
+	if err := s.ensureControlPlaneLBsACL(ctx, lbs, nil, true); err != nil && !client.IsNotFoundError(err) {
 		return fmt.Errorf("failed to ensure control-plane lbs acls: %w", err)
 	}
 
@@ -413,7 +413,7 @@ func (s *Service) ensureControlPlaneLBs(ctx context.Context, lbs []*lb.LB, nodeI
 			continue
 		}
 
-		backend, err := s.ScalewayClient.FindBackend(ctx, loadbalancer.Zone, loadbalancer.ID, s.Cluster.ResourceName())
+		backend, err := s.ScalewayClient.FindBackend(ctx, loadbalancer.Zone, loadbalancer.ID, servicelb.BackendName)
 		if err != nil {
 			return err
 		}
@@ -433,14 +433,19 @@ func (s *Service) ensureControlPlaneLBs(ctx context.Context, lbs []*lb.LB, nodeI
 	return nil
 }
 
-func (s *Service) ensureControlPlaneLBsACL(ctx context.Context, lbs []*lb.LB, publicIPs []string) error {
+func (s *Service) ensureControlPlaneLBsACL(ctx context.Context, lbs []*lb.LB, publicIPs []string, delete bool) error {
 	for _, loadbalancer := range lbs {
 		if loadbalancer.Status == lb.LBStatusDeleting {
 			continue
 		}
 
-		frontend, err := s.ScalewayClient.FindFrontend(ctx, loadbalancer.Zone, loadbalancer.ID, s.Cluster.ResourceName())
+		frontend, err := s.ScalewayClient.FindFrontend(ctx, loadbalancer.Zone, loadbalancer.ID, servicelb.FrontendName)
 		if err != nil {
+			// If the frontend is not found, we can skip it when reconciling a deletion.
+			if delete && client.IsNotFoundError(err) {
+				continue
+			}
+
 			return err
 		}
 

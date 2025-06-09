@@ -32,6 +32,9 @@ const (
 	// Backend port, must match port of apiservers.
 	backendControlPlanePort = 6443
 
+	BackendName  = "kube-apiserver"
+	FrontendName = "kube-apiserver"
+
 	// ACL indexes.
 	aclIndex        = 0
 	denyAllACLIndex = math.MaxInt32
@@ -367,7 +370,7 @@ func (s *Service) getOrCreateBackend(
 ) (*lb.Backend, error) {
 	servers = slices.Sorted(slices.Values(servers))
 
-	backend, err := s.ScalewayClient.FindBackend(ctx, lb.Zone, lb.ID, s.ResourceName())
+	backend, err := s.ScalewayClient.FindBackend(ctx, lb.Zone, lb.ID, BackendName)
 	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
 		return nil, err
 	}
@@ -377,7 +380,7 @@ func (s *Service) getOrCreateBackend(
 			ctx,
 			lb.Zone,
 			lb.ID,
-			s.ResourceName(),
+			BackendName,
 			servers,
 			backendControlPlanePort,
 		)
@@ -423,7 +426,7 @@ func (s *Service) ensureFrontend(ctx context.Context, backends []*lb.Backend) (m
 		frontend, err := s.ScalewayClient.FindFrontend(
 			ctx, backend.LB.Zone,
 			backend.LB.ID,
-			s.ResourceName(),
+			FrontendName,
 		)
 		if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
 			return nil, err
@@ -434,7 +437,7 @@ func (s *Service) ensureFrontend(ctx context.Context, backends []*lb.Backend) (m
 				ctx,
 				backend.LB.Zone,
 				backend.LB.ID,
-				s.ResourceName(),
+				FrontendName,
 				backend.ID,
 				s.ControlPlaneLoadBalancerPort(),
 			)
