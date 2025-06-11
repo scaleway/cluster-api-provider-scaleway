@@ -1,121 +1,59 @@
-# cluster-api-provider-scaleway
-// TODO(user): Add simple overview of use/purpose
+# Kubernetes Cluster API Provider Scaleway
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+> [!WARNING]
+> **This project is currently in its alpha stage**, which means it is still under active development.
+> As such, features are subject to change, and breaking changes may occur without notice.
+> We recommend using it with caution in production environments and keeping up to date
+> with the latest updates and documentation.
 
-## Getting Started
+------
 
-### Prerequisites
-- go version v1.23.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+## What is the Cluster API Provider Scaleway (CAPS)
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+The [Cluster API](https://github.com/kubernetes-sigs/cluster-api) brings declarative, Kubernetes-style APIs to cluster creation, configuration and management.
 
-```sh
-make docker-build docker-push IMG=<some-registry>/cluster-api-provider-scaleway:tag
-```
+CAPS is a Cluster API infrastructure provider that enables efficient management at
+scale of self-managed clusters on Scaleway.
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+## Quick Start
 
-**Install the CRDs into the cluster:**
+Check out the [getting started](./docs/getting-started.md) to create your first
+Kubernetes cluster on Scaleway using Cluster API.
 
-```sh
-make install
-```
+## Getting Help
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+If you need help with CAPS, please visit the #cluster-api channel on
+[Scaleway Slack community](https://slack.scaleway.com/) or open a GitHub issue.
 
-```sh
-make deploy IMG=<some-registry>/cluster-api-provider-scaleway:tag
-```
+------
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
+## Compatibility
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+### Cluster API Versions
 
-```sh
-kubectl apply -k config/samples/
-```
+Currently, CAPS is compatible only with the `v1beta1` version of CAPI (v1.0.x).
 
->**NOTE**: Ensure that the samples has default values to test it out.
+### Kubernetes Versions
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+The Scaleway provider is able to install and manage the [versions of Kubernetes supported by the Cluster API (CAPI) project](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions).
 
-```sh
-kubectl delete -k config/samples/
-```
+------
 
-**Delete the APIs(CRDs) from the cluster:**
+## Getting involved and contributing
 
-```sh
-make uninstall
-```
+Are you interested in contributing to cluster-api-provider-scaleway? We would love
+your suggestions, contributions, and help!
 
-**UnDeploy the controller from the cluster:**
+To set up your environment checkout the [development guide](./docs/development.md).
 
-```sh
-make undeploy
-```
+## Github issues
 
-## Project Distribution
+### Bugs
 
-Following the options to release and provide this solution to the users.
+If you think you have found a bug please follow the instructions below.
 
-### By providing a bundle with all YAML files
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/cluster-api-provider-scaleway:tag
-```
-
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/cluster-api-provider-scaleway/<tag or branch>/dist/install.yaml
-```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v1-alpha
-```
-
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
-
-## License
-
+- Please spend a small amount of time giving due diligence to the issue tracker. Your issue might be a duplicate.
+- Get the logs from the cluster controllers. Please paste this into your issue.
+- Open a new issue.
+- Remember users might be searching for your issue in the future, so please give it a meaningful title to help others.
+- Feel free to reach out to the #cluster-api channel on [Scaleway Slack community](https://slack.scaleway.com/)
