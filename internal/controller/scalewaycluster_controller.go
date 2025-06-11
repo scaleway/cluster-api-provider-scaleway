@@ -7,14 +7,17 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
@@ -178,10 +181,16 @@ func (r *ScalewayClusterReconciler) reconcileNormal(ctx context.Context, cluster
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ScalewayClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ScalewayClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.ScalewayCluster{}).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), mgr.GetLogger())).
+		// Add a watch on clusterv1.Cluster object for pause/unpause notifications.
+		Watches(
+			&clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("ScalewayCluster"), mgr.GetClient(), &infrav1.ScalewayCluster{})),
+			builder.WithPredicates(predicates.ClusterPausedTransitions(mgr.GetScheme(), mgr.GetLogger())),
+		).
 		Named("scalewaycluster").
 		Complete(r)
 }
