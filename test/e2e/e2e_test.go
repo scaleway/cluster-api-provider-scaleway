@@ -15,7 +15,7 @@ import (
 )
 
 // namespace where the project is deployed in
-const namespace = "cluster-api-provider-scaleway-system"
+const namespace = "caps-system"
 
 // serviceAccountName created for the project
 const serviceAccountName = "caps-controller-manager"
@@ -48,6 +48,11 @@ var _ = Describe("Manager", Ordered, func() {
 		cmd = exec.Command("make", "install")
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
+
+		By("installing cluster-api CRDs")
+		cmd = exec.Command("kubectl", "apply", "-k", "github.com/kubernetes-sigs/cluster-api/config/crd/")
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to apply cluster-api CRDs")
 
 		By("deploying the controller-manager")
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectImage))
