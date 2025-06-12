@@ -243,7 +243,7 @@ func getLBIPv4(lb *lb.LB) (string, error) {
 func (s *Service) ensureExtraLBs(ctx context.Context, delete bool) ([]*lb.LB, error) {
 	var desired []infrav1.LoadBalancerSpec
 	// When delete is set, we ensure an empty list of LBs to remove everything.
-	if !delete {
+	if !delete && s.ScalewayCluster.Spec.Network != nil {
 		desired = s.ScalewayCluster.Spec.Network.ControlPlaneExtraLoadBalancers
 	}
 
