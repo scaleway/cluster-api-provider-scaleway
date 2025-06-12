@@ -163,6 +163,18 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
+##@ Release
+
+.PHONY: release
+release: manifests generate kustomize ## Creates release manifests in "out" directory.
+	mkdir -p out
+	# building metadata.yaml
+	cp metadata.yaml out/metadata.yaml
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	# building infrastructure-components.yaml
+	$(KUSTOMIZE) build config/default > out/infrastructure-components.yaml
+	# building templates
+	cp templates/*.yaml out/
 ##@ Dependencies
 
 ## Location to install dependencies to
