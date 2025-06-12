@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/version"
 	"github.com/scaleway/scaleway-sdk-go/api/block/v1"
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
@@ -19,6 +20,8 @@ const (
 	createdByTag         = "created-by=cluster-api-provider-scaleway"
 	createdByDescription = "Created by cluster-api-provider-scaleway"
 )
+
+var userAgent = "cluster-api-provider-scaleway/" + version.Version
 
 // Client is a wrapper over scaleway-sdk-go to access Scaleway Product APIs in
 // a specific region and project.
@@ -55,7 +58,7 @@ func New(region scw.Region, projectID string, secretData map[string][]byte) (*Cl
 		scw.WithAuth(accessKey, secretKey),
 		scw.WithDefaultProjectID(projectID),
 		scw.WithDefaultRegion(region),
-		scw.WithUserAgent("cluster-api-provider-scaleway/v0.0.0"), // TODO: set version.
+		scw.WithUserAgent(userAgent),
 	}
 
 	if apiURL := string(secretData[scw.ScwAPIURLEnv]); apiURL != "" {

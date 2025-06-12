@@ -1,0 +1,40 @@
+name: Create Release
+
+on:
+  push:
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  release:
+    permissions:
+      contents: write  # for softprops/action-gh-release to create/update GitHub release
+    name: update release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set env
+        run: echo "RELEASE_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # tag=v4.2.2
+        with:
+          fetch-depth: 0
+          ref: ${{ env.RELEASE_TAG }}
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # tag=v5.5.0
+        with:
+          go-version-file: go.mod
+      - name: generate release artifacts
+        env:
+          IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.RELEASE_TAG }}
+        run: make release
+      - name: Release
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # tag=v2.2.2
+        with:
+          prerelease: true
+          generate_release_notes: true
+          files: out/*
+          tag_name: ${{ env.RELEASE_TAG }}
