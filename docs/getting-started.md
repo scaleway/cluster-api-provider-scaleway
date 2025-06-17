@@ -134,9 +134,13 @@ scw instance image create \
 The [image-builder](https://github.com/kubernetes-sigs/image-builder) project allows
 you to build a CAPI-ready OS image using Packer and Ansible.
 
-To begin, please clone the `scaleway` branch of this repository: <https://github.com/Tomy2e/image-builder>.
+To begin, please clone the `image-builder` repository:
 
-Then, please follow this documentation to build your image: <https://github.com/Tomy2e/image-builder/blob/scaleway/docs/book/src/capi/providers/scaleway.md>.
+```bash
+git clone https://github.com/kubernetes-sigs/image-builder.git
+```
+
+Then, please follow the [Building Images for Scaleway documentation](https://image-builder.sigs.k8s.io/capi/providers/scaleway).
 
 ## Create a basic workload cluster
 
@@ -166,6 +170,8 @@ Then, please follow this documentation to build your image: <https://github.com/
    ```
 
 3. Review and edit the `my-cluster.yaml` file as needed.
+   For configuring the CAPS CRDs, refer to the [ScalewayCluster](scalewaycluster.md)
+   and [ScalewayMachine](scalewaymachine.md) documentations.
 4. Apply the `my-cluster.yaml` file to create the workload cluster.
 5. Wait for the cluster and machines to be ready.
 
