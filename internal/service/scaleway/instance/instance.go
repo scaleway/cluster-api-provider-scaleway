@@ -210,7 +210,7 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 	case image.Name != nil:
 		image, err := s.ScalewayClient.FindImage(ctx, zone, *image.Name)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to find image by name, make sure it exists in zone %s: %w", zone, err)
 		}
 
 		imageID = image.ID
