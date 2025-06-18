@@ -79,7 +79,7 @@ The `image` field must contain one of the following:
     # some fields were omitted...
   ```
 
-  Make sure this image exists in the zones when you plan to deploy your nodes.
+  Make sure this image exists in the zones where you plan to deploy your nodes.
   You can list images by name with this command:
 
   ```bash
@@ -169,3 +169,52 @@ Private Network (`network.privateNetwork.enabled`) in the `ScalewayCluster`.
   connectivity, make sure a Public Gateway advertises its default route in the
   Private Network as nodes will not be able to access the control-plane Load Balancer
   without public connectivity.
+
+## Placement Group
+
+It is possible to attach an existing Placement group to the Instance server that will be created.
+
+> [!WARNING]
+> A Placement group can be attached to at most 20 Instance servers.
+
+Placement groups allow you to define if you want certain Instances to run on
+different physical hypervisors for maximum availability or as physically close
+together as possible for minimum latency. For more information about Placement
+groups, please refer to the [Scaleway documentation](https://www.scaleway.com/en/docs/instances/how-to/use-placement-groups/).
+
+The `placementGroup` field must contain one of the following:
+
+- A Placement group ID:
+
+  ```yaml
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  kind: ScalewayMachine
+  metadata:
+    name: my-machine
+    namespace: default
+  spec:
+    placementGroup:
+      id: 11111111-1111-1111-1111-111111111111
+    # some fields were omitted...
+  ```
+
+- A Placement group name:
+
+  ```yaml
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  kind: ScalewayMachine
+  metadata:
+    name: my-machine
+    namespace: default
+  spec:
+    placementGroup:
+      name: my-placement-group
+    # some fields were omitted...
+  ```
+
+  Make sure this Placement group exists in the zones where you plan to deploy your nodes.
+  You can list Placement groups by name with this command:
+
+  ```bash
+  scw instance placement-group list name=${IMAGE_NAME} zone=${SCW_ZONE}
+  ```
