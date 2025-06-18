@@ -50,6 +50,7 @@ func (c *Client) CreateServer(
 	ctx context.Context,
 	zone scw.Zone,
 	name, commercialType, imageID string,
+	placementGroupID *string,
 	rootVolumeSize scw.Size,
 	rootVolumeType instance.VolumeVolumeType,
 	publicIPs, tags []string,
@@ -72,6 +73,7 @@ func (c *Client) CreateServer(
 		CommercialType:    commercialType,
 		DynamicIPRequired: scw.BoolPtr(false),
 		Image:             &imageID,
+		PlacementGroup:    placementGroupID,
 		Volumes: map[string]*instance.VolumeServerTemplate{
 			"0": {
 				Size:       &rootVolumeSize,
@@ -367,4 +369,33 @@ func (c *Client) DeleteServer(ctx context.Context, zone scw.Zone, serverID strin
 	}
 
 	return nil
+}
+
+func (c *Client) FindPlacementGroup(ctx context.Context, zone scw.Zone, name string) (*instance.PlacementGroup, error) {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.instance.ListPlacementGroups(&instance.ListPlacementGroupsRequest{
+		Zone:    zone,
+		Name:    &name,
+		Project: &c.projectID,
+	}, scw.WithContext(ctx), scw.WithAllPages())
+	if err != nil {
+		return nil, newCallError("ListPlacementGroups", err)
+	}
+
+	// Filter out all placement groups that have the wrong name.
+	placementGroups := slices.DeleteFunc(resp.PlacementGroups, func(pg *instance.PlacementGroup) bool {
+		return pg.Name != name
+	})
+
+	switch len(placementGroups) {
+	case 0:
+		return nil, ErrNoItemFound
+	case 1:
+		return placementGroups[0], nil
+	default:
+		return nil, fmt.Errorf("%w: found %d placement groups with name %s", ErrTooManyItemsFound, len(placementGroups), name)
+	}
 }

@@ -10,6 +10,7 @@ const MachineFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sm-pro
 // ScalewayMachineSpec defines the desired state of ScalewayMachine.
 // +kubebuilder:validation:XValidation:rule="has(self.rootVolume) == has(oldSelf.rootVolume)",message="rootVolume cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.publicNetwork) == has(oldSelf.publicNetwork)",message="publicNetwork cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="has(self.placementGroup) == has(oldSelf.placementGroup)",message="placementGroup cannot be added or removed"
 type ScalewayMachineSpec struct {
 	// ProviderID must match the provider ID as seen on the node object corresponding to this machine.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
@@ -34,6 +35,11 @@ type ScalewayMachineSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	// +optional
 	PublicNetwork *PublicNetworkSpec `json:"publicNetwork,omitempty"`
+
+	// PlacementGroup allows attaching a Placement Group to the instance.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
+	// +optional
+	PlacementGroup *PlacementGroupSpec `json:"placementGroup,omitempty"`
 }
 
 // RootVolumeSpec defines the characteristics of the system (root) volume.
@@ -64,6 +70,14 @@ type PublicNetworkSpec struct {
 	// EnableIPv6 defines whether server has IPv6 addresses enabled.
 	// +optional
 	EnableIPv6 *bool `json:"enableIPv6,omitempty"`
+}
+
+// +kubebuilder:validation:XValidation:rule="(has(self.id) ? 1 : 0) + (has(self.name) ? 1 : 0) == 1",message="exactly one of id or name must be set"
+type PlacementGroupSpec struct {
+	// ID of the placement group.
+	ID *string `json:"id,omitempty"`
+	// Name of the placement group.
+	Name *string `json:"name,omitempty"`
 }
 
 // ImageSpec contains an ID, Name or Label to use to create the instance.
