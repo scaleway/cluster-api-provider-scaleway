@@ -41,7 +41,7 @@ func (s *Service) ensureGateways(ctx context.Context, delete bool) ([]*vpcgw.Gat
 	}
 
 	drle := &common.ResourceEnsurer[infrav1.PublicGatewaySpec, *vpcgw.Gateway]{
-		ResourceReconciler: &desiredResourceListManager{s.Cluster},
+		ResourceReconciler: &desiredResourceListManager{s.Cluster, make(map[scw.Zone][]string)},
 	}
 	return drle.Do(ctx, desired)
 }
@@ -106,6 +106,8 @@ func (s *Service) Delete(ctx context.Context) error {
 
 type desiredResourceListManager struct {
 	*scope.Cluster
+
+	gatewayTypesCache map[scw.Zone][]string
 }
 
 func (d *desiredResourceListManager) ListResources(ctx context.Context) ([]*vpcgw.Gateway, error) {
@@ -132,6 +134,18 @@ func (d *desiredResourceListManager) UpdateResource(
 	resource *vpcgw.Gateway,
 	desired infrav1.PublicGatewaySpec,
 ) (*vpcgw.Gateway, error) {
+	if desired.Type != nil && *desired.Type != resource.Type {
+		canUpgradeType, err := d.canUpgradeType(ctx, resource.Zone, resource.Type, *desired.Type)
+		if err != nil {
+			return nil, err
+		}
+
+		if canUpgradeType {
+			logf.FromContext(ctx).Info("Upgrading Gateway", "gatewayName", resource.Name, "zone", resource.Zone)
+			return d.ScalewayClient.UpgradeGateway(ctx, resource.Zone, resource.ID, *desired.Type)
+		}
+	}
+
 	return resource, nil
 }
 
@@ -148,27 +162,35 @@ func (d *desiredResourceListManager) GetDesiredZone(desired infrav1.PublicGatewa
 }
 
 func (d *desiredResourceListManager) ShouldKeepResource(
+	ctx context.Context,
 	resource *vpcgw.Gateway,
 	desired infrav1.PublicGatewaySpec,
-) bool {
+) (bool, error) {
 	// Gateway has no IPv4, remove it and recreate it.
 	if resource.IPv4 == nil {
-		return false
+		return false, nil
 	}
 
 	if desired.Type != nil && *desired.Type != resource.Type {
-		return false
+		canUpgradeType, err := d.canUpgradeType(ctx, resource.Zone, resource.Type, *desired.Type)
+		if err != nil {
+			return false, err
+		}
+
+		if !canUpgradeType {
+			return false, nil
+		}
 	}
 
 	if desired.IP == nil && !slices.Contains(resource.Tags, capsManagedIPTag) {
-		return false
+		return false, nil
 	}
 
 	if desired.IP != nil && resource.IPv4.Address.String() != *desired.IP {
-		return false
+		return false, nil
 	}
 
-	return true
+	return true, nil
 }
 
 func (d *desiredResourceListManager) GetDesiredResourceName(i int) string {
@@ -212,4 +234,26 @@ func (d *desiredResourceListManager) CreateResource(
 	}
 
 	return gateway, nil
+}
+
+func (d *desiredResourceListManager) canUpgradeType(ctx context.Context, zone scw.Zone, current, desired string) (bool, error) {
+	types, ok := d.gatewayTypesCache[zone]
+	if !ok {
+		var err error
+		types, err = d.ScalewayClient.ListGatewayTypes(ctx, zone)
+		if err != nil {
+			return false, err
+		}
+
+		d.gatewayTypesCache[zone] = types
+	}
+
+	return canUpgradeTypes(types, current, desired), nil
+}
+
+func canUpgradeTypes(types []string, current, desired string) bool {
+	desiredIndex := slices.Index(types, desired)
+	currentIndex := slices.Index(types, current)
+
+	return currentIndex != -1 && desiredIndex > currentIndex
 }

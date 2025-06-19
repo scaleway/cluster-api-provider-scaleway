@@ -259,7 +259,9 @@ If not set, a new IP will be created.
 > 🚫📶 Updating existing Public Gateways can lead to a loss of network on the nodes, be
 > very careful when updating this field.
 >
-> 🚮 Updating a Public Gateway will lead to its recreation, which will make its private IP change.
+> 🚮 Updating a Public Gateway will lead to its re-creation, which will make its private IP change.
+> The only change that won't lead to a re-creation of the Public Gateway is a type upgrade
+> (e.g. VPC-GW-S to VPC-GW-M). Downgrading a Public Gateway is only possible through a re-creation.
 >
 > ⏳ Because the default routes are advertised via DHCP, the DHCP leases of the nodes must
 > be renewed for changes to be propagated (~24 hours). You can reboot the nodes or

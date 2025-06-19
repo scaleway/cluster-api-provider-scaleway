@@ -289,23 +289,24 @@ func (d *desiredResourceListManager) GetDesiredZone(desired infrav1.LoadBalancer
 }
 
 func (d *desiredResourceListManager) ShouldKeepResource(
+	_ context.Context,
 	resource *lb.LB,
 	desired infrav1.LoadBalancerSpec,
-) bool {
+) (bool, error) {
 	// If LB does not have an IP, remove it and recreate it.
 	if len(resource.IP) == 0 {
-		return false
+		return false, nil
 	}
 
 	if desired.IP == nil && !slices.Contains(resource.Tags, capsManagedIPTag) {
-		return false
+		return false, nil
 	}
 
 	if desired.IP != nil && resource.IP[0].IPAddress != *desired.IP {
-		return false
+		return false, nil
 	}
 
-	return true
+	return true, nil
 }
 
 func (d *desiredResourceListManager) GetDesiredResourceName(i int) string {
