@@ -148,6 +148,22 @@ spec:
                 x-kubernetes-validations:
                 - message: Value is immutable
                   rule: self == oldSelf
+              securityGroup:
+                description: SecurityGroup allows attaching a Security Group to the
+                  instance.
+                properties:
+                  id:
+                    description: ID of the security group.
+                    type: string
+                  name:
+                    description: Name of the security group.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+                - message: exactly one of id or name must be set
+                  rule: '(has(self.id) ? 1 : 0) + (has(self.name) ? 1 : 0) == 1'
             required:
             - commercialType
             - image
@@ -159,6 +175,8 @@ spec:
               rule: has(self.publicNetwork) == has(oldSelf.publicNetwork)
             - message: placementGroup cannot be added or removed
               rule: has(self.placementGroup) == has(oldSelf.placementGroup)
+            - message: securityGroup cannot be added or removed
+              rule: has(self.securityGroup) == has(oldSelf.securityGroup)
           status:
             description: ScalewayMachineStatus defines the observed state of ScalewayMachine.
             properties:

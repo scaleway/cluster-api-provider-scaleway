@@ -172,19 +172,19 @@ Private Network (`network.privateNetwork.enabled`) in the `ScalewayCluster`.
 
 ## Placement Group
 
-It is possible to attach an existing Placement group to the Instance server that will be created.
+It is possible to attach an existing placement group to the Instance server that will be created.
 
 > [!WARNING]
-> A Placement group can be attached to at most 20 Instance servers.
+> A placement group can be attached to at most 20 Instance servers.
 
 Placement groups allow you to define if you want certain Instances to run on
 different physical hypervisors for maximum availability or as physically close
-together as possible for minimum latency. For more information about Placement
+together as possible for minimum latency. For more information about placement
 groups, please refer to the [Scaleway documentation](https://www.scaleway.com/en/docs/instances/how-to/use-placement-groups/).
 
 The `placementGroup` field must contain one of the following:
 
-- A Placement group ID:
+- A placement group ID:
 
   ```yaml
   apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
@@ -198,7 +198,7 @@ The `placementGroup` field must contain one of the following:
     # some fields were omitted...
   ```
 
-- A Placement group name:
+- A placement group name:
 
   ```yaml
   apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
@@ -212,9 +212,55 @@ The `placementGroup` field must contain one of the following:
     # some fields were omitted...
   ```
 
-  Make sure this Placement group exists in the zones where you plan to deploy your nodes.
-  You can list Placement groups by name with this command:
+  Make sure this placement group exists in the zones where you plan to deploy your nodes.
+  You can list placement groups by name with this command:
 
   ```bash
   scw instance placement-group list name=${IMAGE_NAME} zone=${SCW_ZONE}
+  ```
+
+## Security Group
+
+It is possible to attach an existing security group to the Instance server that will be created.
+
+Security groups act as firewalls, filtering public internet traffic on your Instances.
+They can be stateful or stateless, and allow you to create rules to drop or allow traffic
+to and from your Instance. For more information about security groups, please refer
+to the [Scaleway documentation](https://www.scaleway.com/en/docs/instances/how-to/use-security-groups/).
+
+The `securityGroup` field must contain one of the following:
+
+- A security group ID:
+
+  ```yaml
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  kind: ScalewayMachine
+  metadata:
+    name: my-machine
+    namespace: default
+  spec:
+    securityGroup:
+      id: 11111111-1111-1111-1111-111111111111
+    # some fields were omitted...
+  ```
+
+- A security group name:
+
+  ```yaml
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  kind: ScalewayMachine
+  metadata:
+    name: my-machine
+    namespace: default
+  spec:
+    securityGroup:
+      name: my-placement-group
+    # some fields were omitted...
+  ```
+
+  Make sure this security group exists in the zones where you plan to deploy your nodes.
+  You can list security groups by name with this command:
+
+  ```bash
+  scw instance security-group list name=${IMAGE_NAME} zone=${SCW_ZONE}
   ```
