@@ -31,7 +31,7 @@ type ResourceReconciler[D, R any] interface {
 
 	// ShouldKeepResource returns true if a resource should be kept because it
 	// matches the desired specs.
-	ShouldKeepResource(resource R, desired D) bool
+	ShouldKeepResource(ctx context.Context, resource R, desired D) (bool, error)
 }
 
 // ResourceEnsurer is a utility that ensures a list of desired resources
@@ -96,11 +96,16 @@ func (e *ResourceEnsurer[D, R]) ensureExistingResources(
 				continue
 			}
 
-			if !e.ShouldKeepResource(resource, desiredResource) {
-				continue
+			// Writes to the keep variable outside the scope of this for-loop.
+			keep, err = e.ShouldKeepResource(ctx, resource, desiredResource)
+			if err != nil {
+				return nil, err
 			}
 
-			keep = true
+			// Continue looping to the next resource until we find one to keep.
+			if !keep {
+				continue
+			}
 
 			resource, err = e.UpdateResource(ctx, resource, desiredResource)
 			if err != nil {

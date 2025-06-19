@@ -111,3 +111,41 @@ func (c *Client) CreateGatewayNetwork(ctx context.Context, zone scw.Zone, gatewa
 
 	return nil
 }
+
+func (c *Client) ListGatewayTypes(ctx context.Context, zone scw.Zone) ([]string, error) {
+	if err := c.validateZone(c.vpcgw, zone); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.vpcgw.ListGatewayTypes(&vpcgw.ListGatewayTypesRequest{
+		Zone: zone,
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("ListGatewayTypes", err)
+	}
+
+	// We assume the API returns the gateway types in the correct order (S -> M -> L, etc.).
+	types := make([]string, 0, len(resp.Types))
+	for _, t := range resp.Types {
+		types = append(types, t.Name)
+	}
+
+	return types, nil
+}
+
+func (c *Client) UpgradeGateway(ctx context.Context, zone scw.Zone, gatewayID, newType string) (*vpcgw.Gateway, error) {
+	if err := c.validateZone(c.vpcgw, zone); err != nil {
+		return nil, err
+	}
+
+	gateway, err := c.vpcgw.UpgradeGateway(&vpcgw.UpgradeGatewayRequest{
+		Zone:      zone,
+		GatewayID: gatewayID,
+		Type:      &newType,
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("UpgradeGateway", err)
+	}
+
+	return gateway, nil
+}
