@@ -50,7 +50,7 @@ func (c *Client) CreateServer(
 	ctx context.Context,
 	zone scw.Zone,
 	name, commercialType, imageID string,
-	placementGroupID *string,
+	placementGroupID, securityGroupID *string,
 	rootVolumeSize scw.Size,
 	rootVolumeType instance.VolumeVolumeType,
 	publicIPs, tags []string,
@@ -74,6 +74,7 @@ func (c *Client) CreateServer(
 		DynamicIPRequired: scw.BoolPtr(false),
 		Image:             &imageID,
 		PlacementGroup:    placementGroupID,
+		SecurityGroup:     securityGroupID,
 		Volumes: map[string]*instance.VolumeServerTemplate{
 			"0": {
 				Size:       &rootVolumeSize,
@@ -397,5 +398,34 @@ func (c *Client) FindPlacementGroup(ctx context.Context, zone scw.Zone, name str
 		return placementGroups[0], nil
 	default:
 		return nil, fmt.Errorf("%w: found %d placement groups with name %s", ErrTooManyItemsFound, len(placementGroups), name)
+	}
+}
+
+func (c *Client) FindSecurityGroup(ctx context.Context, zone scw.Zone, name string) (*instance.SecurityGroup, error) {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.instance.ListSecurityGroups(&instance.ListSecurityGroupsRequest{
+		Zone:    zone,
+		Name:    &name,
+		Project: &c.projectID,
+	}, scw.WithContext(ctx), scw.WithAllPages())
+	if err != nil {
+		return nil, newCallError("ListSecurityGroups", err)
+	}
+
+	// Filter out all security groups that have the wrong name.
+	securityGroups := slices.DeleteFunc(resp.SecurityGroups, func(sg *instance.SecurityGroup) bool {
+		return sg.Name != name
+	})
+
+	switch len(securityGroups) {
+	case 0:
+		return nil, ErrNoItemFound
+	case 1:
+		return securityGroups[0], nil
+	default:
+		return nil, fmt.Errorf("%w: found %d security groups with name %s", ErrTooManyItemsFound, len(securityGroups), name)
 	}
 }

@@ -256,20 +256,14 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 		}
 	}
 
-	// If user has specified a placement group, get its ID.
-	var placementGroupID *string
-	if s.ScalewayMachine.Spec.PlacementGroup != nil {
-		switch pgref := s.ScalewayMachine.Spec.PlacementGroup; {
-		case pgref.ID != nil:
-			placementGroupID = pgref.ID
-		case pgref.Name != nil:
-			placementGroup, err := s.ScalewayClient.FindPlacementGroup(ctx, zone, *pgref.Name)
-			if err != nil {
-				return nil, fmt.Errorf("failed to find placement group: %w", err)
-			}
+	placementGroupID, err := s.placementGroupID(ctx, zone)
+	if err != nil {
+		return nil, err
+	}
 
-			placementGroupID = &placementGroup.ID
-		}
+	securityGroupID, err := s.securityGroupID(ctx, zone)
+	if err != nil {
+		return nil, err
 	}
 
 	// Finally, create the server.
@@ -280,6 +274,7 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 		s.ScalewayMachine.Spec.CommercialType,
 		imageID,
 		placementGroupID,
+		securityGroupID,
 		s.RootVolumeSize(),
 		volumeType,
 		publicIPs,
@@ -302,6 +297,44 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 	}
 
 	return server, nil
+}
+
+func (s *Service) placementGroupID(ctx context.Context, zone scw.Zone) (*string, error) {
+	// If user has specified a placement group, get its ID.
+	if s.ScalewayMachine.Spec.PlacementGroup != nil {
+		switch pgref := s.ScalewayMachine.Spec.PlacementGroup; {
+		case pgref.ID != nil:
+			return pgref.ID, nil
+		case pgref.Name != nil:
+			placementGroup, err := s.ScalewayClient.FindPlacementGroup(ctx, zone, *pgref.Name)
+			if err != nil {
+				return nil, fmt.Errorf("failed to find placement group: %w", err)
+			}
+
+			return &placementGroup.ID, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (s *Service) securityGroupID(ctx context.Context, zone scw.Zone) (*string, error) {
+	// If user has specified a security group, get its ID.
+	if s.ScalewayMachine.Spec.SecurityGroup != nil {
+		switch sgref := s.ScalewayMachine.Spec.SecurityGroup; {
+		case sgref.ID != nil:
+			return sgref.ID, nil
+		case sgref.Name != nil:
+			securityGroup, err := s.ScalewayClient.FindSecurityGroup(ctx, zone, *sgref.Name)
+			if err != nil {
+				return nil, fmt.Errorf("failed to find security group: %w", err)
+			}
+
+			return &securityGroup.ID, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func (s *Service) ensurePrivateNIC(ctx context.Context, server *instance.Server) ([]*ipam.IP, error) {

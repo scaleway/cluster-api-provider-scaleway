@@ -11,6 +11,7 @@ const MachineFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sm-pro
 // +kubebuilder:validation:XValidation:rule="has(self.rootVolume) == has(oldSelf.rootVolume)",message="rootVolume cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.publicNetwork) == has(oldSelf.publicNetwork)",message="publicNetwork cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.placementGroup) == has(oldSelf.placementGroup)",message="placementGroup cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="has(self.securityGroup) == has(oldSelf.securityGroup)",message="securityGroup cannot be added or removed"
 type ScalewayMachineSpec struct {
 	// ProviderID must match the provider ID as seen on the node object corresponding to this machine.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
@@ -40,6 +41,11 @@ type ScalewayMachineSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	// +optional
 	PlacementGroup *PlacementGroupSpec `json:"placementGroup,omitempty"`
+
+	// SecurityGroup allows attaching a Security Group to the instance.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
+	// +optional
+	SecurityGroup *SecurityGroupSpec `json:"securityGroup,omitempty"`
 }
 
 // RootVolumeSpec defines the characteristics of the system (root) volume.
@@ -72,11 +78,25 @@ type PublicNetworkSpec struct {
 	EnableIPv6 *bool `json:"enableIPv6,omitempty"`
 }
 
+// PlacementGroupSpec contains an ID or Name of an existing Placement Group.
 // +kubebuilder:validation:XValidation:rule="(has(self.id) ? 1 : 0) + (has(self.name) ? 1 : 0) == 1",message="exactly one of id or name must be set"
 type PlacementGroupSpec struct {
 	// ID of the placement group.
+	// +optional
 	ID *string `json:"id,omitempty"`
 	// Name of the placement group.
+	// +optional
+	Name *string `json:"name,omitempty"`
+}
+
+// SecurityGroupSpec contains an ID or Name of an existing Security Group.
+// +kubebuilder:validation:XValidation:rule="(has(self.id) ? 1 : 0) + (has(self.name) ? 1 : 0) == 1",message="exactly one of id or name must be set"
+type SecurityGroupSpec struct {
+	// ID of the security group.
+	// +optional
+	ID *string `json:"id,omitempty"`
+	// +optional
+	// Name of the security group.
 	Name *string `json:"name,omitempty"`
 }
 
