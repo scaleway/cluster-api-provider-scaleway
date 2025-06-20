@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
+	"text/template"
 	"time"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
@@ -84,7 +86,7 @@ func (s *Service) Reconcile(ctx context.Context) error {
 			return fmt.Errorf("failed to ensure control-plane lbs acls: %w", err)
 		}
 
-		if err := s.ensureCloudInit(ctx, server); err != nil {
+		if err := s.ensureCloudInit(ctx, server, nodeIP); err != nil {
 			return fmt.Errorf("failed to ensure cloud-init: %w", err)
 		}
 
@@ -558,7 +560,7 @@ func instanceIPsToStrings(ips []*instance.ServerIP) []string {
 	return out
 }
 
-func (s *Service) ensureCloudInit(ctx context.Context, server *instance.Server) error {
+func (s *Service) ensureCloudInit(ctx context.Context, server *instance.Server, nodeIP string) error {
 	if server.State != instance.ServerStateStopped {
 		return nil
 	}
@@ -574,12 +576,25 @@ func (s *Service) ensureCloudInit(ctx context.Context, server *instance.Server) 
 			return err
 		}
 
+		// Apply custom templating on cloud-init bootstrap data.
+		tmpl, err := template.New("").Delims("[[[", "]]]").Parse(string(bootstrapData))
+		if err != nil {
+			return fmt.Errorf("failed to parse bootstrap data as template: %w", err)
+		}
+
+		tmplExec := &strings.Builder{} // tmplExec will contain the executed template.
+		tmplData := struct{ NodeIP string }{nodeIP}
+
+		if err := tmpl.ExecuteTemplate(tmplExec, "", tmplData); err != nil {
+			return fmt.Errorf("failed to execute bootstrap data template: %w", err)
+		}
+
 		if err := s.ScalewayClient.SetServerUserData(
 			ctx,
 			server.Zone,
 			server.ID,
 			cloudInitUserDataKey,
-			string(bootstrapData),
+			tmplExec.String(),
 		); err != nil {
 			return err
 		}
