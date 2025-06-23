@@ -170,7 +170,12 @@ func (r *ScalewayClusterReconciler) reconcileNormal(ctx context.Context, cluster
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull them
 	if scalewayCluster.Spec.ControlPlaneEndpoint.Host == "" {
-		scalewayCluster.Spec.ControlPlaneEndpoint.Host = clusterScope.ControlPlaneHost()
+		host, err := clusterScope.ControlPlaneHost()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		scalewayCluster.Spec.ControlPlaneEndpoint.Host = host
 	}
 	if scalewayCluster.Spec.ControlPlaneEndpoint.Port == 0 {
 		scalewayCluster.Spec.ControlPlaneEndpoint.Port = clusterScope.ControlPlaneLoadBalancerPort()
