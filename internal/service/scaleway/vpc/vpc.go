@@ -43,6 +43,10 @@ func (s *Service) Delete(ctx context.Context) error {
 		return fmt.Errorf("failed to find Private Network by name: %w", err)
 	}
 
+	if err := s.ScalewayClient.CleanAvailableIPs(ctx, pn.ID); err != nil {
+		return fmt.Errorf("failed to clean available IPs in IPAM: %w", err)
+	}
+
 	if err := s.ScalewayClient.DeletePrivateNetwork(ctx, pn.ID); err != nil {
 		// Sometimes, we still need to wait a little for all ressources to be removed
 		// from the Private Network. As a result, we need to handle this error:
@@ -63,25 +67,29 @@ func (s *Service) Reconcile(ctx context.Context) error {
 	}
 
 	if s.ScalewayCluster.Status.Network != nil &&
-		s.ScalewayCluster.Status.Network.PrivateNetworkID != nil {
-		// If the Private Network is already set in the status, we don't need to do anything.
+		s.ScalewayCluster.Status.Network.PrivateNetworkID != nil &&
+		s.ScalewayCluster.Status.Network.VPCID != nil {
+		// If the VPC and Private Network IDs are already set in the status, we don't need to do anything.
 		return nil
 	}
 
-	var pnID string
+	var err error
+	var pn *vpc.PrivateNetwork
 
 	if s.ShouldManagePrivateNetwork() {
-		pn, err := s.getOrCreatePN(ctx)
+		pn, err = s.getOrCreatePN(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get or create Private Network: %w", err)
 		}
-
-		pnID = pn.ID
 	} else {
-		pnID = *s.ScalewayCluster.Spec.Network.PrivateNetwork.ID
+		pn, err = s.ScalewayClient.GetPrivateNetwork(ctx, *s.ScalewayCluster.Spec.Network.PrivateNetwork.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get existing Private Network: %w", err)
+		}
 	}
 
-	s.SetStatusPrivateNetworkID(pnID)
+	s.SetStatusPrivateNetworkID(pn.ID)
+	s.SetStatusVPCID(pn.VpcID)
 
 	return nil
 }

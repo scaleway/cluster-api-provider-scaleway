@@ -126,6 +126,11 @@ spec:
                                   description: IP to use when creating a loadbalancer.
                                   format: ipv4
                                   type: string
+                                privateIP:
+                                  description: Private IP to use when attaching a
+                                    loadbalancer to a Private Network.
+                                  format: ipv4
+                                  type: string
                                 type:
                                   default: LB-S
                                   description: Load Balancer commercial offer type.
@@ -175,6 +180,18 @@ spec:
                                 x-kubernetes-validations:
                                 - message: Value is immutable
                                   rule: self == oldSelf
+                              private:
+                                description: Private disables the creation of a public
+                                  IP on the LoadBalancers when it's set to true.
+                                type: boolean
+                                x-kubernetes-validations:
+                                - message: Value is immutable
+                                  rule: self == oldSelf
+                              privateIP:
+                                description: Private IP to use when attaching a loadbalancer
+                                  to a Private Network.
+                                format: ipv4
+                                type: string
                               type:
                                 default: LB-S
                                 description: Load Balancer commercial offer type.
@@ -186,16 +203,32 @@ spec:
                                 type: string
                             type: object
                             x-kubernetes-validations:
-                            - message: port cannot be added or removed
-                              rule: has(self.port) == has(oldSelf.port)
-                            - message: ip cannot be added or removed
-                              rule: has(self.ip) == has(oldSelf.ip)
                             - message: ip is immutable
                               rule: '!has(oldSelf.ip) || self.ip == oldSelf.ip'
-                            - message: zone cannot be added or removed
-                              rule: has(self.zone) == has(oldSelf.zone)
                             - message: zone is immutable
                               rule: '!has(oldSelf.zone) || self.zone == oldSelf.zone'
+                            - message: privateIP is immutable
+                              rule: '!has(oldSelf.privateIP) || self.privateIP ==
+                                oldSelf.privateIP'
+                          controlPlanePrivateDNS:
+                            description: |-
+                              ControlPlanePrivateDNS allows configuring the DNS Zone of the VPC with
+                              records that point to the control plane LoadBalancers. This field is only
+                              available when the control plane LoadBalancers are private. Only one of
+                              ControlPlaneDNS or ControlPlanePrivateDNS can be set.
+                            properties:
+                              name:
+                                description: |-
+                                  Name is the DNS short name of the record (non-FQDN). The format must consist of
+                                  alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+                                pattern: ^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$
+                                type: string
+                            required:
+                            - name
+                            type: object
+                            x-kubernetes-validations:
+                            - message: Value is immutable
+                              rule: self == oldSelf
                           privateNetwork:
                             description: PrivateNetwork allows attaching machines
                               of the cluster to a Private Network.
@@ -270,17 +303,26 @@ spec:
                             type: array
                         type: object
                         x-kubernetes-validations:
-                        - message: controlPlaneDNS is required when controlPlaneExtraLoadBalancers
-                            is set
-                          rule: '!has(self.controlPlaneExtraLoadBalancers) || has(self.controlPlaneDNS)'
-                        - message: controlPlaneDNS cannot be added or removed
-                          rule: has(self.controlPlaneDNS) == has(oldSelf.controlPlaneDNS)
-                        - message: privateNetwork cannot be added or removed
-                          rule: has(self.privateNetwork) == has(oldSelf.privateNetwork)
+                        - message: controlPlaneDNS or controlPlanePrivateDNS is required
+                            when controlPlaneExtraLoadBalancers is set
+                          rule: '!has(self.controlPlaneExtraLoadBalancers) || has(self.controlPlaneDNS)
+                            || has(self.controlPlanePrivateDNS)'
                         - message: privateNetwork is required when publicGateways
                             is set
                           rule: '!has(self.publicGateways) || has(self.privateNetwork)
                             && self.privateNetwork.enabled'
+                        - message: privateNetwork is required when private LoadBalancer
+                            is enabled
+                          rule: '!has(self.controlPlaneLoadBalancer) || !has(self.controlPlaneLoadBalancer.private)
+                            || !self.controlPlaneLoadBalancer.private || has(self.privateNetwork)
+                            && self.privateNetwork.enabled'
+                        - message: private LoadBalancer must be enabled to set controlPlanePrivateDNS
+                          rule: '!has(self.controlPlanePrivateDNS) || has(self.controlPlaneLoadBalancer.private)
+                            && self.controlPlaneLoadBalancer.private'
+                        - message: controlPlaneDNS and controlPlanePrivateDNS cannot
+                            be set at the same time
+                          rule: '(has(self.controlPlaneDNS) ? 1 : 0) + (has(self.controlPlanePrivateDNS)
+                            ? 1 : 0) < 2'
                       projectID:
                         description: ProjectID is the Scaleway project ID where the
                           cluster will be created.
@@ -311,6 +353,37 @@ spec:
                     x-kubernetes-validations:
                     - message: controlPlaneEndpoint is required once set
                       rule: '!has(oldSelf.controlPlaneEndpoint) || has(self.controlPlaneEndpoint)'
+                    - message: controlPlaneDNS cannot be added or removed
+                      rule: (has(self.network) && has(self.network.controlPlaneDNS))
+                        == (has(oldSelf.network) && has(oldSelf.network.controlPlaneDNS))
+                    - message: controlPlanePrivateDNS cannot be added or removed
+                      rule: (has(self.network) && has(self.network.controlPlanePrivateDNS))
+                        == (has(oldSelf.network) && has(oldSelf.network.controlPlanePrivateDNS))
+                    - message: privateNetwork cannot be added or removed
+                      rule: (has(self.network) && has(self.network.privateNetwork))
+                        == (has(oldSelf.network) && has(oldSelf.network.privateNetwork))
+                    - message: port cannot be added or removed
+                      rule: (has(self.network) && has(self.network.controlPlaneLoadBalancer)
+                        && has(self.network.controlPlaneLoadBalancer.port)) == (has(oldSelf.network)
+                        && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.port))
+                    - message: private cannot be added or removed
+                      rule: (has(self.network) && has(self.network.controlPlaneLoadBalancer)
+                        && has(self.network.controlPlaneLoadBalancer.private)) ==
+                        (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer)
+                        && has(oldSelf.network.controlPlaneLoadBalancer.private))
+                    - message: ip cannot be added or removed
+                      rule: (has(self.network) && has(self.network.controlPlaneLoadBalancer)
+                        && has(self.network.controlPlaneLoadBalancer.ip)) == (has(oldSelf.network)
+                        && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.ip))
+                    - message: zone cannot be added or removed
+                      rule: (has(self.network) && has(self.network.controlPlaneLoadBalancer)
+                        && has(self.network.controlPlaneLoadBalancer.zone)) == (has(oldSelf.network)
+                        && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.zone))
+                    - message: privateIP cannot be added or removed
+                      rule: (has(self.network) && has(self.network.controlPlaneLoadBalancer)
+                        && has(self.network.controlPlaneLoadBalancer.privateIP)) ==
+                        (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer)
+                        && has(oldSelf.network.controlPlaneLoadBalancer.privateIP))
                 required:
                 - spec
                 type: object

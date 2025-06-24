@@ -28,11 +28,12 @@ func (s *Service) Delete(ctx context.Context) error {
 		return nil
 	}
 
-	records, err := s.ScalewayClient.ListDNSZoneRecords(
-		ctx,
-		s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-		s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name,
-	)
+	zone, name, err := s.ControlPlaneDNSZoneAndName()
+	if err != nil {
+		return err
+	}
+
+	records, err := s.ScalewayClient.ListDNSZoneRecords(ctx, zone, name)
 	if err != nil {
 		// Domain API returns forbidden error when domain is not found.
 		if client.IsForbiddenError(err) {
@@ -46,17 +47,9 @@ func (s *Service) Delete(ctx context.Context) error {
 		return nil
 	}
 
-	logf.FromContext(ctx).Info(
-		"Deleting zone records",
-		"domain", s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-		"name", s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name,
-	)
+	logf.FromContext(ctx).Info("Deleting zone records", "zone", zone, "name", name)
 
-	if err := s.ScalewayClient.DeleteDNSZoneRecords(
-		ctx,
-		s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-		s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name,
-	); err != nil {
+	if err := s.ScalewayClient.DeleteDNSZoneRecords(ctx, zone, name); err != nil {
 		return fmt.Errorf("failed to delete dns records: %w", err)
 	}
 
@@ -68,11 +61,12 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		return nil
 	}
 
-	records, err := s.ScalewayClient.ListDNSZoneRecords(
-		ctx,
-		s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-		s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name,
-	)
+	zone, name, err := s.ControlPlaneDNSZoneAndName()
+	if err != nil {
+		return err
+	}
+
+	records, err := s.ScalewayClient.ListDNSZoneRecords(ctx, zone, name)
 	if err != nil {
 		return err
 	}
@@ -92,19 +86,9 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		return nil
 	}
 
-	logf.FromContext(ctx).Info(
-		"Updating zone records",
-		"domain", s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-		"name", s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name,
-		"controlPlaneIPs", controlPlaneIPs,
-	)
+	logf.FromContext(ctx).Info("Updating zone records", "zone", zone, "name", name, "controlPlaneIPs", controlPlaneIPs)
 
-	if err := s.ScalewayClient.SetDNSZoneRecords(
-		ctx,
-		s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-		s.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name,
-		controlPlaneIPs,
-	); err != nil {
+	if err := s.ScalewayClient.SetDNSZoneRecords(ctx, zone, name, controlPlaneIPs); err != nil {
 		return fmt.Errorf("failed to set dns records: %w", err)
 	}
 

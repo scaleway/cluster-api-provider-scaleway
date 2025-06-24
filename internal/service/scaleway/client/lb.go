@@ -88,22 +88,32 @@ func (c *Client) CreateLB(
 	zone scw.Zone,
 	name, lbType string,
 	ipID *string,
+	private bool,
 	tags []string,
 ) (*lb.LB, error) {
 	if err := c.validateZone(c.lb, zone); err != nil {
 		return nil, err
 	}
 
-	loadbalancer, err := c.lb.CreateLB(&lb.ZonedAPICreateLBRequest{
+	params := &lb.ZonedAPICreateLBRequest{
 		Zone:               zone,
 		Name:               name,
 		Type:               lbType,
-		IPID:               ipID,
 		Tags:               append(tags, createdByTag),
 		Description:        createdByDescription,
-		AssignFlexibleIP:   scw.BoolPtr(ipID == nil),
 		AssignFlexibleIPv6: scw.BoolPtr(false),
-	}, scw.WithContext(ctx))
+	}
+
+	if private {
+		params.AssignFlexibleIP = scw.BoolPtr(false)
+	} else {
+		if ipID != nil {
+			params.IPIDs = []string{*ipID}
+		}
+		params.AssignFlexibleIP = scw.BoolPtr(ipID == nil)
+	}
+
+	loadbalancer, err := c.lb.CreateLB(params, scw.WithContext(ctx))
 	if err != nil {
 		return nil, newCallError("CreateLB", err)
 	}
@@ -322,16 +332,22 @@ func (c *Client) FindLBPrivateNetwork(
 	}
 }
 
-func (c *Client) AttachLBPrivateNetwork(ctx context.Context, zone scw.Zone, lbID, privateNetworkID string) error {
+func (c *Client) AttachLBPrivateNetwork(ctx context.Context, zone scw.Zone, lbID, privateNetworkID string, ipID *string) error {
 	if err := c.validateZone(c.lb, zone); err != nil {
 		return err
 	}
 
-	if _, err := c.lb.AttachPrivateNetwork(&lb.ZonedAPIAttachPrivateNetworkRequest{
+	params := &lb.ZonedAPIAttachPrivateNetworkRequest{
 		Zone:             zone,
 		LBID:             lbID,
 		PrivateNetworkID: privateNetworkID,
-	}, scw.WithContext(ctx)); err != nil {
+	}
+
+	if ipID != nil {
+		params.IpamIDs = []string{*ipID}
+	}
+
+	if _, err := c.lb.AttachPrivateNetwork(params, scw.WithContext(ctx)); err != nil {
 		return newCallError("AttachPrivateNetwork", err)
 	}
 

@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"slices"
@@ -75,6 +76,22 @@ func (c *Client) CreatePrivateNetwork(
 	pn, err := c.vpc.CreatePrivateNetwork(params, scw.WithContext(ctx))
 	if err != nil {
 		return nil, newCallError("CreatePrivateNetwork", err)
+	}
+
+	return pn, nil
+}
+
+func (c *Client) GetPrivateNetwork(ctx context.Context, privateNetworkID string) (*vpc.PrivateNetwork, error) {
+	pn, err := c.vpc.GetPrivateNetwork(&vpc.GetPrivateNetworkRequest{
+		PrivateNetworkID: privateNetworkID,
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("GetPrivateNetwork", err)
+	}
+
+	// Validate that the Private Network is in the correct project
+	if pn.ProjectID != c.projectID {
+		return nil, errors.New("found Private Network, but it's not in the expected project")
 	}
 
 	return pn, nil
