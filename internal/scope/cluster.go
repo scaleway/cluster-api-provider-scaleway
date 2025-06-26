@@ -27,7 +27,7 @@ type Cluster struct {
 
 	Cluster         *clusterv1.Cluster
 	ScalewayCluster *infrav1.ScalewayCluster
-	ScalewayClient  *scwClient.Client
+	ScalewayClient  scwClient.Interface
 }
 
 // ClusterParams contains mandatory params for creating the Cluster scope.

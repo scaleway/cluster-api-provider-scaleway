@@ -8,6 +8,12 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type Zones interface {
+	GetZoneOrDefault(zone *string) (scw.Zone, error)
+	DefaultZone() scw.Zone
+	GetControlPlaneZones() []scw.Zone
+}
+
 // GetZoneOrDefault dereferences and parses the provided zone, or returns the default zone.
 func (c *Client) GetZoneOrDefault(zone *string) (scw.Zone, error) {
 	if zone == nil {

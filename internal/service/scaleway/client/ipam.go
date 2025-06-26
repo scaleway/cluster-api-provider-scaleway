@@ -7,6 +7,14 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type IPAMAPI interface {
+	ListIPs(req *ipam.ListIPsRequest, opts ...scw.RequestOption) (*ipam.ListIPsResponse, error)
+}
+
+type IPAM interface {
+	FindPrivateNICIPs(ctx context.Context, privateNICID string) ([]*ipam.IP, error)
+}
+
 func (c *Client) FindPrivateNICIPs(ctx context.Context, privateNICID string) ([]*ipam.IP, error) {
 	ips, err := c.ipam.ListIPs(&ipam.ListIPsRequest{
 		ProjectID:    &c.projectID,

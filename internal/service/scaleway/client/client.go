@@ -23,6 +23,8 @@ const (
 
 var userAgent = "cluster-api-provider-scaleway/" + version.Version
 
+var _ Interface = &Client{}
+
 // Client is a wrapper over scaleway-sdk-go to access Scaleway Product APIs in
 // a specific region and project.
 type Client struct {
@@ -31,14 +33,14 @@ type Client struct {
 	region    scw.Region
 
 	// Product APIs
-	vpc         *vpc.API
-	vpcgw       *vpcgw.API
-	lb          *lb.ZonedAPI
-	domain      *domain.API
-	instance    *instance.API
-	block       *block.API
-	marketplace *marketplace.API
-	ipam        *ipam.API
+	vpc         VPCAPI
+	vpcgw       VPCGWAPI
+	lb          LBAPI
+	domain      DomainAPI
+	instance    InstanceAPI
+	block       BlockAPI
+	marketplace MarketplaceAPI
+	ipam        IPAMAPI
 }
 
 // New returns a new Scaleway client based on the provided region and secretData.

@@ -9,6 +9,21 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type BlockAPI interface {
+	zonesGetter
+
+	UpdateVolume(req *block.UpdateVolumeRequest, opts ...scw.RequestOption) (*block.Volume, error)
+	ListVolumes(req *block.ListVolumesRequest, opts ...scw.RequestOption) (*block.ListVolumesResponse, error)
+	DeleteVolume(req *block.DeleteVolumeRequest, opts ...scw.RequestOption) error
+}
+
+type Block interface {
+	UpdateVolumeIOPS(ctx context.Context, zone scw.Zone, volumeID string, iops int64) error
+	UpdateVolumeTags(ctx context.Context, zone scw.Zone, volumeID string, tags []string) error
+	FindVolume(ctx context.Context, zone scw.Zone, tags []string) (*block.Volume, error)
+	DeleteVolume(ctx context.Context, zone scw.Zone, volumeID string) error
+}
+
 func (c *Client) UpdateVolumeIOPS(ctx context.Context, zone scw.Zone, volumeID string, iops int64) error {
 	if err := c.validateZone(c.block, zone); err != nil {
 		return err

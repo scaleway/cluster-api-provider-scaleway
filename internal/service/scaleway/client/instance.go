@@ -11,6 +11,59 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type InstanceAPI interface {
+	zonesGetter
+
+	ListServers(req *instance.ListServersRequest, opts ...scw.RequestOption) (*instance.ListServersResponse, error)
+	GetServerType(req *instance.GetServerTypeRequest) (*instance.ServerType, error)
+	CreateServer(req *instance.CreateServerRequest, opts ...scw.RequestOption) (*instance.CreateServerResponse, error)
+	ListImages(req *instance.ListImagesRequest, opts ...scw.RequestOption) (*instance.ListImagesResponse, error)
+	ListIPs(req *instance.ListIPsRequest, opts ...scw.RequestOption) (*instance.ListIPsResponse, error)
+	CreateIP(req *instance.CreateIPRequest, opts ...scw.RequestOption) (*instance.CreateIPResponse, error)
+	DeleteIP(req *instance.DeleteIPRequest, opts ...scw.RequestOption) error
+	CreatePrivateNIC(req *instance.CreatePrivateNICRequest, opts ...scw.RequestOption) (*instance.CreatePrivateNICResponse, error)
+	GetAllServerUserData(req *instance.GetAllServerUserDataRequest, opts ...scw.RequestOption) (*instance.GetAllServerUserDataResponse, error)
+	SetServerUserData(req *instance.SetServerUserDataRequest, opts ...scw.RequestOption) error
+	DeleteServerUserData(req *instance.DeleteServerUserDataRequest, opts ...scw.RequestOption) error
+	ServerAction(req *instance.ServerActionRequest, opts ...scw.RequestOption) (*instance.ServerActionResponse, error)
+	DetachVolume(req *instance.DetachVolumeRequest, opts ...scw.RequestOption) (*instance.DetachVolumeResponse, error)
+	UpdateVolume(req *instance.UpdateVolumeRequest, opts ...scw.RequestOption) (*instance.UpdateVolumeResponse, error)
+	ListVolumes(req *instance.ListVolumesRequest, opts ...scw.RequestOption) (*instance.ListVolumesResponse, error)
+	DeleteVolume(req *instance.DeleteVolumeRequest, opts ...scw.RequestOption) error
+	DeleteServer(req *instance.DeleteServerRequest, opts ...scw.RequestOption) error
+	ListPlacementGroups(req *instance.ListPlacementGroupsRequest, opts ...scw.RequestOption) (*instance.ListPlacementGroupsResponse, error)
+	ListSecurityGroups(req *instance.ListSecurityGroupsRequest, opts ...scw.RequestOption) (*instance.ListSecurityGroupsResponse, error)
+}
+
+type Instance interface {
+	FindServer(ctx context.Context, zone scw.Zone, tags []string) (*instance.Server, error)
+	CreateServer(
+		ctx context.Context,
+		zone scw.Zone,
+		name, commercialType, imageID string,
+		placementGroupID, securityGroupID *string,
+		rootVolumeSize scw.Size,
+		rootVolumeType instance.VolumeVolumeType,
+		publicIPs, tags []string,
+	) (*instance.Server, error)
+	FindImage(ctx context.Context, zone scw.Zone, name string) (*instance.Image, error)
+	FindIPs(ctx context.Context, zone scw.Zone, tags []string) ([]*instance.IP, error)
+	CreateIP(ctx context.Context, zone scw.Zone, ipType instance.IPType, tags []string) (*instance.IP, error)
+	DeleteIP(ctx context.Context, zone scw.Zone, ipID string) error
+	CreatePrivateNIC(ctx context.Context, zone scw.Zone, serverID, privateNetworkID string) (*instance.PrivateNIC, error)
+	GetAllServerUserData(ctx context.Context, zone scw.Zone, serverID string) (map[string]io.Reader, error)
+	SetServerUserData(ctx context.Context, zone scw.Zone, serverID, key, content string) error
+	DeleteServerUserData(ctx context.Context, zone scw.Zone, serverID, key string) error
+	ServerAction(ctx context.Context, zone scw.Zone, serverID string, action instance.ServerAction) error
+	DetachVolume(ctx context.Context, zone scw.Zone, volumeID string) error
+	UpdateInstanceVolumeTags(ctx context.Context, zone scw.Zone, volumeID string, tags []string) error
+	FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []string) (*instance.Volume, error)
+	DeleteInstanceVolume(ctx context.Context, zone scw.Zone, volumeID string) error
+	DeleteServer(ctx context.Context, zone scw.Zone, serverID string) error
+	FindPlacementGroup(ctx context.Context, zone scw.Zone, name string) (*instance.PlacementGroup, error)
+	FindSecurityGroup(ctx context.Context, zone scw.Zone, name string) (*instance.SecurityGroup, error)
+}
+
 // FindServer finds an existing Instance server by tags.
 // It returns ErrNoItemFound if no matching server is found.
 func (c *Client) FindServer(ctx context.Context, zone scw.Zone, tags []string) (*instance.Server, error) {
