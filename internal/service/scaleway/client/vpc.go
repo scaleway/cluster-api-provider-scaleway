@@ -11,6 +11,25 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type VPCAPI interface {
+	ListPrivateNetworks(req *vpc.ListPrivateNetworksRequest, opts ...scw.RequestOption) (*vpc.ListPrivateNetworksResponse, error)
+	DeletePrivateNetwork(req *vpc.DeletePrivateNetworkRequest, opts ...scw.RequestOption) error
+	CreatePrivateNetwork(req *vpc.CreatePrivateNetworkRequest, opts ...scw.RequestOption) (*vpc.PrivateNetwork, error)
+	GetPrivateNetwork(req *vpc.GetPrivateNetworkRequest, opts ...scw.RequestOption) (*vpc.PrivateNetwork, error)
+}
+
+type VPC interface {
+	FindPrivateNetwork(ctx context.Context, tags []string, vpcID *string) (*vpc.PrivateNetwork, error)
+	DeletePrivateNetwork(ctx context.Context, id string) error
+	CreatePrivateNetwork(
+		ctx context.Context,
+		name string,
+		vpcID, subnet *string,
+		tags []string,
+	) (*vpc.PrivateNetwork, error)
+	GetPrivateNetwork(ctx context.Context, privateNetworkID string) (*vpc.PrivateNetwork, error)
+}
+
 // FindPrivateNetwork finds an existing Private Network by tags.
 // It returns ErrNoItemFound if no matching Private Network is found.
 func (c *Client) FindPrivateNetwork(ctx context.Context, tags []string, vpcID *string) (*vpc.PrivateNetwork, error) {

@@ -8,6 +8,34 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type VPCGWAPI interface {
+	zonesGetter
+
+	ListGateways(req *vpcgw.ListGatewaysRequest, opts ...scw.RequestOption) (*vpcgw.ListGatewaysResponse, error)
+	DeleteGateway(req *vpcgw.DeleteGatewayRequest, opts ...scw.RequestOption) (*vpcgw.Gateway, error)
+	ListIPs(req *vpcgw.ListIPsRequest, opts ...scw.RequestOption) (*vpcgw.ListIPsResponse, error)
+	CreateGateway(req *vpcgw.CreateGatewayRequest, opts ...scw.RequestOption) (*vpcgw.Gateway, error)
+	CreateGatewayNetwork(req *vpcgw.CreateGatewayNetworkRequest, opts ...scw.RequestOption) (*vpcgw.GatewayNetwork, error)
+	ListGatewayTypes(req *vpcgw.ListGatewayTypesRequest, opts ...scw.RequestOption) (*vpcgw.ListGatewayTypesResponse, error)
+	UpgradeGateway(req *vpcgw.UpgradeGatewayRequest, opts ...scw.RequestOption) (*vpcgw.Gateway, error)
+}
+
+type VPCGW interface {
+	FindGateways(ctx context.Context, tags []string) ([]*vpcgw.Gateway, error)
+	DeleteGateway(ctx context.Context, zone scw.Zone, id string, deleteIP bool) error
+	FindGatewayIP(ctx context.Context, zone scw.Zone, ip string) (*vpcgw.IP, error)
+	CreateGateway(
+		ctx context.Context,
+		zone scw.Zone,
+		name, gwType string,
+		tags []string,
+		ipID *string,
+	) (*vpcgw.Gateway, error)
+	CreateGatewayNetwork(ctx context.Context, zone scw.Zone, gatewayID, privateNetworkID string) error
+	ListGatewayTypes(ctx context.Context, zone scw.Zone) ([]string, error)
+	UpgradeGateway(ctx context.Context, zone scw.Zone, gatewayID, newType string) (*vpcgw.Gateway, error)
+}
+
 func (c *Client) FindGateways(ctx context.Context, tags []string) ([]*vpcgw.Gateway, error) {
 	if err := validateTags(tags); err != nil {
 		return nil, err

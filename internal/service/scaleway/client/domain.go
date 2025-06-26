@@ -7,6 +7,17 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type DomainAPI interface {
+	ListDNSZoneRecords(req *domain.ListDNSZoneRecordsRequest, opts ...scw.RequestOption) (*domain.ListDNSZoneRecordsResponse, error)
+	UpdateDNSZoneRecords(req *domain.UpdateDNSZoneRecordsRequest, opts ...scw.RequestOption) (*domain.UpdateDNSZoneRecordsResponse, error)
+}
+
+type Domain interface {
+	ListDNSZoneRecords(ctx context.Context, zone, name string) ([]*domain.Record, error)
+	DeleteDNSZoneRecords(ctx context.Context, zone string, name string) error
+	SetDNSZoneRecords(ctx context.Context, zone string, name string, ips []string) error
+}
+
 func (c *Client) ListDNSZoneRecords(ctx context.Context, zone, name string) ([]*domain.Record, error) {
 	resp, err := c.domain.ListDNSZoneRecords(&domain.ListDNSZoneRecordsRequest{
 		DNSZone: zone,

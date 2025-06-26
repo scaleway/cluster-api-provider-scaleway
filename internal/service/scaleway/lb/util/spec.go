@@ -12,7 +12,7 @@ const lbDefaultType = "LB-S"
 // LBSpec returns the zone and type of the LoadBalancer based on the provided LoadBalancerSpec.
 // If the zone is not specified in the spec, it defaults to the zone of the Scaleway client.
 // If the type is not specified, it defaults to lbDefaultType.
-func LBSpec(c *client.Client, spec infrav1.LoadBalancerSpec) (zone scw.Zone, lbType string, err error) {
+func LBSpec(c client.Zones, spec infrav1.LoadBalancerSpec) (zone scw.Zone, lbType string, err error) {
 	zone, err = c.GetZoneOrDefault(spec.Zone)
 	if err != nil {
 		return
@@ -27,7 +27,7 @@ func LBSpec(c *client.Client, spec infrav1.LoadBalancerSpec) (zone scw.Zone, lbT
 }
 
 // MainLBSpec returns the zone and type of the main LoadBalancer for the ScalewayCluster.
-func MainLBSpec(c *client.Client, scalewayCluster *infrav1.ScalewayCluster) (zone scw.Zone, lbType string, err error) {
+func MainLBSpec(c client.Zones, scalewayCluster *infrav1.ScalewayCluster) (zone scw.Zone, lbType string, err error) {
 	var spec infrav1.LoadBalancerSpec
 	if scalewayCluster.Spec.Network != nil && scalewayCluster.Spec.Network.ControlPlaneLoadBalancer != nil {
 		spec = scalewayCluster.Spec.Network.ControlPlaneLoadBalancer.LoadBalancerSpec
