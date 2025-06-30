@@ -18,7 +18,11 @@ var (
 // IsForbiddenError returns true if err is an HTTP 403 error.
 func IsForbiddenError(err error) bool {
 	var respError *scw.ResponseError
-	return errors.As(err, &respError) && respError.StatusCode == http.StatusForbidden
+	if !errors.As(err, &respError) {
+		return false
+	}
+
+	return respError.StatusCode == http.StatusForbidden
 }
 
 // IsNotFoundError returns true if err is an HTTP 404 error or ErrNoItemFound.
