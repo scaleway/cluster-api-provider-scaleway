@@ -10,6 +10,96 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type LBAPI interface {
+	zonesGetter
+
+	ListLBs(req *lb.ZonedAPIListLBsRequest, opts ...scw.RequestOption) (*lb.ListLBsResponse, error)
+	MigrateLB(req *lb.ZonedAPIMigrateLBRequest, opts ...scw.RequestOption) (*lb.LB, error)
+	ListIPs(req *lb.ZonedAPIListIPsRequest, opts ...scw.RequestOption) (*lb.ListIPsResponse, error)
+	CreateLB(req *lb.ZonedAPICreateLBRequest, opts ...scw.RequestOption) (*lb.LB, error)
+	DeleteLB(req *lb.ZonedAPIDeleteLBRequest, opts ...scw.RequestOption) error
+	ListBackends(req *lb.ZonedAPIListBackendsRequest, opts ...scw.RequestOption) (*lb.ListBackendsResponse, error)
+	CreateBackend(req *lb.ZonedAPICreateBackendRequest, opts ...scw.RequestOption) (*lb.Backend, error)
+	SetBackendServers(req *lb.ZonedAPISetBackendServersRequest, opts ...scw.RequestOption) (*lb.Backend, error)
+	ListFrontends(req *lb.ZonedAPIListFrontendsRequest, opts ...scw.RequestOption) (*lb.ListFrontendsResponse, error)
+	CreateFrontend(req *lb.ZonedAPICreateFrontendRequest, opts ...scw.RequestOption) (*lb.Frontend, error)
+	ListLBPrivateNetworks(req *lb.ZonedAPIListLBPrivateNetworksRequest, opts ...scw.RequestOption) (*lb.ListLBPrivateNetworksResponse, error)
+	AttachPrivateNetwork(req *lb.ZonedAPIAttachPrivateNetworkRequest, opts ...scw.RequestOption) (*lb.PrivateNetwork, error)
+	ListACLs(req *lb.ZonedAPIListACLsRequest, opts ...scw.RequestOption) (*lb.ListACLResponse, error)
+	SetACLs(req *lb.ZonedAPISetACLsRequest, opts ...scw.RequestOption) (*lb.SetACLsResponse, error)
+	DeleteACL(req *lb.ZonedAPIDeleteACLRequest, opts ...scw.RequestOption) error
+	CreateACL(req *lb.ZonedAPICreateACLRequest, opts ...scw.RequestOption) (*lb.ACL, error)
+	UpdateACL(req *lb.ZonedAPIUpdateACLRequest, opts ...scw.RequestOption) (*lb.ACL, error)
+	RemoveBackendServers(req *lb.ZonedAPIRemoveBackendServersRequest, opts ...scw.RequestOption) (*lb.Backend, error)
+	AddBackendServers(req *lb.ZonedAPIAddBackendServersRequest, opts ...scw.RequestOption) (*lb.Backend, error)
+}
+
+type LB interface {
+	FindLB(ctx context.Context, zone scw.Zone, tags []string) (*lb.LB, error)
+	MigrateLB(ctx context.Context, zone scw.Zone, id string, newType string) (*lb.LB, error)
+	FindLBIP(ctx context.Context, zone scw.Zone, ip string) (*lb.IP, error)
+	CreateLB(
+		ctx context.Context,
+		zone scw.Zone,
+		name, lbType string,
+		ipID *string,
+		private bool,
+		tags []string,
+	) (*lb.LB, error)
+	DeleteLB(ctx context.Context, zone scw.Zone, id string, releaseIP bool) error
+	FindLBs(ctx context.Context, tags []string) ([]*lb.LB, error)
+	FindBackend(ctx context.Context, zone scw.Zone, lbID, name string) (*lb.Backend, error)
+	CreateBackend(
+		ctx context.Context,
+		zone scw.Zone,
+		lbID,
+		name string,
+		servers []string,
+		port int32,
+	) (*lb.Backend, error)
+	SetBackendServers(
+		ctx context.Context,
+		zone scw.Zone,
+		backendID string,
+		servers []string,
+	) (*lb.Backend, error)
+	FindFrontend(ctx context.Context, zone scw.Zone, lbID, name string) (*lb.Frontend, error)
+	CreateFrontend(
+		ctx context.Context,
+		zone scw.Zone,
+		lbID, name, backendID string,
+		port int32,
+	) (*lb.Frontend, error)
+	FindLBPrivateNetwork(
+		ctx context.Context,
+		zone scw.Zone,
+		lbID, privateNetworkID string,
+	) (*lb.PrivateNetwork, error)
+	AttachLBPrivateNetwork(ctx context.Context, zone scw.Zone, lbID, privateNetworkID string, ipID *string) error
+	ListLBACLs(ctx context.Context, zone scw.Zone, frontendID string) ([]*lb.ACL, error)
+	SetLBACLs(ctx context.Context, zone scw.Zone, frontendID string, acls []*lb.ACLSpec) error
+	FindLBACLByName(ctx context.Context, zone scw.Zone, frontendID string, name string) (*lb.ACL, error)
+	DeleteLBACL(ctx context.Context, zone scw.Zone, aclID string) error
+	CreateLBACL(
+		ctx context.Context,
+		zone scw.Zone,
+		frontendID, name string,
+		index int32,
+		action lb.ACLActionType,
+		matchedSubnets []string,
+	) error
+	UpdateLBACL(
+		ctx context.Context,
+		zone scw.Zone,
+		aclID, name string,
+		index int32,
+		action lb.ACLActionType,
+		matchedSubnets []string,
+	) error
+	RemoveBackendServer(ctx context.Context, zone scw.Zone, backendID, ip string) error
+	AddBackendServer(ctx context.Context, zone scw.Zone, backendID, ip string) error
+}
+
 func (c *Client) FindLB(ctx context.Context, zone scw.Zone, tags []string) (*lb.LB, error) {
 	if err := c.validateZone(c.lb, zone); err != nil {
 		return nil, err
@@ -98,7 +188,7 @@ func (c *Client) CreateLB(
 	params := &lb.ZonedAPICreateLBRequest{
 		Zone:               zone,
 		Name:               name,
-		Type:               lbType,
+		Type:               strings.ToLower(lbType),
 		Tags:               append(tags, createdByTag),
 		Description:        createdByDescription,
 		AssignFlexibleIPv6: scw.BoolPtr(false),
@@ -250,6 +340,7 @@ func (c *Client) FindFrontend(ctx context.Context, zone scw.Zone, lbID, name str
 	resp, err := c.lb.ListFrontends(&lb.ZonedAPIListFrontendsRequest{
 		Zone: zone,
 		LBID: lbID,
+		Name: &name,
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListFrontends", err)

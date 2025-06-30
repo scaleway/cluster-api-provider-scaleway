@@ -7,6 +7,20 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+type MarketplaceAPI interface {
+	GetLocalImageByLabel(req *marketplace.GetLocalImageByLabelRequest, opts ...scw.RequestOption) (*marketplace.LocalImage, error)
+}
+
+type Marketplace interface {
+	GetLocalImageByLabel(
+		ctx context.Context,
+		zone scw.Zone,
+		commercialType,
+		imageLabel string,
+		imageType marketplace.LocalImageType,
+	) (*marketplace.LocalImage, error)
+}
+
 func (c *Client) GetLocalImageByLabel(
 	ctx context.Context,
 	zone scw.Zone,
