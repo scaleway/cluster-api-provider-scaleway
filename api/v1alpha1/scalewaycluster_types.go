@@ -8,7 +8,18 @@ import (
 const ClusterFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sc-protection"
 
 // ScalewayClusterSpec defines the desired state of ScalewayCluster.
+//
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.controlPlaneEndpoint) || has(self.controlPlaneEndpoint)", message="controlPlaneEndpoint is required once set"
+//
+// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneDNS)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneDNS))",message="controlPlaneDNS cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlanePrivateDNS)) == (has(oldSelf.network) && has(oldSelf.network.controlPlanePrivateDNS))",message="controlPlanePrivateDNS cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.privateNetwork)) == (has(oldSelf.network) && has(oldSelf.network.privateNetwork))",message="privateNetwork cannot be added or removed"
+//
+// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.port)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.port))",message="port cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.private)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.private))",message="private cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.ip)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.ip))",message="ip cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.zone)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.zone))",message="zone cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.privateIP)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.privateIP))",message="privateIP cannot be added or removed"
 type ScalewayClusterSpec struct {
 	// ProjectID is the Scaleway project ID where the cluster will be created.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
@@ -42,10 +53,12 @@ type ScalewayClusterSpec struct {
 }
 
 // NetworkSpec defines network specific settings.
-// +kubebuilder:validation:XValidation:rule="!has(self.controlPlaneExtraLoadBalancers) || has(self.controlPlaneDNS)",message="controlPlaneDNS is required when controlPlaneExtraLoadBalancers is set"
-// +kubebuilder:validation:XValidation:rule="has(self.controlPlaneDNS) == has(oldSelf.controlPlaneDNS)",message="controlPlaneDNS cannot be added or removed"
-// +kubebuilder:validation:XValidation:rule="has(self.privateNetwork) == has(oldSelf.privateNetwork)",message="privateNetwork cannot be added or removed"
+//
+// +kubebuilder:validation:XValidation:rule="!has(self.controlPlaneExtraLoadBalancers) || has(self.controlPlaneDNS) || has(self.controlPlanePrivateDNS)",message="controlPlaneDNS or controlPlanePrivateDNS is required when controlPlaneExtraLoadBalancers is set"
 // +kubebuilder:validation:XValidation:rule="!has(self.publicGateways) || has(self.privateNetwork) && self.privateNetwork.enabled",message="privateNetwork is required when publicGateways is set"
+// +kubebuilder:validation:XValidation:rule="!has(self.controlPlaneLoadBalancer) || !has(self.controlPlaneLoadBalancer.private) || !self.controlPlaneLoadBalancer.private || has(self.privateNetwork) && self.privateNetwork.enabled",message="privateNetwork is required when private LoadBalancer is enabled"
+// +kubebuilder:validation:XValidation:rule="!has(self.controlPlanePrivateDNS) || has(self.controlPlaneLoadBalancer.private) && self.controlPlaneLoadBalancer.private",message="private LoadBalancer must be enabled to set controlPlanePrivateDNS"
+// +kubebuilder:validation:XValidation:rule="(has(self.controlPlaneDNS) ? 1 : 0) + (has(self.controlPlanePrivateDNS) ? 1 : 0) < 2",message="controlPlaneDNS and controlPlanePrivateDNS cannot be set at the same time"
 type NetworkSpec struct {
 	// ControlPlaneLoadBalancer contains loadbalancer settings.
 	// +optional
@@ -64,6 +77,14 @@ type NetworkSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	// +optional
 	ControlPlaneDNS *ControlPlaneDNSSpec `json:"controlPlaneDNS,omitempty"`
+
+	// ControlPlanePrivateDNS allows configuring the DNS Zone of the VPC with
+	// records that point to the control plane LoadBalancers. This field is only
+	// available when the control plane LoadBalancers are private. Only one of
+	// ControlPlaneDNS or ControlPlanePrivateDNS can be set.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
+	// +optional
+	ControlPlanePrivateDNS *ControlPlanePrivateDNSSpec `json:"controlPlanePrivateDNS,omitempty"`
 
 	// PrivateNetwork allows attaching machines of the cluster to a Private Network.
 	// +optional
@@ -92,15 +113,18 @@ type LoadBalancerSpec struct {
 	// +kubebuilder:validation:Format=ipv4
 	// +optional
 	IP *string `json:"ip,omitempty"`
+
+	// Private IP to use when attaching a loadbalancer to a Private Network.
+	// +kubebuilder:validation:Format=ipv4
+	// +optional
+	PrivateIP *string `json:"privateIP,omitempty"`
 }
 
 // ControlPlaneLoadBalancerSpec defines control-plane loadbalancer settings for the cluster.
-// +kubebuilder:validation:XValidation:rule="has(self.port) == has(oldSelf.port)",message="port cannot be added or removed"
 type ControlPlaneLoadBalancerSpec struct {
-	// +kubebuilder:validation:XValidation:rule="has(self.ip) == has(oldSelf.ip)",message="ip cannot be added or removed"
 	// +kubebuilder:validation:XValidation:rule="!has(oldSelf.ip) || self.ip == oldSelf.ip",message="ip is immutable"
-	// +kubebuilder:validation:XValidation:rule="has(self.zone) == has(oldSelf.zone)",message="zone cannot be added or removed"
 	// +kubebuilder:validation:XValidation:rule="!has(oldSelf.zone) || self.zone == oldSelf.zone",message="zone is immutable"
+	// +kubebuilder:validation:XValidation:rule="!has(oldSelf.privateIP) || self.privateIP == oldSelf.privateIP",message="privateIP is immutable"
 	LoadBalancerSpec `json:",inline"`
 
 	// Port configured on the Load Balancer. It must be valid port range (1-65535).
@@ -118,6 +142,11 @@ type ControlPlaneLoadBalancerSpec struct {
 	// +listType=set
 	// +optional
 	AllowedRanges []CIDR `json:"allowedRanges,omitempty"`
+
+	// Private disables the creation of a public IP on the LoadBalancers when it's set to true.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
+	// +optional
+	Private *bool `json:"private,omitempty"`
 }
 
 // CIDR is an IP address range in CIDR notation (for example, "10.0.0.0/8" or "fd00::/8").
@@ -131,6 +160,13 @@ type ControlPlaneDNSSpec struct {
 	// The format must be a string that conforms to the definition of a subdomain in DNS (RFC 1123).
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Domain string `json:"domain"`
+	// Name is the DNS short name of the record (non-FQDN). The format must consist of
+	// alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$
+	Name string `json:"name"`
+}
+
+type ControlPlanePrivateDNSSpec struct {
 	// Name is the DNS short name of the record (non-FQDN). The format must consist of
 	// alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$
@@ -203,6 +239,10 @@ type ScalewayClusterStatus struct {
 
 // NetworkStatus contains information about network resources of the cluster.
 type NetworkStatus struct {
+	// VPCID is set if the cluster has an associated Private Network.
+	// +optional
+	VPCID *string `json:"vpcID,omitempty"`
+
 	// PrivateNetworkID is set if the cluster has an associated Private Network.
 	// +optional
 	PrivateNetworkID *string `json:"privateNetworkID,omitempty"`

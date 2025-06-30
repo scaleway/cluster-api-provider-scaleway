@@ -152,27 +152,87 @@ func (c *Cluster) ControlPlaneLoadBalancerAllowedRanges() []string {
 	return result
 }
 
-// HasControlPlaneDNS returns true if the cluster has an associated domain.
+// HasControlPlaneDNS returns true if the cluster has an associated domain (public or private).
 func (c *Cluster) HasControlPlaneDNS() bool {
+	return c.hasControlPlaneDNS() || c.hasControlPlanePrivateDNS()
+}
+
+// hasControlPlaneDNS returns true if the cluster has an associated domain that is public.
+func (c *Cluster) hasControlPlaneDNS() bool {
 	return c.ScalewayCluster.Spec.Network != nil &&
 		c.ScalewayCluster.Spec.Network.ControlPlaneDNS != nil
 }
 
+// hasControlPlanePrivateDNS returns true if the cluster has an associated domain that is private.
+func (c *Cluster) hasControlPlanePrivateDNS() bool {
+	return c.ControlPlaneLoadBalancerPrivate() &&
+		c.ScalewayCluster.Spec.Network.ControlPlanePrivateDNS != nil
+}
+
+// ControlPlaneDNSZoneAndName returns the DNS zone and the name of the records
+// that should be updated.
+func (c *Cluster) ControlPlaneDNSZoneAndName() (string, string, error) {
+	if c.hasControlPlanePrivateDNS() {
+		if c.ScalewayCluster.Status.Network == nil {
+			return "", "", errors.New("missing network field in status")
+		}
+
+		if c.ScalewayCluster.Status.Network.VPCID == nil {
+			return "", "", errors.New("missing vpcID in status")
+		}
+
+		if c.ScalewayCluster.Status.Network.PrivateNetworkID == nil {
+			return "", "", errors.New("missing privateNetworkID in status")
+		}
+
+		zone := fmt.Sprintf(
+			"%s.%s.privatedns",
+			*c.ScalewayCluster.Status.Network.PrivateNetworkID,
+			*c.ScalewayCluster.Status.Network.VPCID,
+		)
+
+		return zone, c.ScalewayCluster.Spec.Network.ControlPlanePrivateDNS.Name, nil
+	}
+
+	if c.hasControlPlaneDNS() {
+		return c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
+			c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name, nil
+	}
+
+	return "", "", errors.New("control plane has no zone or domain")
+}
+
 // ControlPlaneHost returns the control plane host.
-func (c *Cluster) ControlPlaneHost() string {
-	if c.HasControlPlaneDNS() {
+func (c *Cluster) ControlPlaneHost() (string, error) {
+	if c.hasControlPlanePrivateDNS() {
+		if c.ScalewayCluster.Status.Network == nil {
+			return "", errors.New("missing network field in status")
+		}
+
+		if c.ScalewayCluster.Status.Network.PrivateNetworkID == nil {
+			return "", errors.New("missing privateNetworkID in status")
+		}
+
+		return fmt.Sprintf(
+			"%s.%s.internal",
+			c.ScalewayCluster.Spec.Network.ControlPlanePrivateDNS.Name,
+			*c.ScalewayCluster.Status.Network.PrivateNetworkID,
+		), nil
+	}
+
+	if c.hasControlPlaneDNS() {
 		return fmt.Sprintf(
 			"%s.%s",
 			c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name,
 			c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-		)
+		), nil
 	}
 
 	if ips := c.ControlPlaneLoadBalancerIPs(); len(ips) != 0 {
-		return ips[0]
+		return ips[0], nil
 	}
 
-	return ""
+	return "", errors.New("unable to determine control plane host")
 }
 
 // ControlPlaneLoadBalancerIPs returns the IPs of the control plane loadbalancers.
@@ -190,6 +250,17 @@ func (c *Cluster) ControlPlaneLoadBalancerIPs() []string {
 	return slices.Sorted(slices.Values(ips))
 }
 
+// ControlPlaneLoadBalancerPrivate returns true if the control plane should only
+// be accessible through a private endpoint.
+func (c *Cluster) ControlPlaneLoadBalancerPrivate() bool {
+	return c.ScalewayCluster.Spec.Network != nil &&
+		c.ScalewayCluster.Spec.Network.PrivateNetwork != nil &&
+		c.ScalewayCluster.Spec.Network.PrivateNetwork.Enabled && // Private Network must be enabled.
+		c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer != nil &&
+		c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.Private != nil &&
+		*c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.Private
+}
+
 // SetStatusPrivateNetworkID sets the Private Network ID in the status of the
 // ScalewayCluster object.
 func (c *Cluster) SetStatusPrivateNetworkID(pnID string) {
@@ -199,6 +270,17 @@ func (c *Cluster) SetStatusPrivateNetworkID(pnID string) {
 		}
 	} else {
 		c.ScalewayCluster.Status.Network.PrivateNetworkID = &pnID
+	}
+}
+
+// SetStatusVPCID sets the VPC ID in the status of the ScalewayCluster object.
+func (c *Cluster) SetStatusVPCID(vpcID string) {
+	if c.ScalewayCluster.Status.Network == nil {
+		c.ScalewayCluster.Status.Network = &infrav1.NetworkStatus{
+			VPCID: &vpcID,
+		}
+	} else {
+		c.ScalewayCluster.Status.Network.VPCID = &vpcID
 	}
 }
 

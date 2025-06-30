@@ -71,6 +71,12 @@ spec:
 
 ### DNS
 
+The Scaleway provider can manage a DNS zone and maintain a set of records up-to-date
+with the addresses of the control-plane Load Balancers. Note that this can be a
+*public* or a *private* Scaleway DNS zone, but **not both**.
+
+#### Public DNS
+
 Set the `network.controlPlaneDNS` field to automatically configure DNS records that
 will point to the Load Balancer address(es) of your workload cluster.
 
@@ -98,6 +104,48 @@ for more information. You may register an external domain by following
 
 The `network.controlPlaneDNS` field is **immutable**, it cannot be updated after creation.
 
+#### Private DNS
+
+The `network.controlPlanePrivateDNS` field is only available when `network.controlPlaneLoadBalancer.private`
+is set to `true`. Here is an example of configuration:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: ScalewayCluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  network:
+    controlPlanePrivateDNS:
+      name: my-cluster
+    # ...
+    controlPlaneLoadBalancer:
+      private: true # This MUST be set to true
+    privateNetwork:
+      enabled: true # This MUST be set to true
+  # some fields were omitted...
+```
+
+The records will be created in the `${PRIVATE_NETWORK_ID}.${VPC_ID}.privatedns` zone.
+You may list existing records inside this zone by using this command:
+
+```bash
+scw dns record list ${PRIVATE_NETWORK_ID}.${VPC_ID}.privatedns
+```
+
+> [!CAUTION]
+> Make sure the chosen `name` does not conflict with **existing** or **future** records managed by Scaleway.
+
+The cluster FQDN will be `${NAME}.${PRIVATE_NETWORK_ID}.internal`, where `${NAME}`
+is the chosen `name`.
+
+> [!CAUTION]
+> Make sure your management cluster can resolve it by configuring the VPC managed DNS
+> resolver (`169.254.169.254`) in your management cluster's DNS configuration.
+
+For more information about private DNS, please refer to the [Understanding Scaleway DNS for VPC and Private Networks document](https://www.scaleway.com/en/docs/vpc/reference-content/dns).
+
 ### Load Balancer
 
 When creating a `ScalewayCluster`, a "main" Load Balancer is always created.
@@ -123,6 +171,8 @@ spec:
       port: 443
       zone: fr-par-1
       ip: 42.42.42.42 # optional
+      # private: true
+      # privateIP: 172.16.42.42
   # some fields were omitted...
 ```
 
@@ -134,10 +184,18 @@ spec:
   This field is immutable.
 - The `ip` field specifies an existing Load Balancer Flexible IP to use when creating
   the Load Balancer. If not set, a new IP will be created. This field is immutable.
+- The `private` field specifies if Load Balancers should have a public IP or not.
+  This field can only be set to `true` when `network.privateNetwork.enabled` is also `true`.
+- The `privateIP` field specifies an available IPAM IP to attach to the Load Balancer.
+
+> [!CAUTION]
+> When `private` is set to `true`, make sure your management cluster has network access
+> to the Private Network where the workload cluster will be created.
 
 #### Extra Load Balancers
 
-To specify extra Load Balancers, it is required to also set the `network.controlPlaneDNS` field.
+To specify extra Load Balancers, it is required to also set the `network.controlPlaneDNS`
+or `network.controlPlanePrivateDNS` field.
 
 Here is an example that configures two extra Load Balancers in `nl-ams-2` and `nl-ams-3`.
 
@@ -157,6 +215,8 @@ spec:
         zone: nl-ams-2
       - type: LB-S
         zone: nl-ams-3
+        # ip: 42.42.42.42
+        # privateIP: 172.16.42.42
     controlPlaneDNS:
       domain: subdomain.your-domain.com
       name: my-cluster
