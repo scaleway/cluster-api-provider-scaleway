@@ -502,6 +502,9 @@ func (s *Service) ensureACLs(
 	}
 
 	mainLBFrontend := frontendByLB[mainLB.ID]
+	if mainLBFrontend == nil {
+		panic("did not expect mainLBFrontend to be nil")
+	}
 
 	// Set the Allowed Ranges ACL.
 	if err := s.ensureACL(ctx, mainLBFrontend, allowedRangesACLName, allowedRanges, false, aclIndex); err != nil {
