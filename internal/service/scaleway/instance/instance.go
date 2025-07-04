@@ -32,7 +32,7 @@ const (
 	// will be updated to the desired value.
 	defaultRootVolumeIOPS = 5000
 	// machineACLIndex is the index of the ACL to use for the machine.
-	machineACLIndex = 1
+	machineACLIndex = int32(1)
 	// cloudInitUserDataKey is the key used to store the cloud-init user data in the server.
 	cloudInitUserDataKey = "cloud-init"
 )
@@ -219,7 +219,7 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 	}
 
 	if imageID == "" {
-		return nil, errors.New("unable to find a valid image")
+		return nil, errors.New("unable to find a valid image in ScalewayMachine spec")
 	}
 
 	// Next, create the IPs if needed.

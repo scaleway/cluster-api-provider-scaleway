@@ -31,7 +31,7 @@ const (
 	capsManagedIPTag = "caps-lb-ip=managed"
 
 	// Backend port, must match port of apiservers.
-	backendControlPlanePort = 6443
+	backendControlPlanePort = int32(6443)
 
 	BackendName  = "kube-apiserver"
 	FrontendName = "kube-apiserver"
