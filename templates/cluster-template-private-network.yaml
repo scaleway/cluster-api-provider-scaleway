@@ -23,15 +23,22 @@ metadata:
 spec:
   kubeadmConfigSpec:
     initConfiguration:
+      localAPIEndpoint:
+        advertiseAddress: "[[[ .NodeIP ]]]"
       nodeRegistration:
         kubeletExtraArgs:
           provider-id: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
+          node-ip: "[[[ .NodeIP ]]]"
           cloud-provider: external
         name: "{{ ds.meta_data.hostname }}"
     joinConfiguration:
+      controlPlane:
+        localAPIEndpoint:
+          advertiseAddress: "[[[ .NodeIP ]]]"
       nodeRegistration:
         kubeletExtraArgs:
           provider-id: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
+          node-ip: "[[[ .NodeIP ]]]"
           cloud-provider: external
         name: "{{ ds.meta_data.hostname }}"
   machineTemplate:
@@ -52,6 +59,14 @@ spec:
   region: ${SCW_REGION}
   scalewaySecretName: ${CLUSTER_NAME}
   failureDomains: ${CONTROL_PLANE_FAILURE_DOMAINS:=[${SCW_REGION}-1]}
+  network:
+    privateNetwork:
+      enabled: true
+      id: ${PRIVATE_NETWORK_ID:=null}
+      vpcID: ${VPC_ID:=null}
+    controlPlaneLoadBalancer:
+      private: ${CONTROL_PLANE_LOAD_BALANCER_PRIVATE:=false}
+    publicGateways: ${PUBLIC_GATEWAYS:=[]}
 ---
 apiVersion: v1
 kind: Secret
@@ -75,7 +90,7 @@ spec:
       rootVolume:
         type: ${CONTROL_PLANE_MACHINE_ROOT_VOLUME_TYPE:=block}
       publicNetwork:
-        enableIPv4: true
+        enableIPv4: ${CONTROL_PLANE_MACHINE_IPV4:=true}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -112,6 +127,7 @@ spec:
         nodeRegistration:
           kubeletExtraArgs:
             provider-id: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
+            node-ip: "[[[ .NodeIP ]]]"
             cloud-provider: external
           name: "{{ ds.meta_data.hostname }}"
 ---
@@ -128,4 +144,4 @@ spec:
       rootVolume:
         type: ${WORKER_MACHINE_ROOT_VOLUME_TYPE:=block}
       publicNetwork:
-        enableIPv4: true
+        enableIPv4: ${WORKER_MACHINE_IPV4:=true}
