@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= ghcr.io/scaleway/cluster-api-provider-scaleway:dev
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -7,6 +7,8 @@ GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
+
+ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 # CONTAINER_TOOL defines the container tool to be used for building images.
 # Be aware that the target commands are only tested with Docker which is
@@ -62,11 +64,13 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet setup-envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e | grep -v /mock) -coverprofile cover.out
 
-# TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
-# The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
-# CertManager is installed by default; skip with:
-# - CERT_MANAGER_INSTALL_SKIP=true
-KIND_CLUSTER ?= cluster-api-provider-scaleway-test-e2e
+KIND_CLUSTER ?= caps-e2e
+KIND_KUBECONFIG ?= /tmp/caps-e2e-kubeconfig
+
+E2E_ARTIFACTS ?= $(ROOT_DIR)/_artifacts
+E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/scaleway.yaml
+E2E_CONF_FILE_ENVSUBST := $(ROOT_DIR)/test/e2e/config/scaleway-envsubst.yaml
+E2E_V1BETA1_TEMPLATES := $(ROOT_DIR)/test/e2e/data/infrastructure-scaleway/v1beta1
 
 .PHONY: setup-test-e2e
 setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
@@ -74,16 +78,25 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
 	}
-	$(KIND) create cluster --name $(KIND_CLUSTER)
+	$(KIND) create cluster --name $(KIND_CLUSTER) --kubeconfig $(KIND_KUBECONFIG)
+
+.PHONY: generate-e2e
+generate-e2e: kustomize ## Generate templates for e2e
+	$(KUSTOMIZE) build $(E2E_V1BETA1_TEMPLATES)/cluster-template --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA1_TEMPLATES)/cluster-template.yaml
+	$(KUSTOMIZE) build $(E2E_V1BETA1_TEMPLATES)/cluster-template-private-network --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA1_TEMPLATES)/cluster-template-private-network.yaml
 
 .PHONY: test-e2e
-test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	KIND_CLUSTER=$(KIND_CLUSTER) go test ./test/e2e/ -v -ginkgo.v
+test-e2e: setup-test-e2e generate-e2e docker-build envsubst ginkgo build-installer fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
+	MANAGER_IMAGE=$(IMG) $(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
+	KIND_CLUSTER=$(KIND_CLUSTER) KUBECONFIG=$(KIND_KUBECONFIG) $(GINKGO) run -v --nodes 2 ./test/e2e/ -- \
+		-e2e.config $(E2E_CONF_FILE_ENVSUBST) \
+		-e2e.use-existing-cluster \
+		-e2e.artifacts-folder=$(E2E_ARTIFACTS)
 	$(MAKE) cleanup-test-e2e
 
 .PHONY: cleanup-test-e2e
 cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
-	@$(KIND) delete cluster --name $(KIND_CLUSTER)
+	@$(KIND) delete cluster --name $(KIND_CLUSTER) --kubeconfig $(KIND_KUBECONFIG)
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
@@ -193,6 +206,8 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 NILAWAY = $(LOCALBIN)/nilaway
 MOCKGEN = $(LOCALBIN)/mockgen
+ENVSUBST = $(LOCALBIN)/envsubst
+GINKGO = $(LOCALBIN)/ginkgo
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.6.0
@@ -204,6 +219,8 @@ ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -
 GOLANGCI_LINT_VERSION ?= v2.1.0
 NILAWAY_VERSION ?= latest
 MOCKGEN_VERSION ?= v0.5.2
+ENVSUBST_VERSION ?=latest
+GINKGO_VERSION ?= v2.23.4
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -242,6 +259,16 @@ $(NILAWAY): $(LOCALBIN)
 mockgen: $(MOCKGEN) ## Download mockgen locally if necessary.
 $(MOCKGEN): $(LOCALBIN)
 	$(call go-install-tool,$(MOCKGEN),go.uber.org/mock/mockgen,$(MOCKGEN_VERSION))
+
+.PHONY: envsubst
+envsubst: $(ENVSUBST) ## Download envsubst locally if necessary.
+$(ENVSUBST): $(LOCALBIN)
+	$(call go-install-tool,$(ENVSUBST),github.com/drone/envsubst/v2/cmd/envsubst,$(ENVSUBST_VERSION))
+
+.PHONY: ginkgo
+ginkgo: $(GINKGO) ## Download ginkgo locally if necessary.
+$(GINKGO): $(LOCALBIN)
+	$(call go-install-tool,$(GINKGO),github.com/onsi/ginkgo/v2/ginkgo,$(GINKGO_VERSION))
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

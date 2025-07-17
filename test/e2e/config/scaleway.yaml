@@ -1,0 +1,71 @@
+managementClusterName: caps-e2e
+
+images:
+  - name: ${MANAGER_IMAGE}
+    loadBehavior: mustLoad
+
+providers:
+  - name: cluster-api
+    type: CoreProvider
+    versions:
+      - name: v1.10.3
+        value: https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.3/core-components.yaml
+        type: url
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+
+  - name: kubeadm
+    type: BootstrapProvider
+    versions:
+      - name: v1.10.3
+        value: https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.3/bootstrap-components.yaml
+        type: url
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+
+  - name: kubeadm
+    type: ControlPlaneProvider
+    versions:
+      - name: v1.10.3
+        value: https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.3/control-plane-components.yaml
+        type: url
+        contract: v1beta1
+        files:
+          - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+
+  - name: scaleway
+    type: InfrastructureProvider
+    versions:
+      - name: v0.1.99
+        value: "../../../config/default"
+        contract: v1beta1
+        files:
+          - sourcePath: "../../../metadata.yaml"
+          # Following files are built using `make generate-e2e`.
+          - sourcePath: "../data/infrastructure-scaleway/v1beta1/cluster-template.yaml"
+          - sourcePath: "../data/infrastructure-scaleway/v1beta1/cluster-template-private-network.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+
+variables:
+  CNI: "data/addons/flannel.yaml"
+
+  KUBERNETES_VERSION: "${KUBERNETES_VERSION:=null}"
+
+  SCW_ACCESS_KEY: "${SCW_ACCESS_KEY:=null}"
+  SCW_SECRET_KEY: "${SCW_SECRET_KEY:=null}"
+  SCW_PROJECT_ID: "${SCW_PROJECT_ID:=null}"
+  CONTROL_PLANE_MACHINE_IMAGE: "${CONTROL_PLANE_MACHINE_IMAGE:=null}"
+  WORKER_MACHINE_IMAGE: "${WORKER_MACHINE_IMAGE:=null}"
+  SCW_REGION: "${SCW_REGION:=null}"
+
+intervals:
+  default/wait-controllers: ["3m", "10s"]
+  default/wait-cluster: ["20m", "10s"]
+  default/wait-control-plane: ["20m", "10s"]
+  default/wait-worker-nodes: ["25m", "10s"]
+  default/wait-machine-pool-nodes: ["30m", "10s"]
+  default/wait-delete-cluster: ["30m", "10s"]

@@ -1,8 +1,8 @@
 name: E2E Tests
 
 on:
-  push:
   pull_request:
+    branches: [ "main" ]
 
 jobs:
   test-e2e:
@@ -29,4 +29,8 @@ jobs:
       - name: Running Test e2e
         run: |
           go mod tidy
-          make test-e2e
+          bash hack/ci-e2e.sh
+        env:
+          E2E_SCW_ACCESS_KEY: ${{ secrets.E2E_SCW_ACCESS_KEY }}
+          E2E_SCW_SECRET_KEY: ${{ secrets.E2E_SCW_SECRET_KEY }}
+          E2E_SCW_PROJECT_ID: ${{ vars.E2E_SCW_PROJECT_ID }}

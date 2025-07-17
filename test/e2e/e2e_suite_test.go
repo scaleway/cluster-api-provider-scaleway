@@ -1,73 +1,223 @@
 package e2e
 
 import (
-	"fmt"
+	"bytes"
+	"context"
+	"encoding/base64"
+	"encoding/gob"
+	"flag"
 	"os"
-	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/scaleway/cluster-api-provider-scaleway/test/utils"
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
+	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+// Test suite flags
 var (
-	// Optional Environment Variables:
-	// - CERT_MANAGER_INSTALL_SKIP=true: Skips CertManager installation during test setup.
-	// These variables are useful if CertManager is already installed, avoiding
-	// re-installation and conflicts.
-	skipCertManagerInstall = os.Getenv("CERT_MANAGER_INSTALL_SKIP") == "true"
-	// isCertManagerAlreadyInstalled will be set true when CertManager CRDs be found on the cluster
-	isCertManagerAlreadyInstalled = false
+	// configPath is the path to the e2e config file.
+	configPath string
 
-	// projectImage is the name of the image which will be build and loaded
-	// with the code source changes to be tested.
-	projectImage = "example.com/cluster-api-provider-scaleway:v0.0.1"
+	// useExistingCluster instructs the test to use the current cluster instead of creating a new one (default discovery rules apply).
+	useExistingCluster bool
+
+	// artifactFolder is the folder to store e2e test artifacts.
+	artifactFolder string
+
+	// skipCleanup prevents cleanup of test resources e.g. for debug purposes.
+	skipCleanup bool
 )
 
-// TestE2E runs the end-to-end (e2e) test suite for the project. These tests execute in an isolated,
-// temporary environment to validate project changes with the purposed to be used in CI jobs.
-// The default setup requires Kind, builds/loads the Manager Docker image locally, and installs
-// CertManager.
-func TestE2E(t *testing.T) {
-	RegisterFailHandler(Fail)
-	_, _ = fmt.Fprintf(GinkgoWriter, "Starting cluster-api-provider-scaleway integration test suite\n")
-	RunSpecs(t, "e2e suite")
+// Test suite global vars
+var (
+	// e2eConfig to be used for this test, read from configPath.
+	e2eConfig *clusterctl.E2EConfig
+
+	// clusterctlConfigPath to be used for this test, created by generating a clusterctl local repository
+	// with the providers specified in the configPath.
+	clusterctlConfigPath string
+
+	// bootstrapClusterProvider manages provisioning of the bootstrap cluster to be used for the e2e tests.
+	// Please note that provisioning will be skipped if e2e.use-existing-cluster is provided.
+	bootstrapClusterProvider bootstrap.ClusterProvider
+
+	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
+	bootstrapClusterProxy framework.ClusterProxy
+)
+
+func init() {
+	flag.StringVar(&configPath, "e2e.config", "", "path to the e2e config file")
+	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
+	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
+	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
+
+	ctrl.SetLogger(klog.Background())
 }
 
-var _ = BeforeSuite(func() {
-	By("building the manager(Operator) image")
-	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", projectImage))
-	_, err := utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager(Operator) image")
+// TestE2E runs the end-to-end (e2e) test suite for the project.
+func TestE2E(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "caps-e2e")
+}
 
-	// TODO(user): If you want to change the e2e test vendor from Kind, ensure the image is
-	// built and available before running the tests. Also, remove the following block.
-	By("loading the manager(Operator) image on Kind")
-	err = utils.LoadImageToKindClusterWithName(projectImage)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager(Operator) image into Kind")
+// Using a SynchronizedBeforeSuite for controlling how to create resources shared across ParallelNodes (~ginkgo threads).
+// The local clusterctl repository & the bootstrap cluster are created once and shared across all the tests.
+var _ = SynchronizedBeforeSuite(func() []byte {
+	// Before all ParallelNodes.
 
-	// The tests-e2e are intended to run on a temporary cluster that is created and destroyed for testing.
-	// To prevent errors when tests run in environments with CertManager already installed,
-	// we check for its presence before execution.
-	// Setup CertManager before the suite if not skipped and if not already installed
-	if !skipCertManagerInstall {
-		By("checking if cert manager is installed already")
-		isCertManagerAlreadyInstalled = utils.IsCertManagerCRDsInstalled()
-		if !isCertManagerAlreadyInstalled {
-			_, _ = fmt.Fprintf(GinkgoWriter, "Installing CertManager...\n")
-			Expect(utils.InstallCertManager()).To(Succeed(), "Failed to install CertManager")
-		} else {
-			_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: CertManager is already installed. Skipping installation...\n")
+	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
+	Expect(artifactFolder).ToNot(BeEmpty(), "Invalid test suite argument. e2e.artifacts-folder should not be empty.")
+	Expect(filepath.IsAbs(artifactFolder)).To(BeTrue(), "%q must be an absolute path", artifactFolder)
+	Expect(os.MkdirAll(artifactFolder, 0o755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder)
+
+	Byf("Loading the e2e test configuration from %q", configPath)
+	e2eConfig = loadE2EConfig(configPath)
+
+	Byf("Creating a clusterctl local repository into %q", artifactFolder)
+	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
+
+	By("Setting up the bootstrap cluster")
+	bootstrapClusterProvider, bootstrapClusterProxy = setupBootstrapCluster(e2eConfig, useExistingCluster)
+
+	By("Initializing the bootstrap cluster")
+	initBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+
+	// encode the e2e config into the byte array.
+	var configBuf bytes.Buffer
+	enc := gob.NewEncoder(&configBuf)
+	Expect(enc.Encode(e2eConfig)).To(Succeed())
+	configStr := base64.StdEncoding.EncodeToString(configBuf.Bytes())
+
+	return []byte(
+		strings.Join([]string{
+			artifactFolder,
+			clusterctlConfigPath,
+			configStr,
+			bootstrapClusterProxy.GetKubeconfigPath(),
+		}, ","),
+	)
+}, func(data []byte) {
+	// Before each ParallelNode.
+
+	parts := strings.Split(string(data), ",")
+	Expect(parts).To(HaveLen(4))
+
+	artifactFolder = parts[0]
+	clusterctlConfigPath = parts[1]
+
+	// Decode the e2e config
+	configBytes, err := base64.StdEncoding.DecodeString(parts[2])
+	Expect(err).NotTo(HaveOccurred())
+	buf := bytes.NewBuffer(configBytes)
+	dec := gob.NewDecoder(buf)
+	Expect(dec.Decode(&e2eConfig)).To(Succeed())
+
+	kubeconfigPath := parts[3]
+	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme())
+})
+
+// Using a SynchronizedAfterSuite for controlling how to delete resources shared across ParallelNodes (~ginkgo threads).
+// The bootstrap cluster is shared across all the tests, so it should be deleted only after all ParallelNodes completes.
+// The local clusterctl repository is preserved like everything else created into the artifact folder.
+var _ = SynchronizedAfterSuite(func() {
+	// After each ParallelNode.
+	By("Tearing down the management cluster")
+	if !skipCleanup {
+		tearDown(nil, bootstrapClusterProxy)
+	}
+}, func() {
+	// After all ParallelNodes.
+	By("Tearing down the management cluster")
+	if !skipCleanup {
+		tearDown(bootstrapClusterProvider, nil)
+	}
+})
+
+func initScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	framework.TryAddDefaultSchemes(scheme)
+	Expect(infrav1.AddToScheme(scheme)).To(Succeed())
+	return scheme
+}
+
+func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
+	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
+	Expect(config).NotTo(BeNil(), "Failed to load E2E config from %s", configPath)
+
+	Expect(config.Variables).ToNot(ContainElement("null"), "Please set the missing variables using environment variables")
+	return config
+}
+
+func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFolder string) string {
+	createRepositoryInput := clusterctl.CreateRepositoryInput{
+		E2EConfig:        config,
+		RepositoryFolder: repositoryFolder,
+	}
+
+	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
+	cniPath := config.MustGetVariable(capi_e2e.CNIPath)
+	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", cniPath)
+	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
+
+	clusterctlConfig := clusterctl.CreateRepository(context.TODO(), createRepositoryInput)
+	Expect(clusterctlConfig).To(BeAnExistingFile(), "The clusterctl config file does not exists in the local repository %s", repositoryFolder)
+	return clusterctlConfig
+}
+
+func setupBootstrapCluster(config *clusterctl.E2EConfig, useExistingCluster bool) (bootstrap.ClusterProvider, framework.ClusterProxy) {
+	var clusterProvider bootstrap.ClusterProvider
+	kubeconfigPath := ""
+	if !useExistingCluster {
+		clusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(context.TODO(), bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
+			Name:               config.ManagementClusterName,
+			RequiresDockerSock: config.HasDockerProvider(),
+			Images:             config.Images,
+		})
+		Expect(clusterProvider).NotTo(BeNil(), "Failed to create a bootstrap cluster")
+
+		kubeconfigPath = clusterProvider.GetKubeconfigPath()
+		Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the bootstrap cluster")
+	} else {
+		kubeconfigPath = clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()
+		imagesInput := bootstrap.LoadImagesToKindClusterInput{
+			Name:   os.Getenv("KIND_CLUSTER"),
+			Images: config.Images,
 		}
+		err := bootstrap.LoadImagesToKindCluster(context.TODO(), imagesInput)
+		Expect(err).NotTo(HaveOccurred(), "Failed to load images to the bootstrap cluster: %s", err)
 	}
-})
 
-var _ = AfterSuite(func() {
-	// Teardown CertManager after the suite if not skipped and if it was not already installed
-	if !skipCertManagerInstall && !isCertManagerAlreadyInstalled {
-		_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling CertManager...\n")
-		utils.UninstallCertManager()
+	clusterProxy := framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme())
+	Expect(clusterProxy).NotTo(BeNil(), "Failed to get a bootstrap cluster proxy")
+	return clusterProvider, clusterProxy
+}
+
+func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
+	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
+		ClusterProxy:            bootstrapClusterProxy,
+		ClusterctlConfigPath:    clusterctlConfig,
+		InfrastructureProviders: config.InfrastructureProviders(),
+		AddonProviders:          config.AddonProviders(),
+		LogFolder:               filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
+	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
+}
+
+func tearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
+	if bootstrapClusterProxy != nil {
+		bootstrapClusterProxy.Dispose(context.TODO())
 	}
-})
+	if bootstrapClusterProvider != nil {
+		bootstrapClusterProvider.Dispose(context.TODO())
+	}
+}
