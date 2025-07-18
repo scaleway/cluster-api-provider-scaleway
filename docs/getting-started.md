@@ -53,18 +53,8 @@ export KUBECONFIG=/path/to/your/kubeconfig
 ### Install cluster API and the Scaleway provider
 
 1. Follow these instructions to install the `clusterctl` command-line tool: [Install clusterctl](https://cluster-api.sigs.k8s.io/user/quick-start#install-clusterctl)
-2. Add `scaleway` to the provider repositories by following this [documentation](https://cluster-api.sigs.k8s.io/clusterctl/configuration#provider-repositories).
-   You should have the following config:
 
-   ```bash
-   $ cat $HOME/.config/cluster-api/clusterctl.yaml
-   providers:
-   - name: "scaleway"
-     url: "https://github.com/scaleway/cluster-api-provider-scaleway/releases/latest/infrastructure-components.yaml"
-     type: "InfrastructureProvider"
-   ```
-
-3. Initialize the management cluster:
+2. Initialize the management cluster:
 
    ```console
    $ clusterctl init --infrastructure scaleway
