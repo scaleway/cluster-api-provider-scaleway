@@ -514,18 +514,18 @@ func (c *MockInterfaceCreatePrivateNetworkCall) DoAndReturn(f func(context.Conte
 }
 
 // CreateServer mocks base method.
-func (m *MockInterface) CreateServer(ctx context.Context, zone scw.Zone, name, commercialType, imageID string, placementGroupID, securityGroupID *string, rootVolumeSize scw.Size, rootVolumeType instance.VolumeVolumeType, publicIPs, tags []string) (*instance.Server, error) {
+func (m *MockInterface) CreateServer(ctx context.Context, zone scw.Zone, name, commercialType, imageID string, placementGroupID, securityGroupID *string, rootVolumeSize scw.Size, rootVolumeType instance.VolumeVolumeType, tags []string) (*instance.Server, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateServer", ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, publicIPs, tags)
+	ret := m.ctrl.Call(m, "CreateServer", ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags)
 	ret0, _ := ret[0].(*instance.Server)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateServer indicates an expected call of CreateServer.
-func (mr *MockInterfaceMockRecorder) CreateServer(ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, publicIPs, tags any) *MockInterfaceCreateServerCall {
+func (mr *MockInterfaceMockRecorder) CreateServer(ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags any) *MockInterfaceCreateServerCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServer", reflect.TypeOf((*MockInterface)(nil).CreateServer), ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, publicIPs, tags)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServer", reflect.TypeOf((*MockInterface)(nil).CreateServer), ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags)
 	return &MockInterfaceCreateServerCall{Call: call}
 }
 
@@ -541,13 +541,13 @@ func (c *MockInterfaceCreateServerCall) Return(arg0 *instance.Server, arg1 error
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInterfaceCreateServerCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string, []string) (*instance.Server, error)) *MockInterfaceCreateServerCall {
+func (c *MockInterfaceCreateServerCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string) (*instance.Server, error)) *MockInterfaceCreateServerCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInterfaceCreateServerCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string, []string) (*instance.Server, error)) *MockInterfaceCreateServerCall {
+func (c *MockInterfaceCreateServerCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string) (*instance.Server, error)) *MockInterfaceCreateServerCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2439,6 +2439,45 @@ func (c *MockInterfaceUpdateLBACLCall) Do(f func(context.Context, scw.Zone, stri
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceUpdateLBACLCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, int32, lb.ACLActionType, []string) error) *MockInterfaceUpdateLBACLCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateServerPublicIPs mocks base method.
+func (m *MockInterface) UpdateServerPublicIPs(ctx context.Context, zone scw.Zone, id string, publicIPIDs []string) (*instance.Server, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateServerPublicIPs", ctx, zone, id, publicIPIDs)
+	ret0, _ := ret[0].(*instance.Server)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateServerPublicIPs indicates an expected call of UpdateServerPublicIPs.
+func (mr *MockInterfaceMockRecorder) UpdateServerPublicIPs(ctx, zone, id, publicIPIDs any) *MockInterfaceUpdateServerPublicIPsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServerPublicIPs", reflect.TypeOf((*MockInterface)(nil).UpdateServerPublicIPs), ctx, zone, id, publicIPIDs)
+	return &MockInterfaceUpdateServerPublicIPsCall{Call: call}
+}
+
+// MockInterfaceUpdateServerPublicIPsCall wrap *gomock.Call
+type MockInterfaceUpdateServerPublicIPsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceUpdateServerPublicIPsCall) Return(arg0 *instance.Server, arg1 error) *MockInterfaceUpdateServerPublicIPsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceUpdateServerPublicIPsCall) Do(f func(context.Context, scw.Zone, string, []string) (*instance.Server, error)) *MockInterfaceUpdateServerPublicIPsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceUpdateServerPublicIPsCall) DoAndReturn(f func(context.Context, scw.Zone, string, []string) (*instance.Server, error)) *MockInterfaceUpdateServerPublicIPsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
