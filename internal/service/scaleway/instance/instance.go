@@ -63,6 +63,11 @@ func (s *Service) Reconcile(ctx context.Context) error {
 
 	// Ensure the server configuration when the node has never joined the cluster.
 	if !s.HasJoinedCluster() {
+		server, err = s.ensurePublicIPs(ctx, server)
+		if err != nil {
+			return err
+		}
+
 		privateIPs, err := s.ensurePrivateNIC(ctx, server)
 		if err != nil {
 			return fmt.Errorf("failed to ensure private nic: %w", err)
@@ -222,42 +227,6 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 		return nil, errors.New("unable to find a valid image in ScalewayMachine spec")
 	}
 
-	// Next, create the IPs if needed.
-	var publicIPs []string
-	if s.HasPublicIPv4() || s.HasPublicIPv6() {
-		ips, err := s.ScalewayClient.FindIPs(ctx, zone, s.ResourceTags())
-		if err != nil {
-			return nil, err
-		}
-
-		for _, version := range []struct {
-			ipType instance.IPType
-			want   bool
-		}{
-			{ipType: instance.IPTypeRoutedIPv4, want: s.HasPublicIPv4()},
-			{ipType: instance.IPTypeRoutedIPv6, want: s.HasPublicIPv6()},
-		} {
-			// Skip if we don't want this type of IP.
-			if !version.want {
-				continue
-			}
-
-			// Skip if IP already exists.
-			ipIndex := slices.IndexFunc(ips, func(ip *instance.IP) bool { return ip.Type == version.ipType })
-			if ipIndex != -1 {
-				publicIPs = append(publicIPs, ips[ipIndex].ID)
-				continue
-			}
-
-			ip, err := s.ScalewayClient.CreateIP(ctx, zone, version.ipType, s.ResourceTags())
-			if err != nil {
-				return nil, fmt.Errorf("failed to create IP: %w", err)
-			}
-
-			publicIPs = append(publicIPs, ip.ID)
-		}
-	}
-
 	placementGroupID, err := s.placementGroupID(ctx, zone)
 	if err != nil {
 		return nil, err
@@ -279,7 +248,6 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 		securityGroupID,
 		s.RootVolumeSize(),
 		volumeType,
-		publicIPs,
 		s.ResourceTags(),
 	)
 	if err != nil {
@@ -337,6 +305,63 @@ func (s *Service) securityGroupID(ctx context.Context, zone scw.Zone) (*string, 
 	}
 
 	return nil, nil
+}
+
+func (s *Service) ensurePublicIPs(ctx context.Context, server *instance.Server) (*instance.Server, error) {
+	if !s.HasPublicIPv4() && !s.HasPublicIPv6() {
+		return server, nil
+	}
+
+	ips, err := s.ScalewayClient.FindIPs(ctx, server.Zone, s.ResourceTags())
+	if err != nil {
+		return nil, err
+	}
+
+	publicIPIDs := []string{}
+	updateServer := false
+
+	for _, version := range []struct {
+		ipType instance.IPType
+		want   bool
+	}{
+		{ipType: instance.IPTypeRoutedIPv4, want: s.HasPublicIPv4()},
+		{ipType: instance.IPTypeRoutedIPv6, want: s.HasPublicIPv6()},
+	} {
+		// Skip if we don't want this type of IP.
+		if !version.want {
+			continue
+		}
+
+		// Skip if IP already exists.
+		ipIndex := slices.IndexFunc(ips, func(ip *instance.IP) bool { return ip.Type == version.ipType })
+		if ipIndex != -1 {
+			if ips[ipIndex].Server == nil {
+				updateServer = true
+			} else if ips[ipIndex].Server.ID != server.ID {
+				return nil, fmt.Errorf("expected IP %s to be attached to %s", ips[ipIndex].ID, server.ID)
+			}
+
+			publicIPIDs = append(publicIPIDs, ips[ipIndex].ID)
+			continue
+		}
+
+		ip, err := s.ScalewayClient.CreateIP(ctx, server.Zone, version.ipType, s.ResourceTags())
+		if err != nil {
+			return nil, fmt.Errorf("failed to create IP: %w", err)
+		}
+
+		publicIPIDs = append(publicIPIDs, ip.ID)
+		updateServer = true
+	}
+
+	if updateServer {
+		server, err = s.ScalewayClient.UpdateServerPublicIPs(ctx, server.Zone, server.ID, publicIPIDs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to refresh server after updating IPs")
+		}
+	}
+
+	return server, nil
 }
 
 func (s *Service) ensurePrivateNIC(ctx context.Context, server *instance.Server) ([]*ipam.IP, error) {
@@ -639,12 +664,13 @@ func (s *Service) ensureServerStopped(ctx context.Context, server *instance.Serv
 }
 
 func (s *Service) ensureNoPublicIPs(ctx context.Context, server *instance.Server) error {
-	for _, publicIP := range server.PublicIPs {
-		if publicIP.Dynamic {
-			continue
-		}
+	ips, err := s.ScalewayClient.FindIPs(ctx, server.Zone, s.ResourceTags())
+	if err != nil {
+		return err
+	}
 
-		if err := s.ScalewayClient.DeleteIP(ctx, server.Zone, publicIP.ID); err != nil {
+	for _, ip := range ips {
+		if err := s.ScalewayClient.DeleteIP(ctx, server.Zone, ip.ID); err != nil {
 			return err
 		}
 	}

@@ -825,6 +825,50 @@ func (c *MockInstanceAPISetServerUserDataCall) DoAndReturn(f func(*instance.SetS
 	return c
 }
 
+// UpdateServer mocks base method.
+func (m *MockInstanceAPI) UpdateServer(req *instance.UpdateServerRequest, opts ...scw.RequestOption) (*instance.UpdateServerResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateServer", varargs...)
+	ret0, _ := ret[0].(*instance.UpdateServerResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateServer indicates an expected call of UpdateServer.
+func (mr *MockInstanceAPIMockRecorder) UpdateServer(req any, opts ...any) *MockInstanceAPIUpdateServerCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServer", reflect.TypeOf((*MockInstanceAPI)(nil).UpdateServer), varargs...)
+	return &MockInstanceAPIUpdateServerCall{Call: call}
+}
+
+// MockInstanceAPIUpdateServerCall wrap *gomock.Call
+type MockInstanceAPIUpdateServerCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInstanceAPIUpdateServerCall) Return(arg0 *instance.UpdateServerResponse, arg1 error) *MockInstanceAPIUpdateServerCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInstanceAPIUpdateServerCall) Do(f func(*instance.UpdateServerRequest, ...scw.RequestOption) (*instance.UpdateServerResponse, error)) *MockInstanceAPIUpdateServerCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInstanceAPIUpdateServerCall) DoAndReturn(f func(*instance.UpdateServerRequest, ...scw.RequestOption) (*instance.UpdateServerResponse, error)) *MockInstanceAPIUpdateServerCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpdateVolume mocks base method.
 func (m *MockInstanceAPI) UpdateVolume(req *instance.UpdateVolumeRequest, opts ...scw.RequestOption) (*instance.UpdateVolumeResponse, error) {
 	m.ctrl.T.Helper()
@@ -1010,18 +1054,18 @@ func (c *MockInstanceCreatePrivateNICCall) DoAndReturn(f func(context.Context, s
 }
 
 // CreateServer mocks base method.
-func (m *MockInstance) CreateServer(ctx context.Context, zone scw.Zone, name, commercialType, imageID string, placementGroupID, securityGroupID *string, rootVolumeSize scw.Size, rootVolumeType instance.VolumeVolumeType, publicIPs, tags []string) (*instance.Server, error) {
+func (m *MockInstance) CreateServer(ctx context.Context, zone scw.Zone, name, commercialType, imageID string, placementGroupID, securityGroupID *string, rootVolumeSize scw.Size, rootVolumeType instance.VolumeVolumeType, tags []string) (*instance.Server, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateServer", ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, publicIPs, tags)
+	ret := m.ctrl.Call(m, "CreateServer", ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags)
 	ret0, _ := ret[0].(*instance.Server)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateServer indicates an expected call of CreateServer.
-func (mr *MockInstanceMockRecorder) CreateServer(ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, publicIPs, tags any) *MockInstanceCreateServerCall {
+func (mr *MockInstanceMockRecorder) CreateServer(ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags any) *MockInstanceCreateServerCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServer", reflect.TypeOf((*MockInstance)(nil).CreateServer), ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, publicIPs, tags)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServer", reflect.TypeOf((*MockInstance)(nil).CreateServer), ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags)
 	return &MockInstanceCreateServerCall{Call: call}
 }
 
@@ -1037,13 +1081,13 @@ func (c *MockInstanceCreateServerCall) Return(arg0 *instance.Server, arg1 error)
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceCreateServerCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string, []string) (*instance.Server, error)) *MockInstanceCreateServerCall {
+func (c *MockInstanceCreateServerCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string) (*instance.Server, error)) *MockInstanceCreateServerCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceCreateServerCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string, []string) (*instance.Server, error)) *MockInstanceCreateServerCall {
+func (c *MockInstanceCreateServerCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string) (*instance.Server, error)) *MockInstanceCreateServerCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1621,6 +1665,45 @@ func (c *MockInstanceUpdateInstanceVolumeTagsCall) Do(f func(context.Context, sc
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInstanceUpdateInstanceVolumeTagsCall) DoAndReturn(f func(context.Context, scw.Zone, string, []string) error) *MockInstanceUpdateInstanceVolumeTagsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateServerPublicIPs mocks base method.
+func (m *MockInstance) UpdateServerPublicIPs(ctx context.Context, zone scw.Zone, id string, publicIPIDs []string) (*instance.Server, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateServerPublicIPs", ctx, zone, id, publicIPIDs)
+	ret0, _ := ret[0].(*instance.Server)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateServerPublicIPs indicates an expected call of UpdateServerPublicIPs.
+func (mr *MockInstanceMockRecorder) UpdateServerPublicIPs(ctx, zone, id, publicIPIDs any) *MockInstanceUpdateServerPublicIPsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateServerPublicIPs", reflect.TypeOf((*MockInstance)(nil).UpdateServerPublicIPs), ctx, zone, id, publicIPIDs)
+	return &MockInstanceUpdateServerPublicIPsCall{Call: call}
+}
+
+// MockInstanceUpdateServerPublicIPsCall wrap *gomock.Call
+type MockInstanceUpdateServerPublicIPsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInstanceUpdateServerPublicIPsCall) Return(arg0 *instance.Server, arg1 error) *MockInstanceUpdateServerPublicIPsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInstanceUpdateServerPublicIPsCall) Do(f func(context.Context, scw.Zone, string, []string) (*instance.Server, error)) *MockInstanceUpdateServerPublicIPsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInstanceUpdateServerPublicIPsCall) DoAndReturn(f func(context.Context, scw.Zone, string, []string) (*instance.Server, error)) *MockInstanceUpdateServerPublicIPsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
