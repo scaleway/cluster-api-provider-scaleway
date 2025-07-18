@@ -17,8 +17,15 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Run linter
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
           install-mode: goinstall
           version: v2.0.2
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+
+      - name: Running nilaway
+        run: |
+          make lint-nilaway

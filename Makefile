@@ -99,8 +99,15 @@ cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER) --kubeconfig $(KIND_KUBECONFIG)
 
 .PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter
+lint: lint-golangci-lint lint-nilaway ## Run linters
+	@echo "done"
+
+.PHONY: lint-golangci-lint
+lint-golangci-lint: golangci-lint ## Run golangci-lint linter
 	$(GOLANGCI_LINT) run
+
+.PHONY: lint-nilaway
+lint-nilaway: nilaway ## Run nilaway linter
 	$(NILAWAY) -include-pkgs=github.com/scaleway/cluster-api-provider-scaleway ./...
 
 .PHONY: lint-fix
