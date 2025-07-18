@@ -28,3 +28,9 @@ go.work
 
 # release directory
 out/*
+dist/*
+
+# e2e files
+_artifacts
+*-envsubst.yaml
+test/e2e/data/infrastructure-scaleway/v1beta1/*.yaml

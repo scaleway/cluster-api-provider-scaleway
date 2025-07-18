@@ -48,6 +48,9 @@ linters:
           - lll
         path: api/*
       - linters:
+          - lll
+        path: test/e2e/*
+      - linters:
           - dupl
           - lll
         path: internal/*
@@ -60,6 +63,10 @@ linters:
       - linters:
           - staticcheck
         text: "QF1008"
+      - linters:
+          - staticcheck
+        text: "ST1001"
+        path: test/e2e/*
     paths:
       - third_party$
       - builtin$
