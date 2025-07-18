@@ -176,7 +176,6 @@ func TestClient_CreateServer(t *testing.T) {
 		securityGroupID  *string
 		rootVolumeSize   scw.Size
 		rootVolumeType   instance.VolumeVolumeType
-		publicIPs        []string
 		tags             []string
 	}
 	tests := []struct {
@@ -203,7 +202,6 @@ func TestClient_CreateServer(t *testing.T) {
 				securityGroupID:  scw.StringPtr(securityGroupID),
 				rootVolumeSize:   rootVolumeSize,
 				rootVolumeType:   instance.VolumeVolumeTypeBSSD,
-				publicIPs:        []string{"42.42.42.42"},
 				tags:             []string{"tag1", "tag2", "tag3"},
 			},
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
@@ -227,8 +225,7 @@ func TestClient_CreateServer(t *testing.T) {
 							Boot:       scw.BoolPtr(true),
 						},
 					},
-					Tags:      []string{"tag1", "tag2", "tag3", createdByTag},
-					PublicIPs: &[]string{"42.42.42.42"},
+					Tags: []string{"tag1", "tag2", "tag3", createdByTag},
 				}, gomock.Any()).Return(&instance.CreateServerResponse{
 					Server: &instance.Server{
 						Name: "server",
@@ -316,7 +313,7 @@ func TestClient_CreateServer(t *testing.T) {
 				region:    tt.fields.region,
 				instance:  instanceMock,
 			}
-			got, err := c.CreateServer(tt.args.ctx, tt.args.zone, tt.args.name, tt.args.commercialType, tt.args.imageID, tt.args.placementGroupID, tt.args.securityGroupID, tt.args.rootVolumeSize, tt.args.rootVolumeType, tt.args.publicIPs, tt.args.tags)
+			got, err := c.CreateServer(tt.args.ctx, tt.args.zone, tt.args.name, tt.args.commercialType, tt.args.imageID, tt.args.placementGroupID, tt.args.securityGroupID, tt.args.rootVolumeSize, tt.args.rootVolumeType, tt.args.tags)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.CreateServer() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1727,6 +1724,85 @@ func TestClient_FindSecurityGroup(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Client.FindSecurityGroup() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_UpdateServerPublicIPs(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx         context.Context
+		zone        scw.Zone
+		id          string
+		publicIPIDs []string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *instance.Server
+		wantErr bool
+		expect  func(d *mock_client.MockInstanceAPIMockRecorder)
+	}{
+		{
+			name: "update public IPs",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:         context.TODO(),
+				zone:        scw.ZoneFrPar1,
+				id:          serverID,
+				publicIPIDs: []string{ipID},
+			},
+			want: &instance.Server{
+				ID: serverID,
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
+				d.UpdateServer(&instance.UpdateServerRequest{
+					Zone:      scw.ZoneFrPar1,
+					ServerID:  serverID,
+					PublicIPs: &[]string{ipID},
+				}, gomock.Any()).Return(&instance.UpdateServerResponse{
+					Server: &instance.Server{
+						ID: serverID,
+					},
+				}, nil)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			instanceMock := mock_client.NewMockInstanceAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			instanceMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(instanceMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				instance:  instanceMock,
+			}
+			got, err := c.UpdateServerPublicIPs(tt.args.ctx, tt.args.zone, tt.args.id, tt.args.publicIPIDs)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.UpdateServerPublicIPs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.UpdateServerPublicIPs() = %v, want %v", got, tt.want)
 			}
 		})
 	}
