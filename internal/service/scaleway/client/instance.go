@@ -33,6 +33,7 @@ type InstanceAPI interface {
 	DeleteServer(req *instance.DeleteServerRequest, opts ...scw.RequestOption) error
 	ListPlacementGroups(req *instance.ListPlacementGroupsRequest, opts ...scw.RequestOption) (*instance.ListPlacementGroupsResponse, error)
 	ListSecurityGroups(req *instance.ListSecurityGroupsRequest, opts ...scw.RequestOption) (*instance.ListSecurityGroupsResponse, error)
+	UpdateServer(req *instance.UpdateServerRequest, opts ...scw.RequestOption) (*instance.UpdateServerResponse, error)
 }
 
 type Instance interface {
@@ -44,7 +45,7 @@ type Instance interface {
 		placementGroupID, securityGroupID *string,
 		rootVolumeSize scw.Size,
 		rootVolumeType instance.VolumeVolumeType,
-		publicIPs, tags []string,
+		tags []string,
 	) (*instance.Server, error)
 	FindImage(ctx context.Context, zone scw.Zone, name string) (*instance.Image, error)
 	FindIPs(ctx context.Context, zone scw.Zone, tags []string) ([]*instance.IP, error)
@@ -62,6 +63,7 @@ type Instance interface {
 	DeleteServer(ctx context.Context, zone scw.Zone, serverID string) error
 	FindPlacementGroup(ctx context.Context, zone scw.Zone, name string) (*instance.PlacementGroup, error)
 	FindSecurityGroup(ctx context.Context, zone scw.Zone, name string) (*instance.SecurityGroup, error)
+	UpdateServerPublicIPs(ctx context.Context, zone scw.Zone, id string, publicIPIDs []string) (*instance.Server, error)
 }
 
 // FindServer finds an existing Instance server by tags.
@@ -106,7 +108,7 @@ func (c *Client) CreateServer(
 	placementGroupID, securityGroupID *string,
 	rootVolumeSize scw.Size,
 	rootVolumeType instance.VolumeVolumeType,
-	publicIPs, tags []string,
+	tags []string,
 ) (*instance.Server, error) {
 	if err := c.validateZone(c.instance, zone); err != nil {
 		return nil, err
@@ -136,10 +138,6 @@ func (c *Client) CreateServer(
 			},
 		},
 		Tags: append(tags, createdByTag),
-	}
-
-	if len(publicIPs) > 0 {
-		req.PublicIPs = &publicIPs
 	}
 
 	// Automatically attach scratch volume if server supports it.
@@ -481,4 +479,21 @@ func (c *Client) FindSecurityGroup(ctx context.Context, zone scw.Zone, name stri
 	default:
 		return nil, fmt.Errorf("%w: found %d security groups with name %s", ErrTooManyItemsFound, len(securityGroups), name)
 	}
+}
+
+func (c *Client) UpdateServerPublicIPs(ctx context.Context, zone scw.Zone, id string, publicIPIDs []string) (*instance.Server, error) {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.instance.UpdateServer(&instance.UpdateServerRequest{
+		Zone:      zone,
+		ServerID:  id,
+		PublicIPs: &publicIPIDs,
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("UpdateServer", err)
+	}
+
+	return resp.Server, nil
 }

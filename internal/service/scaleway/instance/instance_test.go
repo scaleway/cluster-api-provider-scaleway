@@ -149,15 +149,6 @@ func TestService_Reconcile(t *testing.T) {
 
 				i.GetZoneOrDefault(scw.StringPtr("fr-par-1")).Return(scw.ZoneFrPar1, nil)
 				i.FindServer(gomock.Any(), scw.ZoneFrPar1, tags).Return(nil, client.ErrNoItemFound)
-				i.FindIPs(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.IP{}, nil)
-				i.CreateIP(gomock.Any(), scw.ZoneFrPar1, instance.IPTypeRoutedIPv4, tags).Return(&instance.IP{
-					ID:      ipv4ID,
-					Address: net.IPv4(42, 42, 42, 42),
-				}, nil)
-				i.CreateIP(gomock.Any(), scw.ZoneFrPar1, instance.IPTypeRoutedIPv6, tags).Return(&instance.IP{
-					ID:      ipv6ID,
-					Address: net.IP{42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42},
-				}, nil)
 				i.CreateServer(
 					gomock.Any(),
 					scw.ZoneFrPar1,
@@ -168,9 +159,24 @@ func TestService_Reconcile(t *testing.T) {
 					nil,
 					42*scw.GB,
 					instance.VolumeVolumeTypeSbsVolume,
-					[]string{ipv4ID, ipv6ID},
 					tags,
 				).Return(&instance.Server{
+					Name:     "machine",
+					Hostname: "machine",
+					ID:       serverID,
+					Zone:     scw.ZoneFrPar1,
+					State:    instance.ServerStateStopped,
+				}, nil)
+				i.FindIPs(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.IP{}, nil)
+				i.CreateIP(gomock.Any(), scw.ZoneFrPar1, instance.IPTypeRoutedIPv4, tags).Return(&instance.IP{
+					ID:      ipv4ID,
+					Address: net.IPv4(42, 42, 42, 42),
+				}, nil)
+				i.CreateIP(gomock.Any(), scw.ZoneFrPar1, instance.IPTypeRoutedIPv6, tags).Return(&instance.IP{
+					ID:      ipv6ID,
+					Address: net.IP{42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42},
+				}, nil)
+				i.UpdateServerPublicIPs(gomock.Any(), scw.ZoneFrPar1, serverID, []string{ipv4ID, ipv6ID}).Return(&instance.Server{
 					Name:     "machine",
 					Hostname: "machine",
 					ID:       serverID,
@@ -496,6 +502,9 @@ func TestService_Delete(t *testing.T) {
 					Pool: []string{"10.0.0.1"},
 				}, nil)
 				i.RemoveBackendServer(gomock.Any(), scw.ZoneFrPar1, backendID, "10.0.0.1")
+
+				// Cleanup public IPs
+				i.FindIPs(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.IP{{ID: ipv4ID}, {ID: ipv6ID}}, nil)
 				i.DeleteIP(gomock.Any(), scw.ZoneFrPar1, ipv4ID)
 				i.DeleteIP(gomock.Any(), scw.ZoneFrPar1, ipv6ID)
 

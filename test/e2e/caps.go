@@ -26,6 +26,7 @@ type CAPSClusterDeploymentSpecInput struct {
 	Flavor                   string
 	WorkerMachineCount       int64
 	ControlPlaneMachineCount int64
+	ClusterctlVariables      map[string]string
 }
 
 // CAPSClusterDeploymentSpec implements a test that verifies that MachineDeployment rolling updates are successful.
@@ -70,6 +71,7 @@ func CAPSClusterDeploymentSpec(inputGetter func() CAPSClusterDeploymentSpecInput
 				KubernetesVersion:        input.E2EConfig.MustGetVariable(capi_e2e.KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To(input.ControlPlaneMachineCount),
 				WorkerMachineCount:       ptr.To(input.WorkerMachineCount),
+				ClusterctlVariables:      input.ClusterctlVariables,
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
