@@ -42,4 +42,31 @@ resources:
   kind: ScalewayMachineTemplate
   path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayManagedCluster
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayManagedControlPlane
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayManagedMachinePool
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
+  version: v1alpha1
 version: "3"

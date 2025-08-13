@@ -177,68 +177,6 @@ func TestCluster_HasPrivateNetwork(t *testing.T) {
 	}
 }
 
-func TestCluster_ShouldManagePrivateNetwork(t *testing.T) {
-	t.Parallel()
-	type fields struct {
-		ScalewayCluster *infrav1.ScalewayCluster
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   bool
-	}{
-		{
-			name: "empty spec",
-			fields: fields{
-				ScalewayCluster: &infrav1.ScalewayCluster{},
-			},
-			want: false,
-		},
-		{
-			name: "existing private network",
-			fields: fields{
-				ScalewayCluster: &infrav1.ScalewayCluster{
-					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							PrivateNetwork: &infrav1.PrivateNetworkSpec{
-								Enabled: true,
-								ID:      scw.StringPtr(privateNetworkID),
-							},
-						},
-					},
-				},
-			},
-			want: false,
-		},
-		{
-			name: "managed",
-			fields: fields{
-				ScalewayCluster: &infrav1.ScalewayCluster{
-					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							PrivateNetwork: &infrav1.PrivateNetworkSpec{
-								Enabled: true,
-							},
-						},
-					},
-				},
-			},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			c := &Cluster{
-				ScalewayCluster: tt.fields.ScalewayCluster,
-			}
-			if got := c.ShouldManagePrivateNetwork(); got != tt.want {
-				t.Errorf("Cluster.ShouldManagePrivateNetwork() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestCluster_PrivateNetworkID(t *testing.T) {
 	type fields struct {
 		ScalewayCluster *infrav1.ScalewayCluster
@@ -639,6 +577,68 @@ func TestCluster_ControlPlaneHost(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("Cluster.ControlPlaneHost() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCluster_IsVPCStatusSet(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		patchHelper     *patch.Helper
+		Cluster         *clusterv1.Cluster
+		ScalewayCluster *infrav1.ScalewayCluster
+		ScalewayClient  scwClient.Interface
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name: "network status not set",
+			fields: fields{
+				ScalewayCluster: &infrav1.ScalewayCluster{},
+			},
+			want: false,
+		},
+		{
+			name: "network status set but not VPC",
+			fields: fields{
+				ScalewayCluster: &infrav1.ScalewayCluster{
+					Status: infrav1.ScalewayClusterStatus{
+						Network: &infrav1.NetworkStatus{},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "vpc status set",
+			fields: fields{
+				ScalewayCluster: &infrav1.ScalewayCluster{
+					Status: infrav1.ScalewayClusterStatus{
+						Network: &infrav1.NetworkStatus{
+							VPCID:            scw.StringPtr(vpcID),
+							PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						},
+					},
+				},
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			c := &Cluster{
+				patchHelper:     tt.fields.patchHelper,
+				Cluster:         tt.fields.Cluster,
+				ScalewayCluster: tt.fields.ScalewayCluster,
+				ScalewayClient:  tt.fields.ScalewayClient,
+			}
+			if got := c.IsVPCStatusSet(); got != tt.want {
+				t.Errorf("Cluster.IsVPCStatusSet() = %v, want %v", got, tt.want)
 			}
 		})
 	}

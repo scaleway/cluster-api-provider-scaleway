@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 
-	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,22 +37,9 @@ type ClusterParams struct {
 
 // NewCluster creates a new Cluster scope.
 func NewCluster(ctx context.Context, params *ClusterParams) (*Cluster, error) {
-	region, err := scw.ParseRegion(params.ScalewayCluster.Spec.Region)
+	c, err := newScalewayClientForScalewayCluster(ctx, params.Client, params.ScalewayCluster)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse region %q: %w", params.ScalewayCluster.Spec.Region, err)
-	}
-
-	secret := &corev1.Secret{}
-	if err := params.Client.Get(ctx, client.ObjectKey{
-		Name:      params.ScalewayCluster.Spec.ScalewaySecretName,
-		Namespace: params.ScalewayCluster.Namespace,
-	}, secret); err != nil {
-		return nil, fmt.Errorf("failed to get ScalewaySecret: %w", err)
-	}
-
-	c, err := scwClient.New(region, params.ScalewayCluster.Spec.ProjectID, secret.Data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Scaleway client from ScalewaySecret: %w", err)
+		return nil, err
 	}
 
 	helper, err := patch.NewHelper(params.ScalewayCluster, params.Client)
@@ -80,10 +65,10 @@ func (c *Cluster) Close(ctx context.Context) error {
 	return c.PatchObject(ctx)
 }
 
-// ResourceNameName returns the name/prefix that resources created for the cluster should have.
+// ResourceName returns the name/prefix that resources created for the cluster should have.
 // It is possible to provide additional suffixes that will be appended to the name with a leading "-".
 func (c *Cluster) ResourceName(suffixes ...string) string {
-	return strings.Join(append([]string{c.ScalewayCluster.Name}, suffixes...), "-")
+	return nameWithSuffixes(c.ScalewayCluster.Name, suffixes...)
 }
 
 // ResourceTags returns the tags that resources created for the cluster should have.
@@ -96,18 +81,29 @@ func (c *Cluster) ResourceTags(additional ...string) []string {
 		}, additional...)
 }
 
+// SetCloud sets the Scaleway client object.
+func (c *Cluster) SetCloud(sc scwClient.Interface) {
+	c.ScalewayClient = sc
+}
+
+// Cloud returns the initialized Scaleway client object.
+func (c *Cluster) Cloud() scwClient.Interface {
+	return c.ScalewayClient
+}
+
 // HasPrivateNetwork returns true if the cluster has a Private Network.
 func (c *Cluster) HasPrivateNetwork() bool {
 	return c.ScalewayCluster.Spec.Network != nil &&
 		c.ScalewayCluster.Spec.Network.PrivateNetwork.Enabled
 }
 
-// ShouldManagePrivateNetwork returns true if the provider should manage the
-// Private Network of the cluster.
-func (c *Cluster) ShouldManagePrivateNetwork() bool {
-	return c.HasPrivateNetwork() &&
-		c.ScalewayCluster.Spec.Network.PrivateNetwork != nil &&
-		c.ScalewayCluster.Spec.Network.PrivateNetwork.ID == nil
+// PrivateNetworkParams returns the private network parameters.
+func (c *Cluster) PrivateNetworkParams() infrav1.PrivateNetworkParams {
+	if c.ScalewayCluster.Spec.Network == nil || c.ScalewayCluster.Spec.Network.PrivateNetwork == nil {
+		return infrav1.PrivateNetworkParams{}
+	}
+
+	return c.ScalewayCluster.Spec.Network.PrivateNetwork.PrivateNetworkParams
 }
 
 // PrivateNetworkID returns the PrivateNetwork ID of the cluster, obtained from
@@ -260,27 +256,21 @@ func (c *Cluster) ControlPlaneLoadBalancerPrivate() bool {
 		*c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.Private
 }
 
-// SetStatusPrivateNetworkID sets the Private Network ID in the status of the
-// ScalewayCluster object.
-func (c *Cluster) SetStatusPrivateNetworkID(pnID string) {
-	if c.ScalewayCluster.Status.Network == nil {
-		c.ScalewayCluster.Status.Network = &infrav1.NetworkStatus{
-			PrivateNetworkID: &pnID,
-		}
-	} else {
-		c.ScalewayCluster.Status.Network.PrivateNetworkID = &pnID
-	}
+// IsVPCStatusSet if the VPC fields are set in the status.
+func (c *Cluster) IsVPCStatusSet() bool {
+	return c.ScalewayCluster.Status.Network != nil &&
+		c.ScalewayCluster.Status.Network.PrivateNetworkID != nil &&
+		c.ScalewayCluster.Status.Network.VPCID != nil
 }
 
-// SetStatusVPCID sets the VPC ID in the status of the ScalewayCluster object.
-func (c *Cluster) SetStatusVPCID(vpcID string) {
+// SetVPCStatus sets the VPC fields in the status.
+func (c *Cluster) SetVPCStatus(pnID, vpcID string) {
 	if c.ScalewayCluster.Status.Network == nil {
-		c.ScalewayCluster.Status.Network = &infrav1.NetworkStatus{
-			VPCID: &vpcID,
-		}
-	} else {
-		c.ScalewayCluster.Status.Network.VPCID = &vpcID
+		c.ScalewayCluster.Status.Network = &infrav1.NetworkStatus{}
 	}
+
+	c.ScalewayCluster.Status.Network.PrivateNetworkID = &pnID
+	c.ScalewayCluster.Status.Network.VPCID = &vpcID
 }
 
 // SetStatusLoadBalancerIP sets the loadbalancer IP in the status.
@@ -314,4 +304,13 @@ func (c *Cluster) SetFailureDomains(zones []scw.Zone) {
 			ControlPlane: true,
 		}
 	}
+}
+
+// PublicGateways returns the desired Public Gateways.
+func (c *Cluster) PublicGateways() []infrav1.PublicGatewaySpec {
+	if c.ScalewayCluster.Spec.Network == nil {
+		return nil
+	}
+
+	return c.ScalewayCluster.Spec.Network.PublicGateways
 }

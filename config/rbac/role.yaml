@@ -9,6 +9,8 @@ rules:
   resources:
   - secrets
   verbs:
+  - create
+  - delete
   - get
   - list
   - patch
@@ -19,6 +21,8 @@ rules:
   resources:
   - clusters
   - clusters/status
+  - machinepools
+  - machinepools/status
   - machines
   - machines/status
   verbs:
@@ -30,6 +34,9 @@ rules:
   resources:
   - scalewayclusters
   - scalewaymachines
+  - scalewaymanagedclusters
+  - scalewaymanagedcontrolplanes
+  - scalewaymanagedmachinepools
   verbs:
   - create
   - delete
@@ -43,6 +50,9 @@ rules:
   resources:
   - scalewayclusters/finalizers
   - scalewaymachines/finalizers
+  - scalewaymanagedclusters/finalizers
+  - scalewaymanagedcontrolplanes/finalizers
+  - scalewaymanagedmachinepools/finalizers
   verbs:
   - update
 - apiGroups:
@@ -50,6 +60,9 @@ rules:
   resources:
   - scalewayclusters/status
   - scalewaymachines/status
+  - scalewaymanagedclusters/status
+  - scalewaymanagedcontrolplanes/status
+  - scalewaymanagedmachinepools/status
   verbs:
   - get
   - patch

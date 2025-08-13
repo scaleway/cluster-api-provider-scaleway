@@ -9,6 +9,7 @@ import (
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/ipam/v1"
+	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/marketplace/v2"
 	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
@@ -32,6 +33,9 @@ type Client struct {
 	projectID string
 	region    scw.Region
 
+	// Exposed config.
+	secretKey string
+
 	// Product APIs
 	vpc         VPCAPI
 	vpcgw       VPCGWAPI
@@ -41,6 +45,7 @@ type Client struct {
 	block       BlockAPI
 	marketplace MarketplaceAPI
 	ipam        IPAMAPI
+	k8s         K8sAPI
 }
 
 // New returns a new Scaleway client based on the provided region and secretData.
@@ -75,6 +80,7 @@ func New(region scw.Region, projectID string, secretData map[string][]byte) (*Cl
 	return &Client{
 		projectID:   projectID,
 		region:      region,
+		secretKey:   secretKey,
 		vpc:         vpc.NewAPI(client),
 		vpcgw:       vpcgw.NewAPI(client),
 		lb:          lb.NewZonedAPI(client),
@@ -83,7 +89,14 @@ func New(region scw.Region, projectID string, secretData map[string][]byte) (*Cl
 		block:       block.NewAPI(client),
 		marketplace: marketplace.NewAPI(client),
 		ipam:        ipam.NewAPI(client),
+		k8s:         k8s.NewAPI(client),
 	}, nil
+}
+
+// TagsWithoutCreatedBy returns tags on a Scaleway resource, without the "created-by=..."
+// tag that is automatically added by the client.
+func TagsWithoutCreatedBy(tags []string) []string {
+	return slices.DeleteFunc(tags, func(s string) bool { return s == createdByTag })
 }
 
 func matchTags(tags []string, wantedTags []string) bool {
