@@ -31,6 +31,7 @@ Your Scaleway API Key must have the following permission sets:
 - `BlockStorageFullAccess`
 - `DomainsDNSFullAccess`
 - `InstancesFullAccess`
+- `KubernetesFullAccess`
 
 If a permission set is missing, you may encounter reconcile errors in the logs of the provider.
 

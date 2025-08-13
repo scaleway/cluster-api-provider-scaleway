@@ -155,7 +155,13 @@ func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	Expect(config).NotTo(BeNil(), "Failed to load E2E config from %s", configPath)
 
-	Expect(config.Variables).ToNot(ContainElement("null"), "Please set the missing variables using environment variables")
+	nullVariables := make(map[string]string)
+	for k, v := range config.Variables {
+		if v == "null" {
+			nullVariables[k] = v
+		}
+	}
+	Expect(nullVariables).To(BeEmpty(), "Please set the missing variables using environment variables")
 	return config
 }
 

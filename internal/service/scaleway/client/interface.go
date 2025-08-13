@@ -4,9 +4,11 @@ package client
 // a specific region and project.
 type Interface interface {
 	Block
+	Config
 	Domain
 	Instance
 	IPAM
+	K8s
 	LB
 	Marketplace
 	VPC

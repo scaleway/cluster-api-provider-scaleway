@@ -46,6 +46,7 @@ providers:
           # Following files are built using `make generate-e2e`.
           - sourcePath: "../data/infrastructure-scaleway/v1beta1/cluster-template.yaml"
           - sourcePath: "../data/infrastructure-scaleway/v1beta1/cluster-template-private-network.yaml"
+          - sourcePath: "../data/infrastructure-scaleway/v1beta1/cluster-template-managed.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -68,4 +69,5 @@ intervals:
   default/wait-control-plane: ["20m", "10s"]
   default/wait-worker-nodes: ["25m", "10s"]
   default/wait-machine-pool-nodes: ["30m", "10s"]
+  default/wait-worker-machine-pools: ["30m", "10s"]
   default/wait-delete-cluster: ["30m", "10s"]

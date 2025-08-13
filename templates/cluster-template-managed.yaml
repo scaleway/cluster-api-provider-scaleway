@@ -1,0 +1,73 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: ScalewayManagedCluster
+    name: ${CLUSTER_NAME}
+  controlPlaneRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: ScalewayManagedControlPlane
+    name: ${CLUSTER_NAME}-control-plane
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: ScalewayManagedCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  projectID: ${SCW_PROJECT_ID}
+  region: ${SCW_REGION}
+  scalewaySecretName: ${CLUSTER_NAME}
+  network:
+    privateNetwork:
+      id: ${PRIVATE_NETWORK_ID:=null}
+      vpcID: ${VPC_ID:=null}
+    publicGateways: ${PUBLIC_GATEWAYS:=null}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${CLUSTER_NAME}
+type: Opaque
+stringData:
+  SCW_ACCESS_KEY: ${SCW_ACCESS_KEY}
+  SCW_SECRET_KEY: ${SCW_SECRET_KEY}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: ScalewayManagedControlPlane
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  type: ${CLUSTER_TYPE:=kapsule}
+  version: ${KUBERNETES_VERSION}
+  onDelete:
+    withAdditionalResources: true
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-mp-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  template:
+    spec:
+      bootstrap:
+        dataSecretName: ""
+      clusterName: "${CLUSTER_NAME}"
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        kind: ScalewayManagedMachinePool
+        name: "${CLUSTER_NAME}-mp-0"
+      version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: ScalewayManagedMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-mp-0"
+spec:
+  nodeType: ${WORKER_MACHINE_COMMERCIAL_TYPE:=PLAY2-NANO}
+  zone: ${WORKER_FAILURE_DOMAIN:=${SCW_REGION}-1}
+  publicIPDisabled: ${WORKER_PUBLIC_IP_DISABLED:=false}
