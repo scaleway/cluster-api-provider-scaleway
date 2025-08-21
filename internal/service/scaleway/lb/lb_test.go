@@ -17,6 +17,8 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -64,6 +66,12 @@ func TestService_Reconcile(t *testing.T) {
 			fields: fields{
 				Cluster: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "cluster",
+							Namespace: "default",
+						},
+					},
+					Cluster: &v1beta1.Cluster{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
@@ -122,6 +130,79 @@ func TestService_Reconcile(t *testing.T) {
 			},
 		},
 		{
+			name: "custom public LB, no extra LB, no Private Network, no ACL: create",
+			fields: fields{
+				Cluster: &scope.Cluster{
+					ScalewayCluster: &v1alpha1.ScalewayCluster{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "cluster",
+							Namespace: "default",
+						},
+					},
+					Cluster: &v1beta1.Cluster{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "cluster",
+							Namespace: "default",
+						},
+						Spec: v1beta1.ClusterSpec{
+							ClusterNetwork: &v1beta1.ClusterNetwork{
+								APIServerPort: ptr.To(int32(4242)),
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+
+				// Main LB
+				i.GetZoneOrDefault(nil).Return(scw.ZoneFrPar1, nil)
+				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(tags, CAPSMainLBTag)).Return(nil, client.ErrNoItemFound)
+				i.CreateLB(gomock.Any(), scw.ZoneFrPar1, "cluster", "LB-S", nil, false, append(tags, CAPSMainLBTag)).Return(&lb.LB{
+					ID:     lbID,
+					Name:   "cluster",
+					Status: lb.LBStatusReady,
+					Zone:   scw.ZoneFrPar1,
+					IP:     []*lb.IP{{IPAddress: "42.42.42.42"}},
+				}, nil)
+
+				// Extra LBs
+				i.FindLBs(gomock.Any(), append(tags, CAPSExtraLBTag)).Return([]*lb.LB{}, nil)
+
+				// Backend
+				i.FindBackend(gomock.Any(), scw.ZoneFrPar1, lbID, BackendName).Return(nil, client.ErrNoItemFound)
+				i.CreateBackend(gomock.Any(), scw.ZoneFrPar1, lbID, BackendName, nil, backendControlPlanePort).Return(&lb.Backend{
+					ID: backendID,
+					LB: &lb.LB{
+						ID:   lbID,
+						Zone: scw.ZoneFrPar1,
+					},
+				}, nil)
+
+				// Frontend
+				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, FrontendName).Return(nil, client.ErrNoItemFound)
+				i.CreateFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, FrontendName, backendID, int32(4242)).Return(&lb.Frontend{
+					ID: frontendID,
+					LB: &lb.LB{
+						ID:   lbID,
+						Zone: scw.ZoneFrPar1,
+					},
+				}, nil)
+
+				// ACL
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, allowedRangesACLName).Return(nil, client.ErrNoItemFound)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, publicGatewayACLName).Return(nil, client.ErrNoItemFound)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, denyAllACLName).Return(nil, client.ErrNoItemFound)
+			},
+			asserts: func(g *WithT, c *scope.Cluster) {
+				g.Expect(c.ScalewayCluster.Status.Network).ToNot(BeNil())
+				g.Expect(c.ScalewayCluster.Status.Network.LoadBalancerIP).To(Equal(scw.StringPtr("42.42.42.42")))
+			},
+		},
+		{
 			name: "public LB, extra LBs, Private Network, ACL: up-to-date",
 			fields: fields{
 				Cluster: &scope.Cluster{
@@ -149,6 +230,12 @@ func TestService_Reconcile(t *testing.T) {
 							Network: &infrav1.NetworkStatus{
 								PrivateNetworkID: scw.StringPtr(privateNetworkID),
 							},
+						},
+					},
+					Cluster: &v1beta1.Cluster{
+						ObjectMeta: v1.ObjectMeta{
+							Name:      "cluster",
+							Namespace: "default",
 						},
 					},
 				},

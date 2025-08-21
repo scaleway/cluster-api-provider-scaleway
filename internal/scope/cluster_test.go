@@ -9,6 +9,7 @@ import (
 	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -311,7 +312,7 @@ func TestCluster_PrivateNetworkID(t *testing.T) {
 func TestCluster_ControlPlaneLoadBalancerPort(t *testing.T) {
 	t.Parallel()
 	type fields struct {
-		ScalewayCluster *infrav1.ScalewayCluster
+		Cluster *clusterv1.Cluster
 	}
 	tests := []struct {
 		name   string
@@ -321,19 +322,17 @@ func TestCluster_ControlPlaneLoadBalancerPort(t *testing.T) {
 		{
 			name: "empty spec",
 			fields: fields{
-				ScalewayCluster: &infrav1.ScalewayCluster{},
+				Cluster: &clusterv1.Cluster{},
 			},
 			want: defaultFrontendControlPlanePort,
 		},
 		{
 			name: "override with 443",
 			fields: fields{
-				ScalewayCluster: &infrav1.ScalewayCluster{
-					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							ControlPlaneLoadBalancer: &infrav1.ControlPlaneLoadBalancerSpec{
-								Port: scw.Int32Ptr(443),
-							},
+				Cluster: &clusterv1.Cluster{
+					Spec: clusterv1.ClusterSpec{
+						ClusterNetwork: &clusterv1.ClusterNetwork{
+							APIServerPort: scw.Int32Ptr(443),
 						},
 					},
 				},
@@ -345,7 +344,7 @@ func TestCluster_ControlPlaneLoadBalancerPort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			c := &Cluster{
-				ScalewayCluster: tt.fields.ScalewayCluster,
+				Cluster: tt.fields.Cluster,
 			}
 			if got := c.ControlPlaneLoadBalancerPort(); got != tt.want {
 				t.Errorf("Cluster.ControlPlaneLoadBalancerPort() = %v, want %v", got, tt.want)
