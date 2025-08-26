@@ -54,4 +54,22 @@ var _ = Describe("Workload cluster creation", func() {
 			}
 		})
 	})
+
+	Context("Running the CAPSClusterDeploymentSpec with front api custom port", func() {
+		CAPSClusterDeploymentSpec(func() CAPSClusterDeploymentSpecInput {
+			return CAPSClusterDeploymentSpecInput{
+				E2EConfig:                e2eConfig,
+				ClusterctlConfigPath:     clusterctlConfigPath,
+				BootstrapClusterProxy:    bootstrapClusterProxy,
+				ArtifactFolder:           artifactFolder,
+				SkipCleanup:              skipCleanup,
+				ControlPlaneMachineCount: 3,
+				WorkerMachineCount:       2,
+				Flavor:                   "",
+				ClusterctlVariables: map[string]string{
+					"API_SERVER_PORT": "443",
+				},
+			}
+		})
+	})
 })

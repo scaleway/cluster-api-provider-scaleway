@@ -170,16 +170,6 @@ spec:
                         description: IP to use when creating a loadbalancer.
                         format: ipv4
                         type: string
-                      port:
-                        description: Port configured on the Load Balancer. It must
-                          be valid port range (1-65535).
-                        format: int32
-                        maximum: 65535
-                        minimum: 1
-                        type: integer
-                        x-kubernetes-validations:
-                        - message: Value is immutable
-                          rule: self == oldSelf
                       private:
                         description: Private disables the creation of a public IP
                           on the LoadBalancers when it's set to true.
@@ -360,10 +350,6 @@ spec:
             - message: privateNetwork cannot be added or removed
               rule: (has(self.network) && has(self.network.privateNetwork)) == (has(oldSelf.network)
                 && has(oldSelf.network.privateNetwork))
-            - message: port cannot be added or removed
-              rule: (has(self.network) && has(self.network.controlPlaneLoadBalancer)
-                && has(self.network.controlPlaneLoadBalancer.port)) == (has(oldSelf.network)
-                && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.port))
             - message: private cannot be added or removed
               rule: (has(self.network) && has(self.network.controlPlaneLoadBalancer)
                 && has(self.network.controlPlaneLoadBalancer.private)) == (has(oldSelf.network)

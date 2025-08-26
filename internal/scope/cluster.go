@@ -129,10 +129,9 @@ func (c *Cluster) PrivateNetworkID() (string, error) {
 func (c *Cluster) ControlPlaneLoadBalancerPort() int32 {
 	var port int32 = defaultFrontendControlPlanePort
 
-	if c.ScalewayCluster.Spec.Network != nil &&
-		c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer != nil &&
-		c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.Port != nil {
-		port = *c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.Port
+	if c.Cluster.Spec.ClusterNetwork != nil &&
+		c.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
+		port = *c.Cluster.Spec.ClusterNetwork.APIServerPort
 	}
 
 	return port
