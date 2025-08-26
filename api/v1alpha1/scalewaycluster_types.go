@@ -15,7 +15,6 @@ const ClusterFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sc-pro
 // +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlanePrivateDNS)) == (has(oldSelf.network) && has(oldSelf.network.controlPlanePrivateDNS))",message="controlPlanePrivateDNS cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.privateNetwork)) == (has(oldSelf.network) && has(oldSelf.network.privateNetwork))",message="privateNetwork cannot be added or removed"
 //
-// +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.port)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.port))",message="port cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.private)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.private))",message="private cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.ip)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.ip))",message="ip cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.controlPlaneLoadBalancer) && has(self.network.controlPlaneLoadBalancer.zone)) == (has(oldSelf.network) && has(oldSelf.network.controlPlaneLoadBalancer) && has(oldSelf.network.controlPlaneLoadBalancer.zone))",message="zone cannot be added or removed"
@@ -126,12 +125,6 @@ type ControlPlaneLoadBalancerSpec struct {
 	// +kubebuilder:validation:XValidation:rule="!has(oldSelf.zone) || self.zone == oldSelf.zone",message="zone is immutable"
 	// +kubebuilder:validation:XValidation:rule="!has(oldSelf.privateIP) || self.privateIP == oldSelf.privateIP",message="privateIP is immutable"
 	LoadBalancerSpec `json:",inline"`
-
-	// Port configured on the Load Balancer. It must be valid port range (1-65535).
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=65535
-	Port *int32 `json:"port,omitempty"`
 
 	// AllowedRanges allows to set a list of allowed IP ranges that can access
 	// the cluster through the loadbalancer. When unset, all IP ranges are allowed.

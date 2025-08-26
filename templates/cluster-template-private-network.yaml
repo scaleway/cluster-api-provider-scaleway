@@ -4,6 +4,7 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   clusterNetwork:
+    apiServerPort: ${API_SERVER_PORT:=null}
     pods:
       cidrBlocks:
         - 10.244.0.0/16

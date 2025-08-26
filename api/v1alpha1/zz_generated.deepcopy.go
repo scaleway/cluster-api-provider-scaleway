@@ -28,11 +28,6 @@ func (in *ControlPlaneDNSSpec) DeepCopy() *ControlPlaneDNSSpec {
 func (in *ControlPlaneLoadBalancerSpec) DeepCopyInto(out *ControlPlaneLoadBalancerSpec) {
 	*out = *in
 	in.LoadBalancerSpec.DeepCopyInto(&out.LoadBalancerSpec)
-	if in.Port != nil {
-		in, out := &in.Port, &out.Port
-		*out = new(int32)
-		**out = **in
-	}
 	if in.AllowedRanges != nil {
 		in, out := &in.AllowedRanges, &out.AllowedRanges
 		*out = make([]CIDR, len(*in))
