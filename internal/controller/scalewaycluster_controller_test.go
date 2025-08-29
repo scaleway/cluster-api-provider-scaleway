@@ -204,7 +204,7 @@ var _ = Describe("ScalewayCluster", func() {
 				err := k8sClient.Get(ctx, typeNamespacedName, resource)
 				Expect(err).NotTo(HaveOccurred())
 
-				resource.Spec.ControlPlaneEndpoint.Host = "12.12.12.12"
+				resource.Spec.ControlPlaneEndpoint.Host = "11.11.11.11"
 				Expect(k8sClient.Update(ctx, resource)).NotTo(Succeed())
 			})
 

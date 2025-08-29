@@ -83,6 +83,17 @@ func CAPSClusterDeploymentSpec(inputGetter func() CAPSClusterDeploymentSpecInput
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.ClusterctlConfigPath, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		cleanInput := cleanupInput{
+			SpecName:             specName,
+			Cluster:              clusterResources.Cluster,
+			ClusterProxy:         input.BootstrapClusterProxy,
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			Namespace:            namespace,
+			CancelWatches:        cancelWatches,
+			IntervalsGetter:      input.E2EConfig.GetIntervals,
+			SkipCleanup:          input.SkipCleanup,
+			ArtifactFolder:       input.ArtifactFolder,
+		}
+		dumpSpecResourcesAndCleanup(ctx, cleanInput)
 	})
 }

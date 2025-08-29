@@ -18,6 +18,7 @@ import (
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	instance "github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	ipam "github.com/scaleway/scaleway-sdk-go/api/ipam/v1"
+	k8s "github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	lb "github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	marketplace "github.com/scaleway/scaleway-sdk-go/api/marketplace/v2"
 	vpc "github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
@@ -199,6 +200,45 @@ func (c *MockInterfaceCreateBackendCall) Do(f func(context.Context, scw.Zone, st
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceCreateBackendCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, []string, int32) (*lb.Backend, error)) *MockInterfaceCreateBackendCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateCluster mocks base method.
+func (m *MockInterface) CreateCluster(ctx context.Context, name, clusterType, version string, pnID *string, tags, featureGates, admissionPlugins, apiServerCertSANs []string, cni k8s.CNI, autoscalerConfig *k8s.CreateClusterRequestAutoscalerConfig, autoUpgrade *k8s.CreateClusterRequestAutoUpgrade, openIDConnectConfig *k8s.CreateClusterRequestOpenIDConnectConfig, podCIDR, serviceCIDR scw.IPNet) (*k8s.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCluster", ctx, name, clusterType, version, pnID, tags, featureGates, admissionPlugins, apiServerCertSANs, cni, autoscalerConfig, autoUpgrade, openIDConnectConfig, podCIDR, serviceCIDR)
+	ret0, _ := ret[0].(*k8s.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCluster indicates an expected call of CreateCluster.
+func (mr *MockInterfaceMockRecorder) CreateCluster(ctx, name, clusterType, version, pnID, tags, featureGates, admissionPlugins, apiServerCertSANs, cni, autoscalerConfig, autoUpgrade, openIDConnectConfig, podCIDR, serviceCIDR any) *MockInterfaceCreateClusterCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCluster", reflect.TypeOf((*MockInterface)(nil).CreateCluster), ctx, name, clusterType, version, pnID, tags, featureGates, admissionPlugins, apiServerCertSANs, cni, autoscalerConfig, autoUpgrade, openIDConnectConfig, podCIDR, serviceCIDR)
+	return &MockInterfaceCreateClusterCall{Call: call}
+}
+
+// MockInterfaceCreateClusterCall wrap *gomock.Call
+type MockInterfaceCreateClusterCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceCreateClusterCall) Return(arg0 *k8s.Cluster, arg1 error) *MockInterfaceCreateClusterCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceCreateClusterCall) Do(f func(context.Context, string, string, string, *string, []string, []string, []string, []string, k8s.CNI, *k8s.CreateClusterRequestAutoscalerConfig, *k8s.CreateClusterRequestAutoUpgrade, *k8s.CreateClusterRequestOpenIDConnectConfig, scw.IPNet, scw.IPNet) (*k8s.Cluster, error)) *MockInterfaceCreateClusterCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceCreateClusterCall) DoAndReturn(f func(context.Context, string, string, string, *string, []string, []string, []string, []string, k8s.CNI, *k8s.CreateClusterRequestAutoscalerConfig, *k8s.CreateClusterRequestAutoUpgrade, *k8s.CreateClusterRequestOpenIDConnectConfig, scw.IPNet, scw.IPNet) (*k8s.Cluster, error)) *MockInterfaceCreateClusterCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -435,6 +475,45 @@ func (c *MockInterfaceCreateLBACLCall) DoAndReturn(f func(context.Context, scw.Z
 	return c
 }
 
+// CreatePool mocks base method.
+func (m *MockInterface) CreatePool(ctx context.Context, zone scw.Zone, clusterID, name, nodeType string, placementGroupID, securityGroupID *string, autoscaling, autohealing, publicIPDisabled bool, size uint32, minSize, maxSize *uint32, tags []string, kubeletArgs map[string]string, rootVolumeType k8s.PoolVolumeType, rootVolumeSizeGB *uint64, upgradePolicy *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePool", ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, rootVolumeType, rootVolumeSizeGB, upgradePolicy)
+	ret0, _ := ret[0].(*k8s.Pool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePool indicates an expected call of CreatePool.
+func (mr *MockInterfaceMockRecorder) CreatePool(ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, rootVolumeType, rootVolumeSizeGB, upgradePolicy any) *MockInterfaceCreatePoolCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePool", reflect.TypeOf((*MockInterface)(nil).CreatePool), ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, rootVolumeType, rootVolumeSizeGB, upgradePolicy)
+	return &MockInterfaceCreatePoolCall{Call: call}
+}
+
+// MockInterfaceCreatePoolCall wrap *gomock.Call
+type MockInterfaceCreatePoolCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceCreatePoolCall) Return(arg0 *k8s.Pool, arg1 error) *MockInterfaceCreatePoolCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceCreatePoolCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, bool, bool, bool, uint32, *uint32, *uint32, []string, map[string]string, k8s.PoolVolumeType, *uint64, *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error)) *MockInterfaceCreatePoolCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceCreatePoolCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, bool, bool, bool, uint32, *uint32, *uint32, []string, map[string]string, k8s.PoolVolumeType, *uint64, *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error)) *MockInterfaceCreatePoolCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CreatePrivateNIC mocks base method.
 func (m *MockInterface) CreatePrivateNIC(ctx context.Context, zone scw.Zone, serverID, privateNetworkID string) (*instance.PrivateNIC, error) {
 	m.ctrl.T.Helper()
@@ -586,6 +665,44 @@ func (c *MockInterfaceDefaultZoneCall) Do(f func() scw.Zone) *MockInterfaceDefau
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceDefaultZoneCall) DoAndReturn(f func() scw.Zone) *MockInterfaceDefaultZoneCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DeleteCluster mocks base method.
+func (m *MockInterface) DeleteCluster(ctx context.Context, id string, withAdditionalResources bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCluster", ctx, id, withAdditionalResources)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteCluster indicates an expected call of DeleteCluster.
+func (mr *MockInterfaceMockRecorder) DeleteCluster(ctx, id, withAdditionalResources any) *MockInterfaceDeleteClusterCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCluster", reflect.TypeOf((*MockInterface)(nil).DeleteCluster), ctx, id, withAdditionalResources)
+	return &MockInterfaceDeleteClusterCall{Call: call}
+}
+
+// MockInterfaceDeleteClusterCall wrap *gomock.Call
+type MockInterfaceDeleteClusterCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceDeleteClusterCall) Return(arg0 error) *MockInterfaceDeleteClusterCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceDeleteClusterCall) Do(f func(context.Context, string, bool) error) *MockInterfaceDeleteClusterCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceDeleteClusterCall) DoAndReturn(f func(context.Context, string, bool) error) *MockInterfaceDeleteClusterCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -814,6 +931,44 @@ func (c *MockInterfaceDeleteLBACLCall) Do(f func(context.Context, scw.Zone, stri
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceDeleteLBACLCall) DoAndReturn(f func(context.Context, scw.Zone, string) error) *MockInterfaceDeleteLBACLCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DeletePool mocks base method.
+func (m *MockInterface) DeletePool(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePool", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePool indicates an expected call of DeletePool.
+func (mr *MockInterfaceMockRecorder) DeletePool(ctx, id any) *MockInterfaceDeletePoolCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePool", reflect.TypeOf((*MockInterface)(nil).DeletePool), ctx, id)
+	return &MockInterfaceDeletePoolCall{Call: call}
+}
+
+// MockInterfaceDeletePoolCall wrap *gomock.Call
+type MockInterfaceDeletePoolCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceDeletePoolCall) Return(arg0 error) *MockInterfaceDeletePoolCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceDeletePoolCall) Do(f func(context.Context, string) error) *MockInterfaceDeletePoolCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceDeletePoolCall) DoAndReturn(f func(context.Context, string) error) *MockInterfaceDeletePoolCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1082,6 +1237,45 @@ func (c *MockInterfaceFindBackendCall) Do(f func(context.Context, scw.Zone, stri
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceFindBackendCall) DoAndReturn(f func(context.Context, scw.Zone, string, string) (*lb.Backend, error)) *MockInterfaceFindBackendCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// FindCluster mocks base method.
+func (m *MockInterface) FindCluster(ctx context.Context, name string) (*k8s.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindCluster", ctx, name)
+	ret0, _ := ret[0].(*k8s.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindCluster indicates an expected call of FindCluster.
+func (mr *MockInterfaceMockRecorder) FindCluster(ctx, name any) *MockInterfaceFindClusterCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindCluster", reflect.TypeOf((*MockInterface)(nil).FindCluster), ctx, name)
+	return &MockInterfaceFindClusterCall{Call: call}
+}
+
+// MockInterfaceFindClusterCall wrap *gomock.Call
+type MockInterfaceFindClusterCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceFindClusterCall) Return(arg0 *k8s.Cluster, arg1 error) *MockInterfaceFindClusterCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceFindClusterCall) Do(f func(context.Context, string) (*k8s.Cluster, error)) *MockInterfaceFindClusterCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceFindClusterCall) DoAndReturn(f func(context.Context, string) (*k8s.Cluster, error)) *MockInterfaceFindClusterCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1593,6 +1787,45 @@ func (c *MockInterfaceFindPlacementGroupCall) DoAndReturn(f func(context.Context
 	return c
 }
 
+// FindPool mocks base method.
+func (m *MockInterface) FindPool(ctx context.Context, clusterID, name string) (*k8s.Pool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindPool", ctx, clusterID, name)
+	ret0, _ := ret[0].(*k8s.Pool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindPool indicates an expected call of FindPool.
+func (mr *MockInterfaceMockRecorder) FindPool(ctx, clusterID, name any) *MockInterfaceFindPoolCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindPool", reflect.TypeOf((*MockInterface)(nil).FindPool), ctx, clusterID, name)
+	return &MockInterfaceFindPoolCall{Call: call}
+}
+
+// MockInterfaceFindPoolCall wrap *gomock.Call
+type MockInterfaceFindPoolCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceFindPoolCall) Return(arg0 *k8s.Pool, arg1 error) *MockInterfaceFindPoolCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceFindPoolCall) Do(f func(context.Context, string, string) (*k8s.Pool, error)) *MockInterfaceFindPoolCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceFindPoolCall) DoAndReturn(f func(context.Context, string, string) (*k8s.Pool, error)) *MockInterfaceFindPoolCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // FindPrivateNICIPs mocks base method.
 func (m *MockInterface) FindPrivateNICIPs(ctx context.Context, privateNICID string) ([]*ipam.IP, error) {
 	m.ctrl.T.Helper()
@@ -1827,6 +2060,45 @@ func (c *MockInterfaceGetAllServerUserDataCall) DoAndReturn(f func(context.Conte
 	return c
 }
 
+// GetClusterKubeConfig mocks base method.
+func (m *MockInterface) GetClusterKubeConfig(ctx context.Context, id string) (*k8s.Kubeconfig, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterKubeConfig", ctx, id)
+	ret0, _ := ret[0].(*k8s.Kubeconfig)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClusterKubeConfig indicates an expected call of GetClusterKubeConfig.
+func (mr *MockInterfaceMockRecorder) GetClusterKubeConfig(ctx, id any) *MockInterfaceGetClusterKubeConfigCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterKubeConfig", reflect.TypeOf((*MockInterface)(nil).GetClusterKubeConfig), ctx, id)
+	return &MockInterfaceGetClusterKubeConfigCall{Call: call}
+}
+
+// MockInterfaceGetClusterKubeConfigCall wrap *gomock.Call
+type MockInterfaceGetClusterKubeConfigCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceGetClusterKubeConfigCall) Return(arg0 *k8s.Kubeconfig, arg1 error) *MockInterfaceGetClusterKubeConfigCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceGetClusterKubeConfigCall) Do(f func(context.Context, string) (*k8s.Kubeconfig, error)) *MockInterfaceGetClusterKubeConfigCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceGetClusterKubeConfigCall) DoAndReturn(f func(context.Context, string) (*k8s.Kubeconfig, error)) *MockInterfaceGetClusterKubeConfigCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetControlPlaneZones mocks base method.
 func (m *MockInterface) GetControlPlaneZones() []scw.Zone {
 	m.ctrl.T.Helper()
@@ -1943,6 +2215,44 @@ func (c *MockInterfaceGetPrivateNetworkCall) DoAndReturn(f func(context.Context,
 	return c
 }
 
+// GetSecretKey mocks base method.
+func (m *MockInterface) GetSecretKey() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecretKey")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSecretKey indicates an expected call of GetSecretKey.
+func (mr *MockInterfaceMockRecorder) GetSecretKey() *MockInterfaceGetSecretKeyCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretKey", reflect.TypeOf((*MockInterface)(nil).GetSecretKey))
+	return &MockInterfaceGetSecretKeyCall{Call: call}
+}
+
+// MockInterfaceGetSecretKeyCall wrap *gomock.Call
+type MockInterfaceGetSecretKeyCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceGetSecretKeyCall) Return(arg0 string) *MockInterfaceGetSecretKeyCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceGetSecretKeyCall) Do(f func() string) *MockInterfaceGetSecretKeyCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceGetSecretKeyCall) DoAndReturn(f func() string) *MockInterfaceGetSecretKeyCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetZoneOrDefault mocks base method.
 func (m *MockInterface) GetZoneOrDefault(zone *string) (scw.Zone, error) {
 	m.ctrl.T.Helper()
@@ -1978,6 +2288,45 @@ func (c *MockInterfaceGetZoneOrDefaultCall) Do(f func(*string) (scw.Zone, error)
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceGetZoneOrDefaultCall) DoAndReturn(f func(*string) (scw.Zone, error)) *MockInterfaceGetZoneOrDefaultCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ListClusterACLRules mocks base method.
+func (m *MockInterface) ListClusterACLRules(ctx context.Context, clusterID string) ([]*k8s.ACLRule, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListClusterACLRules", ctx, clusterID)
+	ret0, _ := ret[0].([]*k8s.ACLRule)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListClusterACLRules indicates an expected call of ListClusterACLRules.
+func (mr *MockInterfaceMockRecorder) ListClusterACLRules(ctx, clusterID any) *MockInterfaceListClusterACLRulesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusterACLRules", reflect.TypeOf((*MockInterface)(nil).ListClusterACLRules), ctx, clusterID)
+	return &MockInterfaceListClusterACLRulesCall{Call: call}
+}
+
+// MockInterfaceListClusterACLRulesCall wrap *gomock.Call
+type MockInterfaceListClusterACLRulesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceListClusterACLRulesCall) Return(arg0 []*k8s.ACLRule, arg1 error) *MockInterfaceListClusterACLRulesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceListClusterACLRulesCall) Do(f func(context.Context, string) ([]*k8s.ACLRule, error)) *MockInterfaceListClusterACLRulesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceListClusterACLRulesCall) DoAndReturn(f func(context.Context, string) ([]*k8s.ACLRule, error)) *MockInterfaceListClusterACLRulesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2095,6 +2444,45 @@ func (c *MockInterfaceListLBACLsCall) Do(f func(context.Context, scw.Zone, strin
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceListLBACLsCall) DoAndReturn(f func(context.Context, scw.Zone, string) ([]*lb.ACL, error)) *MockInterfaceListLBACLsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ListNodes mocks base method.
+func (m *MockInterface) ListNodes(ctx context.Context, clusterID, poolID string) ([]*k8s.Node, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNodes", ctx, clusterID, poolID)
+	ret0, _ := ret[0].([]*k8s.Node)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListNodes indicates an expected call of ListNodes.
+func (mr *MockInterfaceMockRecorder) ListNodes(ctx, clusterID, poolID any) *MockInterfaceListNodesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodes", reflect.TypeOf((*MockInterface)(nil).ListNodes), ctx, clusterID, poolID)
+	return &MockInterfaceListNodesCall{Call: call}
+}
+
+// MockInterfaceListNodesCall wrap *gomock.Call
+type MockInterfaceListNodesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceListNodesCall) Return(arg0 []*k8s.Node, arg1 error) *MockInterfaceListNodesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceListNodesCall) Do(f func(context.Context, string, string) ([]*k8s.Node, error)) *MockInterfaceListNodesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceListNodesCall) DoAndReturn(f func(context.Context, string, string) ([]*k8s.Node, error)) *MockInterfaceListNodesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2253,6 +2641,82 @@ func (c *MockInterfaceSetBackendServersCall) DoAndReturn(f func(context.Context,
 	return c
 }
 
+// SetClusterACLRules mocks base method.
+func (m *MockInterface) SetClusterACLRules(ctx context.Context, clusterID string, rules []*k8s.ACLRuleRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetClusterACLRules", ctx, clusterID, rules)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetClusterACLRules indicates an expected call of SetClusterACLRules.
+func (mr *MockInterfaceMockRecorder) SetClusterACLRules(ctx, clusterID, rules any) *MockInterfaceSetClusterACLRulesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClusterACLRules", reflect.TypeOf((*MockInterface)(nil).SetClusterACLRules), ctx, clusterID, rules)
+	return &MockInterfaceSetClusterACLRulesCall{Call: call}
+}
+
+// MockInterfaceSetClusterACLRulesCall wrap *gomock.Call
+type MockInterfaceSetClusterACLRulesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceSetClusterACLRulesCall) Return(arg0 error) *MockInterfaceSetClusterACLRulesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceSetClusterACLRulesCall) Do(f func(context.Context, string, []*k8s.ACLRuleRequest) error) *MockInterfaceSetClusterACLRulesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceSetClusterACLRulesCall) DoAndReturn(f func(context.Context, string, []*k8s.ACLRuleRequest) error) *MockInterfaceSetClusterACLRulesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetClusterType mocks base method.
+func (m *MockInterface) SetClusterType(ctx context.Context, id, clusterType string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetClusterType", ctx, id, clusterType)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetClusterType indicates an expected call of SetClusterType.
+func (mr *MockInterfaceMockRecorder) SetClusterType(ctx, id, clusterType any) *MockInterfaceSetClusterTypeCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClusterType", reflect.TypeOf((*MockInterface)(nil).SetClusterType), ctx, id, clusterType)
+	return &MockInterfaceSetClusterTypeCall{Call: call}
+}
+
+// MockInterfaceSetClusterTypeCall wrap *gomock.Call
+type MockInterfaceSetClusterTypeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceSetClusterTypeCall) Return(arg0 error) *MockInterfaceSetClusterTypeCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceSetClusterTypeCall) Do(f func(context.Context, string, string) error) *MockInterfaceSetClusterTypeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceSetClusterTypeCall) DoAndReturn(f func(context.Context, string, string) error) *MockInterfaceSetClusterTypeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetDNSZoneRecords mocks base method.
 func (m *MockInterface) SetDNSZoneRecords(ctx context.Context, zone, name string, ips []string) error {
 	m.ctrl.T.Helper()
@@ -2367,6 +2831,44 @@ func (c *MockInterfaceSetServerUserDataCall) DoAndReturn(f func(context.Context,
 	return c
 }
 
+// UpdateCluster mocks base method.
+func (m *MockInterface) UpdateCluster(ctx context.Context, id string, tags, featureGates, admissionPlugins, apiServerCertSANs *[]string, autoscalerConfig *k8s.UpdateClusterRequestAutoscalerConfig, autoUpgrade *k8s.UpdateClusterRequestAutoUpgrade, openIDConnectConfig *k8s.UpdateClusterRequestOpenIDConnectConfig) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateCluster", ctx, id, tags, featureGates, admissionPlugins, apiServerCertSANs, autoscalerConfig, autoUpgrade, openIDConnectConfig)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateCluster indicates an expected call of UpdateCluster.
+func (mr *MockInterfaceMockRecorder) UpdateCluster(ctx, id, tags, featureGates, admissionPlugins, apiServerCertSANs, autoscalerConfig, autoUpgrade, openIDConnectConfig any) *MockInterfaceUpdateClusterCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCluster", reflect.TypeOf((*MockInterface)(nil).UpdateCluster), ctx, id, tags, featureGates, admissionPlugins, apiServerCertSANs, autoscalerConfig, autoUpgrade, openIDConnectConfig)
+	return &MockInterfaceUpdateClusterCall{Call: call}
+}
+
+// MockInterfaceUpdateClusterCall wrap *gomock.Call
+type MockInterfaceUpdateClusterCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceUpdateClusterCall) Return(arg0 error) *MockInterfaceUpdateClusterCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceUpdateClusterCall) Do(f func(context.Context, string, *[]string, *[]string, *[]string, *[]string, *k8s.UpdateClusterRequestAutoscalerConfig, *k8s.UpdateClusterRequestAutoUpgrade, *k8s.UpdateClusterRequestOpenIDConnectConfig) error) *MockInterfaceUpdateClusterCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceUpdateClusterCall) DoAndReturn(f func(context.Context, string, *[]string, *[]string, *[]string, *[]string, *k8s.UpdateClusterRequestAutoscalerConfig, *k8s.UpdateClusterRequestAutoUpgrade, *k8s.UpdateClusterRequestOpenIDConnectConfig) error) *MockInterfaceUpdateClusterCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpdateInstanceVolumeTags mocks base method.
 func (m *MockInterface) UpdateInstanceVolumeTags(ctx context.Context, zone scw.Zone, volumeID string, tags []string) error {
 	m.ctrl.T.Helper()
@@ -2439,6 +2941,44 @@ func (c *MockInterfaceUpdateLBACLCall) Do(f func(context.Context, scw.Zone, stri
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceUpdateLBACLCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, int32, lb.ACLActionType, []string) error) *MockInterfaceUpdateLBACLCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdatePool mocks base method.
+func (m *MockInterface) UpdatePool(ctx context.Context, id string, autoscaling, autohealing *bool, size, minSize, maxSize *uint32, tags *[]string, kubeletArgs *map[string]string, upgradePolicy *k8s.UpdatePoolRequestUpgradePolicy) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePool", ctx, id, autoscaling, autohealing, size, minSize, maxSize, tags, kubeletArgs, upgradePolicy)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatePool indicates an expected call of UpdatePool.
+func (mr *MockInterfaceMockRecorder) UpdatePool(ctx, id, autoscaling, autohealing, size, minSize, maxSize, tags, kubeletArgs, upgradePolicy any) *MockInterfaceUpdatePoolCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePool", reflect.TypeOf((*MockInterface)(nil).UpdatePool), ctx, id, autoscaling, autohealing, size, minSize, maxSize, tags, kubeletArgs, upgradePolicy)
+	return &MockInterfaceUpdatePoolCall{Call: call}
+}
+
+// MockInterfaceUpdatePoolCall wrap *gomock.Call
+type MockInterfaceUpdatePoolCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceUpdatePoolCall) Return(arg0 error) *MockInterfaceUpdatePoolCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceUpdatePoolCall) Do(f func(context.Context, string, *bool, *bool, *uint32, *uint32, *uint32, *[]string, *map[string]string, *k8s.UpdatePoolRequestUpgradePolicy) error) *MockInterfaceUpdatePoolCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceUpdatePoolCall) DoAndReturn(f func(context.Context, string, *bool, *bool, *uint32, *uint32, *uint32, *[]string, *map[string]string, *k8s.UpdatePoolRequestUpgradePolicy) error) *MockInterfaceUpdatePoolCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2558,6 +3098,44 @@ func (c *MockInterfaceUpdateVolumeTagsCall) DoAndReturn(f func(context.Context, 
 	return c
 }
 
+// UpgradeCluster mocks base method.
+func (m *MockInterface) UpgradeCluster(ctx context.Context, id, version string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpgradeCluster", ctx, id, version)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpgradeCluster indicates an expected call of UpgradeCluster.
+func (mr *MockInterfaceMockRecorder) UpgradeCluster(ctx, id, version any) *MockInterfaceUpgradeClusterCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpgradeCluster", reflect.TypeOf((*MockInterface)(nil).UpgradeCluster), ctx, id, version)
+	return &MockInterfaceUpgradeClusterCall{Call: call}
+}
+
+// MockInterfaceUpgradeClusterCall wrap *gomock.Call
+type MockInterfaceUpgradeClusterCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceUpgradeClusterCall) Return(arg0 error) *MockInterfaceUpgradeClusterCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceUpgradeClusterCall) Do(f func(context.Context, string, string) error) *MockInterfaceUpgradeClusterCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceUpgradeClusterCall) DoAndReturn(f func(context.Context, string, string) error) *MockInterfaceUpgradeClusterCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpgradeGateway mocks base method.
 func (m *MockInterface) UpgradeGateway(ctx context.Context, zone scw.Zone, gatewayID, newType string) (*vpcgw.Gateway, error) {
 	m.ctrl.T.Helper()
@@ -2593,6 +3171,44 @@ func (c *MockInterfaceUpgradeGatewayCall) Do(f func(context.Context, scw.Zone, s
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceUpgradeGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, string) (*vpcgw.Gateway, error)) *MockInterfaceUpgradeGatewayCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpgradePool mocks base method.
+func (m *MockInterface) UpgradePool(ctx context.Context, id, version string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpgradePool", ctx, id, version)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpgradePool indicates an expected call of UpgradePool.
+func (mr *MockInterfaceMockRecorder) UpgradePool(ctx, id, version any) *MockInterfaceUpgradePoolCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpgradePool", reflect.TypeOf((*MockInterface)(nil).UpgradePool), ctx, id, version)
+	return &MockInterfaceUpgradePoolCall{Call: call}
+}
+
+// MockInterfaceUpgradePoolCall wrap *gomock.Call
+type MockInterfaceUpgradePoolCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceUpgradePoolCall) Return(arg0 error) *MockInterfaceUpgradePoolCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceUpgradePoolCall) Do(f func(context.Context, string, string) error) *MockInterfaceUpgradePoolCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceUpgradePoolCall) DoAndReturn(f func(context.Context, string, string) error) *MockInterfaceUpgradePoolCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

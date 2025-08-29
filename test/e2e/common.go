@@ -28,49 +28,63 @@ func setupSpecNamespace(ctx context.Context, specName string, clusterProxy frame
 	return namespace, cancelWatches
 }
 
-func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder, clusterctlConfigPath string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []any, skipCleanup bool) {
-	var clusterName string
-	var clusterNamespace string
-	if cluster != nil {
-		clusterName = cluster.Name
-		clusterNamespace = cluster.Namespace
-		Byf("Dumping logs from the %q workload cluster", clusterName)
+type cleanupInput struct {
+	SpecName             string
+	ClusterProxy         framework.ClusterProxy
+	ArtifactFolder       string
+	ClusterctlConfigPath string
+	Namespace            *corev1.Namespace
+	CancelWatches        context.CancelFunc
+	Cluster              *clusterv1.Cluster
+	IntervalsGetter      func(spec, key string) []interface{}
+	SkipCleanup          bool
+	AdditionalCleanup    func()
+}
 
-		// Dump all the logs from the workload cluster before deleting them.
-		clusterProxy.CollectWorkloadClusterLogs(ctx, clusterNamespace, clusterName, filepath.Join(artifactFolder, "clusters", clusterName))
+func dumpSpecResourcesAndCleanup(ctx context.Context, input cleanupInput) {
+	defer func() {
+		input.CancelWatches()
+	}()
 
-		Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
-
-		// Dump all Cluster API related resources to artifacts before deleting them.
-		framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-			Lister:               clusterProxy.GetClient(),
-			KubeConfigPath:       clusterProxy.GetKubeconfigPath(),
-			ClusterctlConfigPath: clusterctlConfigPath,
-			Namespace:            namespace.Name,
-			LogPath:              filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
-		})
+	if input.Cluster == nil {
+		By("Unable to dump workload cluster logs as the cluster is nil")
 	} else {
-		clusterName = "empty"
-		clusterNamespace = "empty"
+		Byf("Dumping logs from the %q workload cluster", input.Cluster.Name)
+		input.ClusterProxy.CollectWorkloadClusterLogs(ctx, input.Cluster.Namespace, input.Cluster.Name, filepath.Join(input.ArtifactFolder, "clusters", input.Cluster.Name))
 	}
 
-	if !skipCleanup {
-		Byf("Deleting cluster %s/%s", clusterNamespace, clusterName)
-		// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
-		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
-		// instead of DeleteClusterAndWait
-		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			ClusterProxy:         clusterProxy,
-			ClusterctlConfigPath: clusterctlConfigPath,
-			Namespace:            namespace.Name,
-			ArtifactFolder:       artifactFolder,
-		}, intervalsGetter(specName, "wait-delete-cluster")...)
+	Byf("Dumping all the Cluster API resources in the %q namespace", input.Namespace.Name)
+	// Dump all Cluster API related resources to artifacts before deleting them.
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.ClusterProxy.GetClient(),
+		KubeConfigPath:       input.ClusterProxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+		Namespace:            input.Namespace.Name,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", input.ClusterProxy.GetName(), "resources"),
+	})
 
-		Byf("Deleting namespace used for hosting the %q test spec", specName)
-		framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-			Deleter: clusterProxy.GetClient(),
-			Name:    namespace.Name,
-		})
+	if input.SkipCleanup {
+		return
 	}
-	cancelWatches()
+
+	Byf("Deleting all clusters in the %s namespace", input.Namespace.Name)
+	// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
+	// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
+	// instead of DeleteClusterAndWait
+	framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
+		ClusterProxy:         input.ClusterProxy,
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+		Namespace:            input.Namespace.Name,
+	}, input.IntervalsGetter(input.SpecName, "wait-delete-cluster")...)
+
+	Byf("Deleting namespace used for hosting the %q test spec", input.SpecName)
+	framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+		Deleter: input.ClusterProxy.GetClient(),
+		Name:    input.Namespace.Name,
+	})
+
+	if input.AdditionalCleanup != nil {
+		Byf("Running additional cleanup for the %q test spec", input.SpecName)
+		input.AdditionalCleanup()
+	}
 }
