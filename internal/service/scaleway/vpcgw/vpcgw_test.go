@@ -104,7 +104,7 @@ func Test_canUpgradeTypes(t *testing.T) {
 func TestService_Reconcile(t *testing.T) {
 	t.Parallel()
 	type fields struct {
-		Cluster *scope.Cluster
+		Scope
 	}
 	type args struct {
 		ctx context.Context
@@ -119,7 +119,7 @@ func TestService_Reconcile(t *testing.T) {
 		{
 			name: "no private network",
 			fields: fields{
-				Cluster: &scope.Cluster{
+				Scope: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{},
 				},
 			},
@@ -128,7 +128,7 @@ func TestService_Reconcile(t *testing.T) {
 		{
 			name: "no gateway configured",
 			fields: fields{
-				Cluster: &scope.Cluster{
+				Scope: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "cluster",
@@ -157,7 +157,7 @@ func TestService_Reconcile(t *testing.T) {
 		{
 			name: "no gateway configured: delete existing",
 			fields: fields{
-				Cluster: &scope.Cluster{
+				Scope: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "cluster",
@@ -191,7 +191,7 @@ func TestService_Reconcile(t *testing.T) {
 		{
 			name: "gateways configured: up-to-date",
 			fields: fields{
-				Cluster: &scope.Cluster{
+				Scope: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "cluster",
@@ -259,7 +259,7 @@ func TestService_Reconcile(t *testing.T) {
 		{
 			name: "gateways configured: create missing",
 			fields: fields{
-				Cluster: &scope.Cluster{
+				Scope: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "cluster",
@@ -350,7 +350,7 @@ func TestService_Reconcile(t *testing.T) {
 		{
 			name: "gateways configured: upgrade",
 			fields: fields{
-				Cluster: &scope.Cluster{
+				Scope: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "cluster",
@@ -444,9 +444,9 @@ func TestService_Reconcile(t *testing.T) {
 			tt.expect(scwMock.EXPECT())
 
 			s := &Service{
-				Cluster: tt.fields.Cluster,
+				Scope: tt.fields.Scope,
 			}
-			s.ScalewayClient = scwMock
+			s.SetCloud(scwMock)
 			if err := s.Reconcile(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("Service.Reconcile() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -457,7 +457,7 @@ func TestService_Reconcile(t *testing.T) {
 func TestService_Delete(t *testing.T) {
 	t.Parallel()
 	type fields struct {
-		Cluster *scope.Cluster
+		Scope
 	}
 	type args struct {
 		ctx context.Context
@@ -472,7 +472,7 @@ func TestService_Delete(t *testing.T) {
 		{
 			name: "no private network",
 			fields: fields{
-				Cluster: &scope.Cluster{
+				Scope: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{},
 				},
 			},
@@ -481,7 +481,7 @@ func TestService_Delete(t *testing.T) {
 		{
 			name: "delete gateways",
 			fields: fields{
-				Cluster: &scope.Cluster{
+				Scope: &scope.Cluster{
 					ScalewayCluster: &v1alpha1.ScalewayCluster{
 						ObjectMeta: v1.ObjectMeta{
 							Name:      "cluster",
@@ -558,9 +558,9 @@ func TestService_Delete(t *testing.T) {
 			tt.expect(scwMock.EXPECT())
 
 			s := &Service{
-				Cluster: tt.fields.Cluster,
+				Scope: tt.fields.Scope,
 			}
-			s.ScalewayClient = scwMock
+			s.SetCloud(scwMock)
 			if err := s.Delete(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("Service.Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}

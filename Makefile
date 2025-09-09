@@ -71,6 +71,7 @@ E2E_ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/scaleway.yaml
 E2E_CONF_FILE_ENVSUBST := $(ROOT_DIR)/test/e2e/config/scaleway-envsubst.yaml
 E2E_V1BETA1_TEMPLATES := $(ROOT_DIR)/test/e2e/data/infrastructure-scaleway/v1beta1
+E2E_FOCUS ?= ""
 
 .PHONY: setup-test-e2e
 setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
@@ -84,11 +85,12 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 generate-e2e: kustomize ## Generate templates for e2e
 	$(KUSTOMIZE) build $(E2E_V1BETA1_TEMPLATES)/cluster-template --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA1_TEMPLATES)/cluster-template.yaml
 	$(KUSTOMIZE) build $(E2E_V1BETA1_TEMPLATES)/cluster-template-private-network --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA1_TEMPLATES)/cluster-template-private-network.yaml
+	$(KUSTOMIZE) build $(E2E_V1BETA1_TEMPLATES)/cluster-template-managed --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA1_TEMPLATES)/cluster-template-managed.yaml
 
 .PHONY: test-e2e
 test-e2e: setup-test-e2e generate-e2e docker-build envsubst ginkgo build-installer fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
 	MANAGER_IMAGE=$(IMG) $(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
-	KIND_CLUSTER=$(KIND_CLUSTER) KUBECONFIG=$(KIND_KUBECONFIG) $(GINKGO) run -v --nodes 2 ./test/e2e/ -- \
+	KIND_CLUSTER=$(KIND_CLUSTER) KUBECONFIG=$(KIND_KUBECONFIG) $(GINKGO) run -v --nodes=2 --focus=$(E2E_FOCUS) ./test/e2e/ -- \
 		-e2e.config $(E2E_CONF_FILE_ENVSUBST) \
 		-e2e.use-existing-cluster \
 		-e2e.artifacts-folder=$(E2E_ARTIFACTS)

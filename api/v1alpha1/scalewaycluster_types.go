@@ -35,7 +35,7 @@ type ScalewayClusterSpec struct {
 	Network *NetworkSpec `json:"network,omitempty"`
 
 	// ScalewaySecretName is the name of the secret that contains the Scaleway client parameters.
-	// The following keys are required: SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID.
+	// The following keys are required: SCW_ACCESS_KEY, SCW_SECRET_KEY.
 	// The following key is optional: SCW_API_URL.
 	ScalewaySecretName string `json:"scalewaySecretName"`
 
@@ -142,12 +142,6 @@ type ControlPlaneLoadBalancerSpec struct {
 	Private *bool `json:"private,omitempty"`
 }
 
-// CIDR is an IP address range in CIDR notation (for example, "10.0.0.0/8" or "fd00::/8").
-// +kubebuilder:validation:XValidation:rule="isCIDR(self)",message="value must be a valid CIDR network address"
-// +kubebuilder:validation:MaxLength:=43
-// +kubebuilder:validation:MinLength:=1
-type CIDR string
-
 type ControlPlaneDNSSpec struct {
 	// Domain is the DNS Zone that this record should live in. It must be pre-existing in your Scaleway account.
 	// The format must be a string that conforms to the definition of a subdomain in DNS (RFC 1123).
@@ -173,44 +167,13 @@ type ControlPlanePrivateDNSSpec struct {
 // +kubebuilder:validation:XValidation:rule="has(self.id) && !has(self.subnet) || !has(self.id)",message="subnet cannot be set when id is set"
 // +kubebuilder:validation:XValidation:rule="has(self.id) && !has(self.vpcID) || !has(self.id)",message="vpcID cannot be set when id is set"
 type PrivateNetworkSpec struct {
+	PrivateNetworkParams `json:",inline"`
+
 	// Set to true to automatically attach machines to a Private Network.
 	// The Private Network is automatically created if no existing Private
 	// Network ID is provided.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	Enabled bool `json:"enabled"`
-
-	// Set a Private Network ID to reuse an existing Private Network.
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
-	// +optional
-	ID *string `json:"id,omitempty"`
-
-	// Set the VPC ID where the new Private Network will be created.
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
-	// +optional
-	VPCID *string `json:"vpcID,omitempty"`
-
-	// Optional subnet for the Private Network. Only used on newly created Private Networks.
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
-	// +optional
-	Subnet *string `json:"subnet,omitempty"`
-}
-
-// PublicGatewaySpec defines Public Gateway settings for the cluster.
-type PublicGatewaySpec struct {
-	// Public Gateway commercial offer type.
-	// +kubebuilder:default="VPC-GW-S"
-	// +optional
-	Type *string `json:"type,omitempty"`
-
-	// IP to use when creating a Public Gateway.
-	// +kubebuilder:validation:Format=ipv4
-	// +optional
-	IP *string `json:"ip,omitempty"`
-
-	// Zone where to create the Public Gateway. Must be in the same region as the
-	// cluster. Defaults to the first zone of the region.
-	// +optional
-	Zone *string `json:"zone,omitempty"`
 }
 
 // ScalewayClusterStatus defines the observed state of ScalewayCluster.

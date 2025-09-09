@@ -1,0 +1,216 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: scalewaymanagedmachinepools.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: ScalewayManagedMachinePool
+    listKind: ScalewayManagedMachinePoolList
+    plural: scalewaymanagedmachinepools
+    shortNames:
+    - smmp
+    singular: scalewaymanagedmachinepool
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.ready
+      name: Ready
+      type: string
+    - jsonPath: .status.replicas
+      name: Replicas
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ScalewayManagedMachinePool is the Schema for the scalewaymanagedmachinepools
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of ScalewayManagedMachinePool
+            properties:
+              additionalTags:
+                description: AdditionalTags that will be added to the default tags.
+                items:
+                  type: string
+                type: array
+              autohealing:
+                description: Autohealing defines whether the autohealing feature is
+                  enabled for the pool.
+                type: boolean
+              kubeletArgs:
+                additionalProperties:
+                  type: string
+                description: KubeletArgs defines Kubelet arguments to be used by this
+                  pool.
+                type: object
+              nodeType:
+                description: |-
+                  NodeType is the type of Scaleway Instance wanted for the pool. Nodes with
+                  insufficient memory are not eligible (DEV1-S, PLAY2-PICO, STARDUST).
+                  "external" is a special node type used to provision instances from other
+                  cloud providers in a Kosmos Cluster.
+                minLength: 2
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              placementGroupID:
+                description: |-
+                  PlacementGroupID in which all the nodes of the pool will be created,
+                  placement groups are limited to 20 instances.
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              providerIDList:
+                description: |-
+                  ProviderIDList are the provider IDs of instances in the
+                  managed instance group corresponding to the nodegroup represented by this
+                  machine pool
+                items:
+                  type: string
+                type: array
+              publicIPDisabled:
+                description: |-
+                  PublicIPDisabled defines if the public IP should be removed from Nodes.
+                  To use this feature, your Cluster must have an attached Private Network
+                  set up with a Public Gateway.
+                type: boolean
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              rootVolumeSizeGB:
+                description: RootVolumeSizeGB is the size of the System volume disk
+                  size, in GB.
+                format: int64
+                type: integer
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              rootVolumeType:
+                description: RootVolumeType is the system volume disk type.
+                enum:
+                - l_ssd
+                - sbs_5k
+                - sbs_15k
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              scaling:
+                description: Scaling configures the scaling of the pool.
+                properties:
+                  autoscaling:
+                    description: Autoscaling defines whether the autoscaling feature
+                      is enabled for the pool.
+                    type: boolean
+                  maxSize:
+                    description: |-
+                      MaxSize defines the maximum size of the pool. Note that this field is only
+                      used when autoscaling is enabled on the pool.
+                    format: int32
+                    type: integer
+                  minSize:
+                    description: |-
+                      MinSize defines the minimum size of the pool. Note that this field is only
+                      used when autoscaling is enabled on the pool.
+                    format: int32
+                    type: integer
+                type: object
+              securityGroupID:
+                description: |-
+                  SecurityGroupID in which all the nodes of the pool will be created. If unset,
+                  the pool will use default Kapsule security group in current zone.
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              upgradePolicy:
+                description: UpgradePolicy defines the pool's upgrade policy.
+                properties:
+                  maxSurge:
+                    description: |-
+                      MaxSurge is the maximum number of additional nodes that can be provisioned
+                      during upgrades.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  maxUnavailable:
+                    description: MaxUnavailable is the maximum number of available
+                      nodes during upgrades.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              zone:
+                description: Zone in which the pool's nodes will be spawned.
+                minLength: 2
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+            required:
+            - nodeType
+            - zone
+            type: object
+            x-kubernetes-validations:
+            - message: placementGroupID cannot be added or removed
+              rule: has(self.placementGroupID) == has(oldSelf.placementGroupID)
+            - message: rootVolumeType cannot be added or removed
+              rule: has(self.rootVolumeType) == has(oldSelf.rootVolumeType)
+            - message: rootVolumeSizeGB cannot be added or removed
+              rule: has(self.rootVolumeSizeGB) == has(oldSelf.rootVolumeSizeGB)
+            - message: publicIPDisabled cannot be added or removed
+              rule: has(self.publicIPDisabled) == has(oldSelf.publicIPDisabled)
+            - message: securityGroupID cannot be added or removed
+              rule: has(self.securityGroupID) == has(oldSelf.securityGroupID)
+          status:
+            description: status defines the observed state of ScalewayManagedMachinePool
+            properties:
+              ready:
+                default: false
+                description: Ready denotes that the ScalewayManagedMachinePool has
+                  joined the cluster
+                type: boolean
+              replicas:
+                description: Replicas is the most recently observed number of replicas.
+                format: int32
+                type: integer
+            required:
+            - ready
+            type: object
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: name must be between 1 and 63 characters
+          rule: self.metadata.name.size() <= 63
+        - message: name must be a valid DNS label
+          rule: self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+    served: true
+    storage: true
+    subresources:
+      status: {}

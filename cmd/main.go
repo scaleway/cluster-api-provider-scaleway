@@ -11,11 +11,11 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	internalVersion "github.com/scaleway/cluster-api-provider-scaleway/internal/version"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -26,6 +26,7 @@ import (
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/controller"
+	internalVersion "github.com/scaleway/cluster-api-provider-scaleway/internal/version"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -37,6 +38,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(expclusterv1.AddToScheme(scheme))
 
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
@@ -210,6 +212,18 @@ func main() {
 	}
 	if err = controller.NewScalewayMachineReconciler(mgr.GetClient()).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayMachine")
+		os.Exit(1)
+	}
+	if err := controller.NewScalewayManagedClusterReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedCluster")
+		os.Exit(1)
+	}
+	if err := controller.NewScalewayManagedControlPlaneReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedControlPlane")
+		os.Exit(1)
+	}
+	if err := controller.NewScalewayManagedMachinePoolReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedMachinePool")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

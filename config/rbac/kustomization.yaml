@@ -20,7 +20,7 @@ resources:
 - metrics_reader_role.yaml
 # For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
 # default, aiding admins in cluster management. Those roles are
-# not used by the {{ .ProjectName }} itself. You can comment the following lines
+# not used by the cluster-api-provider-scaleway itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
 - scalewaymachinetemplate_admin_role.yaml
 - scalewaymachinetemplate_editor_role.yaml
@@ -34,4 +34,12 @@ resources:
 - scalewaycluster_admin_role.yaml
 - scalewaycluster_editor_role.yaml
 - scalewaycluster_viewer_role.yaml
-
+- scalewaymanagedmachinepool_admin_role.yaml
+- scalewaymanagedmachinepool_editor_role.yaml
+- scalewaymanagedmachinepool_viewer_role.yaml
+- scalewaymanagedcontrolplane_admin_role.yaml
+- scalewaymanagedcontrolplane_editor_role.yaml
+- scalewaymanagedcontrolplane_viewer_role.yaml
+- scalewaymanagedcluster_admin_role.yaml
+- scalewaymanagedcluster_editor_role.yaml
+- scalewaymanagedcluster_viewer_role.yaml

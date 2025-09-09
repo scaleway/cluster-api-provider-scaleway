@@ -5,17 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -98,7 +95,7 @@ func (r *ScalewayClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.claimScalewaySecret(ctx, scalewayCluster); err != nil {
+	if err := claimScalewaySecret(ctx, r, scalewayCluster, scalewayCluster.Spec.ScalewaySecretName); err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to claim ScalewaySecret: %w", err)
 	}
 
@@ -132,7 +129,7 @@ func (r *ScalewayClusterReconciler) reconcileDelete(ctx context.Context, cluster
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(scalewayCluster, infrav1.ClusterFinalizer)
 
-	if err := r.releaseScalewaySecret(ctx, scalewayCluster); err != nil {
+	if err := releaseScalewaySecret(ctx, r, scalewayCluster, scalewayCluster.Spec.ScalewaySecretName); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -200,68 +197,4 @@ func (r *ScalewayClusterReconciler) SetupWithManager(ctx context.Context, mgr ct
 		).
 		Named("scalewaycluster").
 		Complete(r)
-}
-
-func (r *ScalewayClusterReconciler) claimScalewaySecret(ctx context.Context, scalewayCluster *infrav1.ScalewayCluster) error {
-	secret := &corev1.Secret{}
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Name:      scalewayCluster.Spec.ScalewaySecretName,
-		Namespace: scalewayCluster.Namespace,
-	}, secret); err != nil {
-		return err
-	}
-
-	secretHelper, err := patch.NewHelper(secret, r.Client)
-	if err != nil {
-		return fmt.Errorf("failed to create patch helper for secret: %w", err)
-	}
-
-	controllerutil.AddFinalizer(secret, SecretFinalizer)
-
-	if err := controllerutil.SetOwnerReference(scalewayCluster, secret, r.Client.Scheme()); err != nil {
-		return fmt.Errorf("failed to set owner reference for secret %s: %w", secret.Name, err)
-	}
-
-	return secretHelper.Patch(ctx, secret)
-}
-
-func (r *ScalewayClusterReconciler) releaseScalewaySecret(ctx context.Context, scalewayCluster *infrav1.ScalewayCluster) error {
-	secret := &corev1.Secret{}
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Name:      scalewayCluster.Spec.ScalewaySecretName,
-		Namespace: scalewayCluster.Namespace,
-	}, secret); err != nil {
-		return err
-	}
-
-	secretHelper, err := patch.NewHelper(secret, r.Client)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-
-		return fmt.Errorf("failed to create patch helper for secret: %w", err)
-	}
-
-	hasOwnerReference, err := controllerutil.HasOwnerReference(secret.OwnerReferences, scalewayCluster, r.Scheme())
-	if err != nil {
-		return fmt.Errorf("failed to check owner refenrece for secret %s: %w", secret.Name, err)
-	}
-
-	if hasOwnerReference {
-		if err := controllerutil.RemoveOwnerReference(scalewayCluster, secret, r.Client.Scheme()); err != nil {
-			return fmt.Errorf("failed to remove owner reference for secret %s: %w", secret.Name, err)
-		}
-	}
-
-	gvk, err := apiutil.GVKForObject(scalewayCluster, r.Scheme())
-	if err != nil {
-		return fmt.Errorf("failed to get GVK for ScalewayCluster: %w", err)
-	}
-
-	if !util.HasOwner(secret.OwnerReferences, gvk.GroupVersion().String(), []string{gvk.Kind}) {
-		controllerutil.RemoveFinalizer(secret, SecretFinalizer)
-	}
-
-	return secretHelper.Patch(ctx, secret)
 }

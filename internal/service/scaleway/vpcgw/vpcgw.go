@@ -21,12 +21,19 @@ import (
 // Gateway deletion.
 const capsManagedIPTag = "caps-vpcgw-ip=managed"
 
+type Scope interface {
+	scope.Interface
+
+	HasPrivateNetwork() bool
+	PrivateNetworkID() (string, error)
+	PublicGateways() []infrav1.PublicGatewaySpec
+}
 type Service struct {
-	*scope.Cluster
+	Scope
 }
 
-func New(clusterScope *scope.Cluster) *Service {
-	return &Service{Cluster: clusterScope}
+func New(s Scope) *Service {
+	return &Service{s}
 }
 
 func (s Service) Name() string {
@@ -37,11 +44,11 @@ func (s *Service) ensureGateways(ctx context.Context, delete bool) ([]*vpcgw.Gat
 	var desired []infrav1.PublicGatewaySpec
 	// When delete is set, we ensure an empty list of Gateways to remove everything.
 	if !delete {
-		desired = s.ScalewayCluster.Spec.Network.PublicGateways
+		desired = s.PublicGateways()
 	}
 
 	drle := &common.ResourceEnsurer[infrav1.PublicGatewaySpec, *vpcgw.Gateway]{
-		ResourceReconciler: &desiredResourceListManager{s.Cluster, make(map[scw.Zone][]string)},
+		ResourceReconciler: &desiredResourceListManager{s.Scope, make(map[scw.Zone][]string)},
 	}
 	return drle.Do(ctx, desired)
 }
@@ -61,7 +68,7 @@ func (s *Service) ensureGatewaysAttachment(ctx context.Context, gateways []*vpcg
 			)
 		}
 
-		if err := s.ScalewayClient.CreateGatewayNetwork(ctx, gateway.Zone, gateway.ID, pnID); err != nil {
+		if err := s.Cloud().CreateGatewayNetwork(ctx, gateway.Zone, gateway.ID, pnID); err != nil {
 			return fmt.Errorf("failed to create gateway network for gateway %s: %w", gateway.ID, err)
 		}
 	}
@@ -105,19 +112,19 @@ func (s *Service) Delete(ctx context.Context) error {
 }
 
 type desiredResourceListManager struct {
-	*scope.Cluster
+	Scope
 
 	gatewayTypesCache map[scw.Zone][]string
 }
 
 func (d *desiredResourceListManager) ListResources(ctx context.Context) ([]*vpcgw.Gateway, error) {
-	return d.ScalewayClient.FindGateways(ctx, d.ResourceTags())
+	return d.Cloud().FindGateways(ctx, d.ResourceTags())
 }
 
 func (d *desiredResourceListManager) DeleteResource(ctx context.Context, resource *vpcgw.Gateway) error {
 	logf.FromContext(ctx).Info("Deleting Gateway", "gatewayName", resource.Name, "zone", resource.Zone)
 
-	if err := d.ScalewayClient.DeleteGateway(
+	if err := d.Cloud().DeleteGateway(
 		ctx,
 		resource.Zone,
 		resource.ID,
@@ -142,7 +149,7 @@ func (d *desiredResourceListManager) UpdateResource(
 
 		if canUpgradeType {
 			logf.FromContext(ctx).Info("Upgrading Gateway", "gatewayName", resource.Name, "zone", resource.Zone)
-			return d.ScalewayClient.UpgradeGateway(ctx, resource.Zone, resource.ID, *desired.Type)
+			return d.Cloud().UpgradeGateway(ctx, resource.Zone, resource.ID, *desired.Type)
 		}
 	}
 
@@ -158,7 +165,7 @@ func (d *desiredResourceListManager) GetResourceName(resource *vpcgw.Gateway) st
 }
 
 func (d *desiredResourceListManager) GetDesiredZone(desired infrav1.PublicGatewaySpec) (scw.Zone, error) {
-	return d.ScalewayClient.GetZoneOrDefault(desired.Zone)
+	return d.Cloud().GetZoneOrDefault(desired.Zone)
 }
 
 func (d *desiredResourceListManager) ShouldKeepResource(
@@ -208,7 +215,7 @@ func (d *desiredResourceListManager) CreateResource(
 	tags := d.ResourceTags()
 
 	if desired.IP != nil {
-		ip, err := d.ScalewayClient.FindGatewayIP(ctx, zone, *desired.IP)
+		ip, err := d.Cloud().FindGatewayIP(ctx, zone, *desired.IP)
 		if err != nil {
 			if client.IsNotFoundError(err) {
 				return nil, scaleway.WithTerminalError(fmt.Errorf("failed to find gateway ip: %w", err))
@@ -228,7 +235,7 @@ func (d *desiredResourceListManager) CreateResource(
 
 	logf.FromContext(ctx).Info("Creating Gateway", "gatewayName", name, "zone", zone)
 
-	gateway, err := d.ScalewayClient.CreateGateway(ctx, zone, name, gwType, tags, ipID)
+	gateway, err := d.Cloud().CreateGateway(ctx, zone, name, gwType, tags, ipID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway: %w", err)
 	}
@@ -240,7 +247,7 @@ func (d *desiredResourceListManager) canUpgradeType(ctx context.Context, zone sc
 	types, ok := d.gatewayTypesCache[zone]
 	if !ok {
 		var err error
-		types, err = d.ScalewayClient.ListGatewayTypes(ctx, zone)
+		types, err = d.Cloud().ListGatewayTypes(ctx, zone)
 		if err != nil {
 			return false, err
 		}

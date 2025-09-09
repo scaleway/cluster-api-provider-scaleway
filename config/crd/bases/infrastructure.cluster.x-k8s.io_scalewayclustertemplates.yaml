@@ -332,7 +332,7 @@ spec:
                       scalewaySecretName:
                         description: |-
                           ScalewaySecretName is the name of the secret that contains the Scaleway client parameters.
-                          The following keys are required: SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID.
+                          The following keys are required: SCW_ACCESS_KEY, SCW_SECRET_KEY.
                           The following key is optional: SCW_API_URL.
                         type: string
                     required:

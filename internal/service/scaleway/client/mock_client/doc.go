@@ -1,8 +1,10 @@
-//go:generate ../../../../../bin/mockgen -destination client_mock.go -package mock_client -source ../interface.go -typed
 //go:generate ../../../../../bin/mockgen -destination block_mock.go -package mock_client -source ../block.go -typed
+//go:generate ../../../../../bin/mockgen -destination client_mock.go -package mock_client -source ../interface.go -typed
+//go:generate ../../../../../bin/mockgen -destination config_mock.go -package mock_client -source ../config.go -typed
 //go:generate ../../../../../bin/mockgen -destination domain_mock.go -package mock_client -source ../domain.go -typed
 //go:generate ../../../../../bin/mockgen -destination instance_mock.go -package mock_client -source ../instance.go -typed
 //go:generate ../../../../../bin/mockgen -destination ipam_mock.go -package mock_client -source ../ipam.go -typed
+//go:generate ../../../../../bin/mockgen -destination k8s_mock.go -package mock_client -source ../k8s.go -typed
 //go:generate ../../../../../bin/mockgen -destination lb_mock.go -package mock_client -source ../lb.go -typed
 //go:generate ../../../../../bin/mockgen -destination marketplace_mock.go -package mock_client -source ../marketplace.go -typed
 //go:generate ../../../../../bin/mockgen -destination vpc_mock.go -package mock_client -source ../vpc.go -typed

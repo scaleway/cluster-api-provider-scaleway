@@ -9,6 +9,9 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_scalewaymachines.yaml
 - bases/infrastructure.cluster.x-k8s.io_scalewayclustertemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_scalewaymachinetemplates.yaml
+- bases/infrastructure.cluster.x-k8s.io_scalewaymanagedclusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_scalewaymanagedcontrolplanes.yaml
+- bases/infrastructure.cluster.x-k8s.io_scalewaymanagedmachinepools.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
