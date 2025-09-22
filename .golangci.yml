@@ -67,6 +67,10 @@ linters:
           - staticcheck
         text: "ST1001"
         path: test/e2e/*
+      - linters:
+        - dupl
+        - lll
+        path: pkg/*
     paths:
       - third_party$
       - builtin$
