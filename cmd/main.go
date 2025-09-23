@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/controller"
 	internalVersion "github.com/scaleway/cluster-api-provider-scaleway/internal/version"
-	"github.com/scaleway/cluster-api-provider-scaleway/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
