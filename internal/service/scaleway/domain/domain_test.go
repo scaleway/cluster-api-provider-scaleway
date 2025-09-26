@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+	"k8s.io/utils/ptr"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const (
@@ -25,6 +27,16 @@ const (
 var (
 	extraLBIPs = []string{"11.11.11.11", "22.22.22.22"}
 )
+
+func sliceToInfraIPv4(slice []string) []infrav1.IPv4 {
+	r := make([]infrav1.IPv4, 0, len(slice))
+
+	for _, s := range slice {
+		r = append(r, infrav1.IPv4(s))
+	}
+
+	return r
+}
 
 func TestService_Reconcile(t *testing.T) {
 	t.Parallel()
@@ -45,7 +57,7 @@ func TestService_Reconcile(t *testing.T) {
 			name: "no dns",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{},
+					ScalewayCluster: &infrav1.ScalewayCluster{},
 				},
 			},
 			args: args{
@@ -58,19 +70,19 @@ func TestService_Reconcile(t *testing.T) {
 			name: "public dns: set zone records",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								ControlPlaneDNS: &v1alpha1.ControlPlaneDNSSpec{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Domain: zone,
 									Name:   name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},
@@ -89,19 +101,19 @@ func TestService_Reconcile(t *testing.T) {
 			name: "public dns: up-to-date",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								ControlPlaneDNS: &v1alpha1.ControlPlaneDNSSpec{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Domain: zone,
 									Name:   name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},
@@ -123,26 +135,26 @@ func TestService_Reconcile(t *testing.T) {
 			name: "private dns: set zone records",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								ControlPlaneLoadBalancer: &v1alpha1.ControlPlaneLoadBalancerSpec{
-									Private: scw.BoolPtr(true),
+								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
+									Private: ptr.To(true),
 								},
-								ControlPlanePrivateDNS: &v1alpha1.ControlPlanePrivateDNSSpec{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Name: name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								VPCID:                scw.StringPtr(vpcID),
-								PrivateNetworkID:     scw.StringPtr(privateNetworkID),
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								VPCID:                infrav1.UUID(vpcID),
+								PrivateNetworkID:     infrav1.UUID(privateNetworkID),
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},
@@ -162,26 +174,26 @@ func TestService_Reconcile(t *testing.T) {
 			name: "private dns: up-to-date",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								ControlPlaneLoadBalancer: &v1alpha1.ControlPlaneLoadBalancerSpec{
-									Private: scw.BoolPtr(true),
+								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
+									Private: ptr.To(true),
 								},
-								ControlPlanePrivateDNS: &v1alpha1.ControlPlanePrivateDNSSpec{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Name: name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								VPCID:                scw.StringPtr(vpcID),
-								PrivateNetworkID:     scw.StringPtr(privateNetworkID),
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								VPCID:                infrav1.UUID(vpcID),
+								PrivateNetworkID:     infrav1.UUID(privateNetworkID),
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},
@@ -242,7 +254,7 @@ func TestService_Delete(t *testing.T) {
 			name: "no dns",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{},
+					ScalewayCluster: &infrav1.ScalewayCluster{},
 				},
 			},
 			args: args{
@@ -255,19 +267,19 @@ func TestService_Delete(t *testing.T) {
 			name: "public dns: ignore missing zone",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								ControlPlaneDNS: &v1alpha1.ControlPlaneDNSSpec{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Domain: zone,
 									Name:   name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},
@@ -287,19 +299,19 @@ func TestService_Delete(t *testing.T) {
 			name: "public dns: already deleted",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								ControlPlaneDNS: &v1alpha1.ControlPlaneDNSSpec{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Domain: zone,
 									Name:   name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},
@@ -317,19 +329,19 @@ func TestService_Delete(t *testing.T) {
 			name: "public dns: delete records",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								ControlPlaneDNS: &v1alpha1.ControlPlaneDNSSpec{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Domain: zone,
 									Name:   name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},
@@ -352,26 +364,26 @@ func TestService_Delete(t *testing.T) {
 			name: "private dns: already deleted",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								ControlPlaneLoadBalancer: &v1alpha1.ControlPlaneLoadBalancerSpec{
-									Private: scw.BoolPtr(true),
+								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
+									Private: ptr.To(true),
 								},
-								ControlPlanePrivateDNS: &v1alpha1.ControlPlanePrivateDNSSpec{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Name: name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								VPCID:                scw.StringPtr(vpcID),
-								PrivateNetworkID:     scw.StringPtr(privateNetworkID),
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								VPCID:                infrav1.UUID(vpcID),
+								PrivateNetworkID:     infrav1.UUID(privateNetworkID),
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},
@@ -390,26 +402,26 @@ func TestService_Delete(t *testing.T) {
 			name: "private dns: delete records",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								ControlPlaneLoadBalancer: &v1alpha1.ControlPlaneLoadBalancerSpec{
-									Private: scw.BoolPtr(true),
+								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
+									Private: ptr.To(true),
 								},
-								ControlPlanePrivateDNS: &v1alpha1.ControlPlanePrivateDNSSpec{
+								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Name: name,
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								VPCID:                scw.StringPtr(vpcID),
-								PrivateNetworkID:     scw.StringPtr(privateNetworkID),
-								LoadBalancerIP:       scw.StringPtr(lbIP),
-								ExtraLoadBalancerIPs: *scw.StringsPtr(extraLBIPs),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								VPCID:                infrav1.UUID(vpcID),
+								PrivateNetworkID:     infrav1.UUID(privateNetworkID),
+								LoadBalancerIP:       infrav1.IPv4(lbIP),
+								ExtraLoadBalancerIPs: sliceToInfraIPv4(extraLBIPs),
 							},
 						},
 					},

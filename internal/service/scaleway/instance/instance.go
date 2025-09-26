@@ -9,21 +9,25 @@ import (
 	"text/template"
 	"time"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
-	servicelb "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb"
-	lbutil "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb/util"
 	"github.com/scaleway/scaleway-sdk-go/api/block/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/ipam/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/marketplace/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
+	servicelb "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb"
+	lbutil "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb/util"
 )
 
 const (
@@ -55,7 +59,22 @@ func (s *Service) Name() string {
 	return "instance"
 }
 
-func (s *Service) Reconcile(ctx context.Context) error {
+func (s *Service) Reconcile(ctx context.Context) (retErr error) {
+	defer func() {
+		condition := metav1.Condition{
+			Type: infrav1.ScalewayMachineInstanceReadyCondition,
+		}
+		if retErr != nil {
+			condition.Status = metav1.ConditionFalse
+			condition.Reason = infrav1.ScalewayMachineInstanceReconciliationFailedReason
+			condition.Message = retErr.Error()
+		} else {
+			condition.Status = metav1.ConditionTrue
+			condition.Reason = infrav1.ScalewayMachineInstanceReadyReason
+		}
+		conditions.Set(s.ScalewayMachine, condition)
+	}()
+
 	server, err := s.ensureServer(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to ensure server: %w", err)
@@ -185,8 +204,8 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 	}
 
 	// Provider ID is already set, it's not normal that we didn't find the server.
-	if s.ScalewayMachine.Spec.ProviderID != nil {
-		return nil, scaleway.WithTerminalError(fmt.Errorf("providerID is already set on ScalewayMachine, but no existing server was found"))
+	if s.ScalewayMachine.Spec.ProviderID != "" {
+		return nil, errors.New("providerID is already set on ScalewayMachine, but no existing server was found")
 	}
 
 	// Server does not exist, let's create it.
@@ -200,22 +219,22 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 
 	var imageID string
 	switch image := s.ScalewayMachine.Spec.Image; {
-	case image.ID != nil:
-		imageID = *image.ID
-	case image.Label != nil:
+	case image.ID != "":
+		imageID = string(image.ID)
+	case image.Label != "":
 		marketplaceType, ok := instanceVolumeTypeToMarketplaceType[volumeType]
 		if !ok {
-			return nil, scaleway.WithTerminalError(fmt.Errorf("did not find marketplace type for volume type %s", volumeType))
+			return nil, fmt.Errorf("did not find marketplace type for volume type %s", volumeType)
 		}
 
-		image, err := s.ScalewayClient.GetLocalImageByLabel(ctx, zone, s.ScalewayMachine.Spec.CommercialType, *image.Label, marketplaceType)
+		image, err := s.ScalewayClient.GetLocalImageByLabel(ctx, zone, s.ScalewayMachine.Spec.CommercialType, image.Label, marketplaceType)
 		if err != nil {
 			return nil, err
 		}
 
 		imageID = image.ID
-	case image.Name != nil:
-		image, err := s.ScalewayClient.FindImage(ctx, zone, *image.Name)
+	case image.Name != "":
+		image, err := s.ScalewayClient.FindImage(ctx, zone, image.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find image by name, make sure it exists in zone %s: %w", zone, err)
 		}
@@ -271,18 +290,16 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 
 func (s *Service) placementGroupID(ctx context.Context, zone scw.Zone) (*string, error) {
 	// If user has specified a placement group, get its ID.
-	if s.ScalewayMachine.Spec.PlacementGroup != nil {
-		switch pgref := s.ScalewayMachine.Spec.PlacementGroup; {
-		case pgref.ID != nil:
-			return pgref.ID, nil
-		case pgref.Name != nil:
-			placementGroup, err := s.ScalewayClient.FindPlacementGroup(ctx, zone, *pgref.Name)
-			if err != nil {
-				return nil, fmt.Errorf("failed to find placement group: %w", err)
-			}
-
-			return &placementGroup.ID, nil
+	switch pgref := s.ScalewayMachine.Spec.PlacementGroup; {
+	case pgref.ID != "":
+		return ptr.To(string(pgref.ID)), nil
+	case pgref.Name != "":
+		placementGroup, err := s.ScalewayClient.FindPlacementGroup(ctx, zone, pgref.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find placement group: %w", err)
 		}
+
+		return &placementGroup.ID, nil
 	}
 
 	return nil, nil
@@ -290,18 +307,16 @@ func (s *Service) placementGroupID(ctx context.Context, zone scw.Zone) (*string,
 
 func (s *Service) securityGroupID(ctx context.Context, zone scw.Zone) (*string, error) {
 	// If user has specified a security group, get its ID.
-	if s.ScalewayMachine.Spec.SecurityGroup != nil {
-		switch sgref := s.ScalewayMachine.Spec.SecurityGroup; {
-		case sgref.ID != nil:
-			return sgref.ID, nil
-		case sgref.Name != nil:
-			securityGroup, err := s.ScalewayClient.FindSecurityGroup(ctx, zone, *sgref.Name)
-			if err != nil {
-				return nil, fmt.Errorf("failed to find security group: %w", err)
-			}
-
-			return &securityGroup.ID, nil
+	switch sgref := s.ScalewayMachine.Spec.SecurityGroup; {
+	case sgref.ID != "":
+		return ptr.To(string(sgref.ID)), nil
+	case sgref.Name != "":
+		securityGroup, err := s.ScalewayClient.FindSecurityGroup(ctx, zone, sgref.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find security group: %w", err)
 		}
+
+		return &securityGroup.ID, nil
 	}
 
 	return nil, nil
@@ -457,12 +472,7 @@ func nodeIP(server *instance.Server, privateIPs []*ipam.IP) (string, error) {
 }
 
 func (s *Service) findControlPlaneLBs(ctx context.Context) ([]*lb.LB, error) {
-	var spec infrav1.LoadBalancerSpec
-	if s.ScalewayCluster.Spec.Network != nil && s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer != nil {
-		spec = s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.LoadBalancerSpec
-	}
-
-	zone, err := s.ScalewayClient.GetZoneOrDefault(spec.Zone)
+	zone, err := s.ScalewayClient.GetZoneOrDefault(string(s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.LoadBalancer.Zone))
 	if err != nil {
 		return nil, err
 	}
@@ -696,7 +706,7 @@ func (s *Service) ensureBootVolumeDeleted(ctx context.Context, server *instance.
 				return err
 			}
 		default:
-			return scaleway.WithTerminalError(fmt.Errorf("cannot detach unsupported boot volume with type %s", vol.VolumeType))
+			return fmt.Errorf("cannot detach unsupported boot volume with type %s", vol.VolumeType)
 		}
 
 		if err := s.ScalewayClient.DetachVolume(ctx, server.Zone, vol.ID); err != nil {

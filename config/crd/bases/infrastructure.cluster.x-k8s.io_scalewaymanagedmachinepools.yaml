@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: scalewaymanagedmachinepools.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -25,6 +25,7 @@ spec:
     - jsonPath: .status.replicas
       name: Replicas
       type: string
+    deprecated: true
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -201,6 +202,306 @@ spec:
                 type: integer
             required:
             - ready
+            type: object
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: name must be between 1 and 63 characters
+          rule: self.metadata.name.size() <= 63
+        - message: name must be a valid DNS label
+          rule: self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Provisioned is true when the machinepool infrastructure is fully
+        provisioned
+      jsonPath: .status.initialization.provisioned
+      name: Provisioned
+      type: boolean
+    - description: ScalewayManagedMachinePool pass all readiness checks
+      jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.replicas
+      name: Replicas
+      type: string
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: ScalewayManagedMachinePool is the Schema for the scalewaymanagedmachinepools
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of ScalewayManagedMachinePool
+            properties:
+              additionalTags:
+                description: additionalTags that will be added to the default tags.
+                items:
+                  maxLength: 128
+                  minLength: 1
+                  type: string
+                maxItems: 30
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: atomic
+              autohealing:
+                description: autohealing defines whether the autohealing feature is
+                  enabled for the pool.
+                type: boolean
+              kubeletArgs:
+                additionalProperties:
+                  type: string
+                description: kubeletArgs defines Kubelet arguments to be used by this
+                  pool.
+                type: object
+              nodeType:
+                description: |-
+                  nodeType is the type of Scaleway Instance wanted for the pool. Nodes with
+                  insufficient memory are not eligible (DEV1-S, PLAY2-PICO, STARDUST).
+                  "external" is a special node type used to provision instances from other
+                  cloud providers in a Kosmos Cluster.
+                maxLength: 30
+                minLength: 2
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              placementGroupID:
+                description: |-
+                  placementGroupID in which all the nodes of the pool will be created,
+                  placement groups are limited to 20 instances.
+                maxLength: 36
+                minLength: 36
+                pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              providerIDList:
+                description: |-
+                  providerIDList are the identification IDs of machine instances provided by the provider.
+                  This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
+                items:
+                  maxLength: 512
+                  minLength: 1
+                  type: string
+                maxItems: 10000
+                type: array
+                x-kubernetes-list-type: atomic
+              publicIPDisabled:
+                description: |-
+                  publicIPDisabled defines if the public IP should be removed from Nodes.
+                  To use this feature, your Cluster must have an attached Private Network
+                  set up with a Public Gateway.
+                type: boolean
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              rootVolumeSizeGB:
+                description: rootVolumeSizeGB is the size of the System volume disk
+                  size, in GB.
+                format: int64
+                minimum: 20
+                type: integer
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              rootVolumeType:
+                description: rootVolumeType is the system volume disk type.
+                enum:
+                - l_ssd
+                - sbs_5k
+                - sbs_15k
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              scaling:
+                description: scaling configures the scaling of the pool.
+                minProperties: 1
+                properties:
+                  autoscaling:
+                    description: autoscaling defines whether the autoscaling feature
+                      is enabled for the pool.
+                    type: boolean
+                  maxSize:
+                    description: |-
+                      maxSize defines the maximum size of the pool. Note that this field is only
+                      used when autoscaling is enabled on the pool.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  minSize:
+                    description: |-
+                      minSize defines the minimum size of the pool. Note that this field is only
+                      used when autoscaling is enabled on the pool.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              securityGroupID:
+                description: |-
+                  securityGroupID in which all the nodes of the pool will be created. If unset,
+                  the pool will use default Kapsule security group in current zone.
+                maxLength: 36
+                minLength: 36
+                pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              upgradePolicy:
+                description: upgradePolicy defines the pool's upgrade policy.
+                minProperties: 1
+                properties:
+                  maxSurge:
+                    description: |-
+                      maxSurge is the maximum number of additional nodes that can be provisioned
+                      during upgrades.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  maxUnavailable:
+                    description: maxUnavailable is the maximum number of available
+                      nodes during upgrades.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              zone:
+                description: zone in which the pool's nodes will be spawned.
+                maxLength: 9
+                minLength: 8
+                pattern: ^[a-z]{2}-[a-z]{3}-[0-9]{0,2}$
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+            required:
+            - nodeType
+            - zone
+            type: object
+            x-kubernetes-validations:
+            - message: placementGroupID cannot be added or removed
+              rule: has(self.placementGroupID) == has(oldSelf.placementGroupID)
+            - message: rootVolumeType cannot be added or removed
+              rule: has(self.rootVolumeType) == has(oldSelf.rootVolumeType)
+            - message: rootVolumeSizeGB cannot be added or removed
+              rule: has(self.rootVolumeSizeGB) == has(oldSelf.rootVolumeSizeGB)
+            - message: publicIPDisabled cannot be added or removed
+              rule: has(self.publicIPDisabled) == has(oldSelf.publicIPDisabled)
+            - message: securityGroupID cannot be added or removed
+              rule: has(self.securityGroupID) == has(oldSelf.securityGroupID)
+          status:
+            description: status defines the observed state of ScalewayManagedMachinePool
+            minProperties: 1
+            properties:
+              conditions:
+                description: |-
+                  conditions represent the current state of the ScalewayManagedMachinePool resource.
+                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
+
+                  The status of each condition is one of True, False, or Unknown.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              initialization:
+                description: |-
+                  initialization provides observations of the ScalewayManagedMachinePool initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
+                minProperties: 1
+                properties:
+                  provisioned:
+                    description: provisioned is true when the infrastructure provider
+                      reports that the MachinePool's infrastructure is fully provisioned.
+                    type: boolean
+                type: object
+              ready:
+                description: |-
+                  ready is true when the provider resource is ready.
+                  Deprecated: this field is kept for now as CAPI v1.11.3 still needs it.
+                  The .initialization.provisioned field should be used instead.
+                type: boolean
+              replicas:
+                description: replicas is the most recently observed number of replicas.
+                format: int32
+                type: integer
             type: object
         required:
         - spec

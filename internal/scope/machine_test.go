@@ -4,12 +4,13 @@ import (
 	"reflect"
 	"testing"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 )
 
 func TestMachine_ResourceTags(t *testing.T) {
@@ -80,8 +81,8 @@ func TestMachine_RootVolumeSize(t *testing.T) {
 			fields: fields{
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
-						RootVolume: &infrav1.RootVolumeSpec{
-							Size: scw.Int64Ptr(50),
+						RootVolume: infrav1.RootVolume{
+							Size: 50,
 						},
 					},
 				},
@@ -125,8 +126,8 @@ func TestMachine_RootVolumeType(t *testing.T) {
 			fields: fields{
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
-						RootVolume: &infrav1.RootVolumeSpec{
-							Type: scw.StringPtr("local"),
+						RootVolume: infrav1.RootVolume{
+							Type: "local",
 						},
 					},
 				},
@@ -138,8 +139,8 @@ func TestMachine_RootVolumeType(t *testing.T) {
 			fields: fields{
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
-						RootVolume: &infrav1.RootVolumeSpec{
-							Type: scw.StringPtr("block"),
+						RootVolume: infrav1.RootVolume{
+							Type: "block",
 						},
 					},
 				},
@@ -151,8 +152,8 @@ func TestMachine_RootVolumeType(t *testing.T) {
 			fields: fields{
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
-						RootVolume: &infrav1.RootVolumeSpec{
-							Type: scw.StringPtr("unknown"),
+						RootVolume: infrav1.RootVolume{
+							Type: "unknown",
 						},
 					},
 				},
@@ -200,8 +201,8 @@ func TestMachine_RootVolumeIOPS(t *testing.T) {
 			fields: fields{
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
-						RootVolume: &infrav1.RootVolumeSpec{
-							IOPS: scw.Int64Ptr(15000),
+						RootVolume: infrav1.RootVolume{
+							IOPS: 15000,
 						},
 					},
 				},
@@ -248,9 +249,9 @@ func TestMachine_HasPublicIPv4(t *testing.T) {
 				Cluster: &Cluster{
 					ScalewayCluster: &infrav1.ScalewayCluster{
 						Spec: infrav1.ScalewayClusterSpec{
-							Network: &infrav1.NetworkSpec{
-								PrivateNetwork: &infrav1.PrivateNetworkSpec{
-									Enabled: true,
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
 							},
 						},
@@ -266,9 +267,9 @@ func TestMachine_HasPublicIPv4(t *testing.T) {
 				Cluster: &Cluster{
 					ScalewayCluster: &infrav1.ScalewayCluster{
 						Spec: infrav1.ScalewayClusterSpec{
-							Network: &infrav1.NetworkSpec{
-								PrivateNetwork: &infrav1.PrivateNetworkSpec{
-									Enabled: true,
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
 							},
 						},
@@ -276,8 +277,8 @@ func TestMachine_HasPublicIPv4(t *testing.T) {
 				},
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
-						PublicNetwork: &infrav1.PublicNetworkSpec{
-							EnableIPv4: scw.BoolPtr(true),
+						PublicNetwork: infrav1.PublicNetwork{
+							EnableIPv4: ptr.To(true),
 						},
 					},
 				},
@@ -321,8 +322,8 @@ func TestMachine_HasPublicIPv6(t *testing.T) {
 			fields: fields{
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
-						PublicNetwork: &infrav1.PublicNetworkSpec{
-							EnableIPv6: scw.BoolPtr(true),
+						PublicNetwork: infrav1.PublicNetwork{
+							EnableIPv6: ptr.To(true),
 						},
 					},
 				},
@@ -365,7 +366,7 @@ func TestMachine_HasJoinedCluster(t *testing.T) {
 			fields: fields{
 				Machine: &clusterv1.Machine{
 					Status: clusterv1.MachineStatus{
-						NodeRef: &corev1.ObjectReference{
+						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-name",
 						},
 					},

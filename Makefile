@@ -8,6 +8,7 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+TOOLS_DIR := hack/tools
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 # CONTAINER_TOOL defines the container tool to be used for building images.
@@ -48,9 +49,13 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
-generate: controller-gen mockgen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate: controller-gen generate-go-conversions mockgen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object paths="./..."
 	go generate ./...
+
+.PHONY: generate-go-conversions
+generate-go-conversions: conversion-gen ## Generate conversions go code
+	$(CONVERSION_GEN) --output-file=zz_generated.conversion.go github.com/scaleway/cluster-api-provider-scaleway/api/...
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -70,7 +75,7 @@ KIND_KUBECONFIG ?= /tmp/caps-e2e-kubeconfig
 E2E_ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/scaleway.yaml
 E2E_CONF_FILE_ENVSUBST := $(ROOT_DIR)/test/e2e/config/scaleway-envsubst.yaml
-E2E_V1BETA1_TEMPLATES := $(ROOT_DIR)/test/e2e/data/infrastructure-scaleway/v1beta1
+E2E_V1BETA2_TEMPLATES := $(ROOT_DIR)/test/e2e/data/infrastructure-scaleway/v1beta2
 E2E_FOCUS ?= ""
 
 .PHONY: setup-test-e2e
@@ -83,9 +88,9 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 
 .PHONY: generate-e2e
 generate-e2e: kustomize ## Generate templates for e2e
-	$(KUSTOMIZE) build $(E2E_V1BETA1_TEMPLATES)/cluster-template --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA1_TEMPLATES)/cluster-template.yaml
-	$(KUSTOMIZE) build $(E2E_V1BETA1_TEMPLATES)/cluster-template-private-network --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA1_TEMPLATES)/cluster-template-private-network.yaml
-	$(KUSTOMIZE) build $(E2E_V1BETA1_TEMPLATES)/cluster-template-managed --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA1_TEMPLATES)/cluster-template-managed.yaml
+	$(KUSTOMIZE) build $(E2E_V1BETA2_TEMPLATES)/cluster-template --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA2_TEMPLATES)/cluster-template.yaml
+	$(KUSTOMIZE) build $(E2E_V1BETA2_TEMPLATES)/cluster-template-private-network --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA2_TEMPLATES)/cluster-template-private-network.yaml
+	$(KUSTOMIZE) build $(E2E_V1BETA2_TEMPLATES)/cluster-template-managed --load-restrictor LoadRestrictionsNone > $(E2E_V1BETA2_TEMPLATES)/cluster-template-managed.yaml
 
 .PHONY: test-e2e
 test-e2e: setup-test-e2e generate-e2e docker-build envsubst ginkgo build-installer fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
@@ -101,12 +106,16 @@ cleanup-test-e2e: ## Tear down the Kind cluster used for e2e tests
 	@$(KIND) delete cluster --name $(KIND_CLUSTER) --kubeconfig $(KIND_KUBECONFIG)
 
 .PHONY: lint
-lint: lint-golangci-lint lint-nilaway ## Run linters
+lint: lint-api lint-golangci-lint lint-nilaway ## Run linters
 	@echo "done"
 
 .PHONY: lint-golangci-lint
 lint-golangci-lint: golangci-lint ## Run golangci-lint linter
 	$(GOLANGCI_LINT) run
+
+.PHONY: lint-api
+lint-api: golangci-lint-kube-api-linter ## Run golangci-lint-kube-api-linter linter
+	$(GOLANGCI_LINT_KAL) run --config .golangci-kal.yml
 
 .PHONY: lint-nilaway
 lint-nilaway: nilaway ## Run nilaway linter
@@ -217,19 +226,22 @@ NILAWAY = $(LOCALBIN)/nilaway
 MOCKGEN = $(LOCALBIN)/mockgen
 ENVSUBST = $(LOCALBIN)/envsubst
 GINKGO = $(LOCALBIN)/ginkgo
+GOLANGCI_LINT_KAL := $(LOCALBIN)/golangci-lint-kube-api-linter
+CONVERSION_GEN ?= $(LOCALBIN)/conversion-gen
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.6.0
-CONTROLLER_TOOLS_VERSION ?= v0.18.0
+KUSTOMIZE_VERSION ?= v5.7.1
+CONTROLLER_TOOLS_VERSION ?= v0.19.0
 #ENVTEST_VERSION is the version of controller-runtime release branch to fetch the envtest setup script (i.e. release-0.20)
 ENVTEST_VERSION ?= $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller-runtime | awk -F'[v.]' '{printf "release-%d.%d", $$2, $$3}')
 #ENVTEST_K8S_VERSION is the version of Kubernetes to use for setting up ENVTEST binaries (i.e. 1.31)
 ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
-GOLANGCI_LINT_VERSION ?= v2.1.0
+GOLANGCI_LINT_VERSION ?= v2.6.2
 NILAWAY_VERSION ?= latest
-MOCKGEN_VERSION ?= v0.5.2
+MOCKGEN_VERSION ?= v0.6.0
 ENVSUBST_VERSION ?=latest
-GINKGO_VERSION ?= v2.23.4
+GINKGO_VERSION ?= v2.25.3
+CONVERSION_GEN_VERSION ?= v0.34.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -240,6 +252,11 @@ $(KUSTOMIZE): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
 	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
+
+.PHONY: conversion-gen
+conversion-gen: $(CONVERSION_GEN) ## Download conversion-gen locally if necessary.
+$(CONVERSION_GEN): $(LOCALBIN)
+	$(call go-install-tool,$(CONVERSION_GEN),k8s.io/code-generator/cmd/conversion-gen,$(CONVERSION_GEN_VERSION))
 
 .PHONY: setup-envtest
 setup-envtest: envtest ## Download the binaries required for ENVTEST in the local bin directory.
@@ -278,6 +295,11 @@ $(ENVSUBST): $(LOCALBIN)
 ginkgo: $(GINKGO) ## Download ginkgo locally if necessary.
 $(GINKGO): $(LOCALBIN)
 	$(call go-install-tool,$(GINKGO),github.com/onsi/ginkgo/v2/ginkgo,$(GINKGO_VERSION))
+
+.PHONY: golangci-lint-kube-api-linter
+golangci-lint-kube-api-linter: $(GOLANGCI_LINT_KAL) ## Build golangci-lint-kal from custom configuration.
+$(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) custom
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 

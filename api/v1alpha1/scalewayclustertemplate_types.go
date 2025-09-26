@@ -19,7 +19,7 @@ type ScalewayClusterTemplateResource struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=scalewayclustertemplates,scope=Namespaced,categories=cluster-api,shortName=sct
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 
 // ScalewayClusterTemplate is the Schema for the scalewayclustertemplates API.
 type ScalewayClusterTemplate struct {
@@ -39,5 +39,5 @@ type ScalewayClusterTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayClusterTemplate{}, &ScalewayClusterTemplateList{})
+	objectTypes = append(objectTypes, &ScalewayClusterTemplate{}, &ScalewayClusterTemplateList{})
 }

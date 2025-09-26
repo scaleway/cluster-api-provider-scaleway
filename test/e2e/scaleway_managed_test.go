@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
@@ -80,7 +81,7 @@ var _ = Describe("Managed workload cluster creation", func() {
 					WorkerMachineCount:       ptr.To[int64](3),
 					ClusterctlVariables: map[string]string{
 						"WORKER_PUBLIC_IP_DISABLED": "true",
-						"PUBLIC_GATEWAYS":           "[{}]",
+						"SMC_NETWORK":               "{publicGateways: [{}]}",
 					},
 				},
 				WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),

@@ -13,7 +13,7 @@ important features on a `ScalewayCluster`.
 The `ScalewayCluster` with the minimum options looks like this:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster
@@ -54,7 +54,7 @@ map[fr-par-1:map[controlPlane:true] fr-par-2:map[controlPlane:true] fr-par-3:map
 Here is an example of `ScalewayCluster` with the failure domains set to `fr-par-1` and `fr-par-2`:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster
@@ -72,19 +72,20 @@ spec:
 ### DNS
 
 The Scaleway provider can manage a DNS zone and maintain a set of records up-to-date
-with the addresses of the control-plane Load Balancers. Note that this can be a
-*public* or a *private* Scaleway DNS zone, but **not both**.
+with the addresses of the control-plane Load Balancers, using the `network.controlPlaneDNS` field.
+If the Load Balancer of the control plane is private, this will configure the DNS zone
+of the VPC. Otherwise, this will configure a *public* Scaleway DNS zone. It is not possible
+to configure both a public and private zone.
+
+The `network.controlPlaneDNS` field is **immutable**, it cannot be updated after creation.
 
 #### Public DNS
-
-Set the `network.controlPlaneDNS` field to automatically configure DNS records that
-will point to the Load Balancer address(es) of your workload cluster.
 
 In this example, the FQDN `my-cluster.subdomain.your-domain.com` will have `A` record(s)
 configured to point to the Load Balancer IP address(es).
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster
@@ -94,6 +95,8 @@ spec:
     controlPlaneDNS:
       domain: subdomain.your-domain.com
       name: my-cluster
+    controlPlaneLoadBalancer:
+      private: false # This MUST not be true.
   # some fields were omitted...
 ```
 
@@ -102,24 +105,21 @@ The `domain` must be an existing Scaleway DNS Zone. Please refer to the
 for more information. You may register an external domain by following
 [this documentation](https://www.scaleway.com/en/docs/domains-and-dns/how-to/add-external-domain/).
 
-The `network.controlPlaneDNS` field is **immutable**, it cannot be updated after creation.
-
 #### Private DNS
 
-The `network.controlPlanePrivateDNS` field is only available when `network.controlPlaneLoadBalancer.private`
-is set to `true`. Here is an example of configuration:
+When `network.controlPlaneLoadBalancer.private` is true, the DNS zone of the VPC
+is configured instead. In this situation, you should omit the `domain` field.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster
   namespace: default
 spec:
   network:
-    controlPlanePrivateDNS:
+    controlPlaneDNS:
       name: my-cluster
-    # ...
     controlPlaneLoadBalancer:
       private: true # This MUST be set to true
     privateNetwork:
@@ -158,7 +158,7 @@ The kube-apiserver Load Balancer's frontend port can be set at the cluster creat
 Here is an example of a Load Balancer frontend port configuration:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: my-cluster
@@ -180,7 +180,7 @@ The main Load Balancer is always created by default, it is not possible to disab
 Here is an example of main Load Balancer configuration:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster
@@ -219,7 +219,7 @@ or `network.controlPlanePrivateDNS` field.
 Here is an example that configures two extra Load Balancers in `nl-ams-2` and `nl-ams-3`.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster
@@ -254,7 +254,7 @@ in CIDR format. By default, when the `allowedRanges` is unset or set to an empty
 all network ranges are allowed.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster
@@ -280,7 +280,7 @@ To automatically attach the resources of the cluster to a Private Network, simpl
 set the `network.privateNetwork.enabled` field to true:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster
@@ -309,7 +309,7 @@ at least one Public Gateway that advertises its default route. You can configure
 manually or let the provider configure that for you:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: my-cluster

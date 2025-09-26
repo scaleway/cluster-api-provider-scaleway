@@ -31,7 +31,12 @@ If you need help with CAPS, please visit the #cluster-api channel on
 
 ### Cluster API Versions
 
-Currently, CAPS is compatible only with the `v1beta1` version of CAPI (v1.0.x).
+This provider's versions are compatible with the following versions of Cluster API:
+
+| Scaleway Provider CRD version | Cluster API `v1beta1` (v1.0-v1.10) | Cluster API `v1beta2` (v1.11+) |
+| ----------------------------- | ---------------------------------- | ------------------------------ |
+| `v1alpha1` (v0.1.x)           | ✓                                  | ☓                              |
+| `v1alpha2` (v0.2.x, main)     | ☓                                  | ✓                              |
 
 ### Kubernetes Versions
 

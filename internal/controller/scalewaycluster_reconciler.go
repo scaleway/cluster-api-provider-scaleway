@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/scaleway/scaleway-sdk-go/scw"
+
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/domain"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/vpc"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/vpcgw"
-	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
 type scalewayClusterService struct {
@@ -43,7 +44,7 @@ func newScalewayClusterService(s *scope.Cluster) *scalewayClusterService {
 // Reconcile reconciles all the services in a predetermined order.
 func (s *scalewayClusterService) reconcile(ctx context.Context) error {
 	if err := s.setFailureDomainsForLocation(); err != nil {
-		return scaleway.WithTerminalError(fmt.Errorf("failed to set failure domains in status: %w", err))
+		return fmt.Errorf("failed to set failure domains in status: %w", err)
 	}
 
 	for _, service := range s.services {
@@ -76,7 +77,7 @@ func (s *scalewayClusterService) setFailureDomainsForLocation() error {
 
 	if len(s.scope.ScalewayCluster.Spec.FailureDomains) > 0 {
 		for _, failureDomain := range s.scope.ScalewayCluster.Spec.FailureDomains {
-			requestedZone, err := scw.ParseZone(failureDomain)
+			requestedZone, err := scw.ParseZone(string(failureDomain))
 			if err != nil {
 				return fmt.Errorf("failed to parse failureDomain %s as Scaleway zone: %w", failureDomain, err)
 			}

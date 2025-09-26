@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/version"
 	"github.com/scaleway/scaleway-sdk-go/api/block/v1"
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
@@ -15,6 +14,8 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/version"
 )
 
 const (

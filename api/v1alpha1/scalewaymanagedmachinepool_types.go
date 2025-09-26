@@ -128,7 +128,7 @@ type ScalewayManagedMachinePoolStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=scalewaymanagedmachinepools,scope=Namespaced,categories=cluster-api,shortName=smmp
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready"
 // +kubebuilder:printcolumn:name="Replicas",type="string",JSONPath=".status.replicas"
 
@@ -161,5 +161,5 @@ type ScalewayManagedMachinePoolList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayManagedMachinePool{}, &ScalewayManagedMachinePoolList{})
+	objectTypes = append(objectTypes, &ScalewayManagedMachinePool{}, &ScalewayManagedMachinePoolList{})
 }

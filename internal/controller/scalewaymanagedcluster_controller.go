@@ -7,7 +7,8 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -18,7 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	infrav1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1" //nolint:staticcheck
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 )
@@ -77,7 +79,7 @@ func (r *ScalewayManagedClusterReconciler) Reconcile(ctx context.Context, req ct
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	if cluster.Spec.ControlPlaneRef == nil {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() {
 		return ctrl.Result{}, errors.New("missing controlPlaneRef in cluster spec")
 	}
 	controlPlane := &infrav1.ScalewayManagedControlPlane{}
@@ -115,6 +117,13 @@ func (r *ScalewayManagedClusterReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, fmt.Errorf("unable to claim ScalewaySecret: %w", err)
 	}
 
+	// Replace legacy finalizer with the up-to-date one.
+	if migrateFinalizer(managedCluster, infrav1alpha1.ManagedClusterFinalizer, infrav1.ScalewayManagedClusterFinalizer) {
+		if err := managedClusterScope.PatchObject(ctx); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	if !managedCluster.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, managedClusterScope)
 	}
@@ -126,10 +135,10 @@ func (r *ScalewayManagedClusterReconciler) reconcileNormal(ctx context.Context, 
 	log := logf.FromContext(ctx)
 
 	log.Info("Reconciling ScalewayManagedCluster")
-	managedCluster := s.ManagedCluster
+	managedCluster := s.ScalewayManagedCluster
 
 	// Register our finalizer immediately to avoid orphaning Scaleway resources on delete
-	if controllerutil.AddFinalizer(managedCluster, infrav1.ManagedClusterFinalizer) {
+	if controllerutil.AddFinalizer(managedCluster, infrav1.ScalewayManagedClusterFinalizer) {
 		if err := s.PatchObject(ctx); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -138,14 +147,9 @@ func (r *ScalewayManagedClusterReconciler) reconcileNormal(ctx context.Context, 
 	if err := r.createScalewayManagedClusterService(s).Reconcile(ctx); err != nil {
 		// Handle terminal & transient errors
 		var reconcileError *scaleway.ReconcileError
-		if errors.As(err, &reconcileError) {
-			if reconcileError.IsTerminal() {
-				log.Error(err, "Failed to reconcile ScalewayManagedCluster")
-				return ctrl.Result{}, nil
-			} else if reconcileError.IsTransient() {
-				log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayManagedCluster, retrying: %s", reconcileError.Error()))
-				return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
-			}
+		if errors.As(err, &reconcileError) && reconcileError.RequeueAfter() != 0 {
+			log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayManagedCluster, retrying: %s", reconcileError.Error()))
+			return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
 		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile cluster services: %w", err)
@@ -153,8 +157,8 @@ func (r *ScalewayManagedClusterReconciler) reconcileNormal(ctx context.Context, 
 
 	// Infrastructure must be ready before control plane. We should also enqueue
 	// requests from control plane to infra cluster to keep control plane endpoint accurate.
-	s.ManagedCluster.Status.Ready = true
-	s.ManagedCluster.Spec.ControlPlaneEndpoint = s.ManagedControlPlane.Spec.ControlPlaneEndpoint
+	s.ScalewayManagedCluster.Status.Initialization.Provisioned = ptr.To(true)
+	s.ScalewayManagedCluster.Spec.ControlPlaneEndpoint = s.ScalewayManagedControlPlane.Spec.ControlPlaneEndpoint
 
 	return ctrl.Result{}, nil
 }
@@ -173,28 +177,26 @@ func (r *ScalewayManagedClusterReconciler) reconcileDelete(ctx context.Context, 
 		return ctrl.Result{RequeueAfter: DefaultRetryTime}, nil
 	}
 
-	if s.ManagedControlPlane != nil {
+	if s.ScalewayManagedControlPlane != nil {
 		log.Info("ScalewayManagedControlPlane not deleted yet, retry later")
 		return ctrl.Result{RequeueAfter: DefaultRetryTime}, nil
 	}
 
-	managedCluster := s.ManagedCluster
+	managedCluster := s.ScalewayManagedCluster
 
 	if err := r.createScalewayManagedClusterService(s).Delete(ctx); err != nil {
 		// Handle transient errors
 		var reconcileError *scaleway.ReconcileError
-		if errors.As(err, &reconcileError) {
-			if reconcileError.IsTransient() {
-				log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayManagedCluster, retrying: %s", reconcileError.Error()))
-				return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
-			}
+		if errors.As(err, &reconcileError) && reconcileError.RequeueAfter() != 0 {
+			log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayManagedCluster, retrying: %s", reconcileError.Error()))
+			return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
 		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to delete cluster services: %w", err)
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(managedCluster, infrav1.ManagedClusterFinalizer)
+	controllerutil.RemoveFinalizer(managedCluster, infrav1.ScalewayManagedClusterFinalizer)
 
 	if err := releaseScalewaySecret(ctx, r, managedCluster, managedCluster.Spec.ScalewaySecretName); err != nil {
 		return ctrl.Result{}, err
@@ -224,7 +226,7 @@ func (r *ScalewayManagedClusterReconciler) SetupWithManager(ctx context.Context,
 }
 
 func (r *ScalewayManagedClusterReconciler) dependencyCount(ctx context.Context, clusterScope *scope.ManagedCluster) (int, error) {
-	clusterName, clusterNamespace := clusterScope.ManagedCluster.Name, clusterScope.ManagedCluster.Namespace
+	clusterName, clusterNamespace := clusterScope.ScalewayManagedCluster.Name, clusterScope.ScalewayManagedCluster.Namespace
 
 	listOptions := []client.ListOption{
 		client.InNamespace(clusterNamespace),
@@ -264,7 +266,7 @@ func (r *ScalewayManagedClusterReconciler) managedControlPlaneMapper() handler.M
 		}
 
 		managedClusterRef := cluster.Spec.InfrastructureRef
-		if managedClusterRef == nil || managedClusterRef.Kind != "ScalewayManagedCluster" {
+		if managedClusterRef.Kind != "ScalewayManagedCluster" {
 			return nil
 		}
 
@@ -272,7 +274,7 @@ func (r *ScalewayManagedClusterReconciler) managedControlPlaneMapper() handler.M
 			{
 				NamespacedName: types.NamespacedName{
 					Name:      managedClusterRef.Name,
-					Namespace: managedClusterRef.Namespace,
+					Namespace: cluster.Namespace,
 				},
 			},
 		}

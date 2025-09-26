@@ -3,9 +3,9 @@ package scope
 import (
 	"testing"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/scaleway-sdk-go/scw"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 )
 
 func Test_generateScalewayK8sName(t *testing.T) {
@@ -67,18 +67,18 @@ func TestManagedControlPlane_ClusterName(t *testing.T) {
 			name: "name already present",
 			fields: fields{
 				ManagedCluster: &infrav1.ScalewayManagedCluster{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "cluster",
 						Namespace: "default",
 					},
 				},
 				ManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "cluster",
 						Namespace: "default",
 					},
 					Spec: infrav1.ScalewayManagedControlPlaneSpec{
-						ClusterName: scw.StringPtr("mycluster"),
+						ClusterName: "mycluster",
 					},
 				},
 			},
@@ -88,13 +88,13 @@ func TestManagedControlPlane_ClusterName(t *testing.T) {
 			name: "generate name",
 			fields: fields{
 				ManagedCluster: &infrav1.ScalewayManagedCluster{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "cluster",
 						Namespace: "default",
 					},
 				},
 				ManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "cluster",
 						Namespace: "default",
 					},
@@ -106,14 +106,14 @@ func TestManagedControlPlane_ClusterName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &ManagedControlPlane{
-				ManagedCluster:      tt.fields.ManagedCluster,
-				ManagedControlPlane: tt.fields.ManagedControlPlane,
+				ScalewayManagedCluster:      tt.fields.ManagedCluster,
+				ScalewayManagedControlPlane: tt.fields.ManagedControlPlane,
 			}
 			if got := m.ClusterName(); got != tt.want {
 				t.Errorf("ManagedControlPlane.ClusterName() = %v, want %v", got, tt.want)
 			}
-			if tt.want != *m.ManagedControlPlane.Spec.ClusterName {
-				t.Errorf("expected ManagedControlPlane.Spec.ClusterName to equal %v, got %v", tt.want, *m.ManagedControlPlane.Spec.ClusterName)
+			if tt.want != m.ScalewayManagedControlPlane.Spec.ClusterName {
+				t.Errorf("expected ManagedControlPlane.Spec.ClusterName to equal %v, got %v", tt.want, m.ScalewayManagedControlPlane.Spec.ClusterName)
 			}
 		})
 	}

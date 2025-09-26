@@ -12,7 +12,7 @@ important features on a `ScalewayManagedCluster`.
 The `ScalewayManagedCluster` with the minimum options looks like this:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedCluster
 metadata:
   name: my-cluster
@@ -42,7 +42,7 @@ It is possible to re-use an existing Private Network or configure the VPC where 
 Private Network will be created.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedCluster
 metadata:
   name: my-cluster
@@ -70,7 +70,7 @@ at least one Public Gateway that advertises its default route. You can configure
 manually or let the provider configure that for you:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedCluster
 metadata:
   name: my-cluster

@@ -6,17 +6,19 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+
+	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
+	"github.com/scaleway/scaleway-sdk-go/scw"
+	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
-	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
-	"github.com/scaleway/scaleway-sdk-go/scw"
-	"go.uber.org/mock/gomock"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 const (
@@ -46,45 +48,45 @@ func TestService_Reconcile(t *testing.T) {
 			name: "creating pool",
 			fields: fields{
 				ManagedMachinePool: &scope.ManagedMachinePool{
-					ManagedControlPlane: &v1alpha1.ScalewayManagedControlPlane{
-						Spec: v1alpha1.ScalewayManagedControlPlaneSpec{
-							ClusterName: scw.StringPtr("default-controlplane"),
+					ScalewayManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
+						Spec: infrav1.ScalewayManagedControlPlaneSpec{
+							ClusterName: "default-controlplane",
 							Version:     "v1.30.0",
 						},
 					},
-					MachinePool: &v1beta1.MachinePool{
-						Spec: v1beta1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: scw.Int32Ptr(2),
 							Template: clusterv1.MachineTemplateSpec{
 								Spec: clusterv1.MachineSpec{
-									Version: scw.StringPtr("v1.30.0"),
+									Version: "v1.30.0",
 								},
 							},
 						},
 					},
-					ManagedMachinePool: &v1alpha1.ScalewayManagedMachinePool{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedMachinePool: &infrav1.ScalewayManagedMachinePool{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pool",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayManagedMachinePoolSpec{
-							Zone:             scw.ZoneFrPar1.String(),
-							PlacementGroupID: scw.StringPtr(placementGroupID),
+						Spec: infrav1.ScalewayManagedMachinePoolSpec{
+							Zone:             infrav1.ScalewayZone(scw.ZoneFrPar1),
+							PlacementGroupID: placementGroupID,
 							NodeType:         "DEV1-M",
-							Scaling: &v1alpha1.ScalingSpec{
-								Autoscaling: scw.BoolPtr(true),
+							Scaling: infrav1.Scaling{
+								Autoscaling: ptr.To(true),
 								MinSize:     scw.Int32Ptr(1),
 								MaxSize:     scw.Int32Ptr(5),
 							},
-							Autohealing: scw.BoolPtr(true),
-							UpgradePolicy: &v1alpha1.UpgradePolicySpec{
+							Autohealing: ptr.To(true),
+							UpgradePolicy: infrav1.UpgradePolicy{
 								MaxUnavailable: scw.Int32Ptr(0),
 								MaxSurge:       scw.Int32Ptr(2),
 							},
-							RootVolumeType:   scw.StringPtr("sbs_15k"),
-							RootVolumeSizeGB: scw.Int64Ptr(42),
-							PublicIPDisabled: scw.BoolPtr(true),
-							SecurityGroupID:  scw.StringPtr(securityGroupID),
+							RootVolumeType:   "sbs_15k",
+							RootVolumeSizeGB: 42,
+							PublicIPDisabled: ptr.To(true),
+							SecurityGroupID:  securityGroupID,
 							AdditionalTags:   []string{"tag1"},
 							KubeletArgs: map[string]string{
 								"containerLogMaxFiles": "500",
@@ -108,8 +110,8 @@ func TestService_Reconcile(t *testing.T) {
 					clusterID,
 					"pool",
 					"DEV1-M",
-					scw.StringPtr(placementGroupID),
-					scw.StringPtr(securityGroupID),
+					ptr.To(placementGroupID),
+					ptr.To(securityGroupID),
 					true,
 					true,
 					true,
@@ -139,7 +141,7 @@ func TestService_Reconcile(t *testing.T) {
 					MinSize:          1,
 					MaxSize:          5,
 					Tags:             []string{"caps-namespace=default", "caps-scalewaymanagedmachinepool=pool", "tag1", "created-by=cluster-api-provider-scaleway"},
-					PlacementGroupID: scw.StringPtr(placementGroupID),
+					PlacementGroupID: ptr.To(placementGroupID),
 					SecurityGroupID:  securityGroupID,
 					KubeletArgs: map[string]string{
 						"containerLogMaxFiles": "500",
@@ -149,7 +151,7 @@ func TestService_Reconcile(t *testing.T) {
 						MaxSurge:       2,
 					},
 					RootVolumeType: k8s.PoolVolumeTypeSbs15k,
-					RootVolumeSize: scw.SizePtr(42 * scw.GB),
+					RootVolumeSize: ptr.To(42 * scw.GB),
 				}, nil)
 				i.ListNodes(gomock.Any(), clusterID, poolID).Return([]*k8s.Node{
 					{
@@ -161,55 +163,56 @@ func TestService_Reconcile(t *testing.T) {
 				}, nil)
 			},
 			asserts: func(g *WithT, s *scope.ManagedMachinePool) {
-				g.Expect(s.ManagedMachinePool.Spec.ProviderIDList).To(Equal([]string{
+				g.Expect(s.ScalewayManagedMachinePool.Spec.ProviderIDList).To(Equal([]string{
 					"providerID1", "providerID2",
 				}))
-				g.Expect(s.ManagedMachinePool.Status.Replicas).To(BeEquivalentTo(2))
+				g.Expect(s.ScalewayManagedMachinePool.Status.Replicas).NotTo(BeNil())
+				g.Expect(*s.ScalewayManagedMachinePool.Status.Replicas).To(BeEquivalentTo(2))
 			},
 		},
 		{
 			name: "pool exists and is up-to-date",
 			fields: fields{
 				ManagedMachinePool: &scope.ManagedMachinePool{
-					ManagedControlPlane: &v1alpha1.ScalewayManagedControlPlane{
-						Spec: v1alpha1.ScalewayManagedControlPlaneSpec{
-							ClusterName: scw.StringPtr("default-controlplane"),
+					ScalewayManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
+						Spec: infrav1.ScalewayManagedControlPlaneSpec{
+							ClusterName: "default-controlplane",
 							Version:     "v1.30.0",
 						},
 					},
-					MachinePool: &v1beta1.MachinePool{
-						Spec: v1beta1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: scw.Int32Ptr(2),
 							Template: clusterv1.MachineTemplateSpec{
 								Spec: clusterv1.MachineSpec{
-									Version: scw.StringPtr("v1.30.0"),
+									Version: "v1.30.0",
 								},
 							},
 						},
 					},
-					ManagedMachinePool: &v1alpha1.ScalewayManagedMachinePool{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedMachinePool: &infrav1.ScalewayManagedMachinePool{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pool",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayManagedMachinePoolSpec{
-							Zone:             scw.ZoneFrPar1.String(),
-							PlacementGroupID: scw.StringPtr(placementGroupID),
+						Spec: infrav1.ScalewayManagedMachinePoolSpec{
+							Zone:             infrav1.ScalewayZone(scw.ZoneFrPar1),
+							PlacementGroupID: placementGroupID,
 							NodeType:         "DEV1-M",
-							Scaling: &v1alpha1.ScalingSpec{
-								Autoscaling: scw.BoolPtr(true),
+							Scaling: infrav1.Scaling{
+								Autoscaling: ptr.To(true),
 								MinSize:     scw.Int32Ptr(1),
 								MaxSize:     scw.Int32Ptr(5),
 							},
-							Autohealing: scw.BoolPtr(true),
-							UpgradePolicy: &v1alpha1.UpgradePolicySpec{
+							Autohealing: ptr.To(true),
+							UpgradePolicy: infrav1.UpgradePolicy{
 								MaxUnavailable: scw.Int32Ptr(0),
 								MaxSurge:       scw.Int32Ptr(2),
 							},
-							RootVolumeType:   scw.StringPtr("sbs_15k"),
-							RootVolumeSizeGB: scw.Int64Ptr(42),
-							PublicIPDisabled: scw.BoolPtr(true),
-							SecurityGroupID:  scw.StringPtr(securityGroupID),
+							RootVolumeType:   "sbs_15k",
+							RootVolumeSizeGB: 42,
+							PublicIPDisabled: ptr.To(true),
+							SecurityGroupID:  securityGroupID,
 							AdditionalTags:   []string{"tag1"},
 							KubeletArgs: map[string]string{
 								"containerLogMaxFiles": "500",
@@ -239,7 +242,7 @@ func TestService_Reconcile(t *testing.T) {
 					MinSize:          1,
 					MaxSize:          5,
 					Tags:             []string{"caps-namespace=default", "caps-scalewaymanagedmachinepool=pool", "tag1", "created-by=cluster-api-provider-scaleway"},
-					PlacementGroupID: scw.StringPtr(placementGroupID),
+					PlacementGroupID: ptr.To(placementGroupID),
 					SecurityGroupID:  securityGroupID,
 					KubeletArgs: map[string]string{
 						"containerLogMaxFiles": "500",
@@ -249,7 +252,7 @@ func TestService_Reconcile(t *testing.T) {
 						MaxSurge:       2,
 					},
 					RootVolumeType: k8s.PoolVolumeTypeSbs15k,
-					RootVolumeSize: scw.SizePtr(42 * scw.GB),
+					RootVolumeSize: ptr.To(42 * scw.GB),
 				}, nil)
 				i.ListNodes(gomock.Any(), clusterID, poolID).Return([]*k8s.Node{
 					{
@@ -261,10 +264,11 @@ func TestService_Reconcile(t *testing.T) {
 				}, nil)
 			},
 			asserts: func(g *WithT, s *scope.ManagedMachinePool) {
-				g.Expect(s.ManagedMachinePool.Spec.ProviderIDList).To(Equal([]string{
+				g.Expect(s.ScalewayManagedMachinePool.Spec.ProviderIDList).To(Equal([]string{
 					"providerID1", "providerID2",
 				}))
-				g.Expect(s.ManagedMachinePool.Status.Replicas).To(BeEquivalentTo(2))
+				g.Expect(s.ScalewayManagedMachinePool.Status.Replicas).NotTo(BeNil())
+				g.Expect(*s.ScalewayManagedMachinePool.Status.Replicas).To(BeEquivalentTo(2))
 			},
 		},
 	}
@@ -312,14 +316,14 @@ func TestService_Delete(t *testing.T) {
 			name: "delete pool",
 			fields: fields{
 				ManagedMachinePool: &scope.ManagedMachinePool{
-					ManagedControlPlane: &v1alpha1.ScalewayManagedControlPlane{
-						Spec: v1alpha1.ScalewayManagedControlPlaneSpec{
-							ClusterName: scw.StringPtr("default-controlplane"),
+					ScalewayManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
+						Spec: infrav1.ScalewayManagedControlPlaneSpec{
+							ClusterName: "default-controlplane",
 							Version:     "v1.30.0",
 						},
 					},
-					ManagedMachinePool: &v1alpha1.ScalewayManagedMachinePool{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedMachinePool: &infrav1.ScalewayManagedMachinePool{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pool",
 							Namespace: "default",
 						},

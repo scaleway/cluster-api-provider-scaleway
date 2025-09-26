@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -13,6 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 )
 
 var (
@@ -99,4 +100,15 @@ func releaseScalewaySecret(ctx context.Context, c client.Client, owner client.Ob
 	}
 
 	return secretHelper.Patch(ctx, secret)
+}
+
+func migrateFinalizer(o client.Object, old, finalizer string) bool {
+	// Attempt to remove old finalizer.
+	if !controllerutil.RemoveFinalizer(o, old) {
+		return false
+	}
+
+	// Add the up-to-date finalizer.
+	controllerutil.AddFinalizer(o, finalizer)
+	return true
 }

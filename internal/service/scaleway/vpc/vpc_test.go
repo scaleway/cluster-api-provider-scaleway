@@ -5,14 +5,16 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+
+	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
+	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
-	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
-	"github.com/scaleway/scaleway-sdk-go/scw"
-	"go.uber.org/mock/gomock"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -40,7 +42,7 @@ func TestService_Reconcile(t *testing.T) {
 			name: "no private network",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{},
+					ScalewayCluster: &infrav1.ScalewayCluster{},
 				},
 			},
 			args: args{
@@ -53,18 +55,25 @@ func TestService_Reconcile(t *testing.T) {
 			name: "IDs already set in status",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								VPCID:            scw.StringPtr(vpcID),
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								VPCID:            infrav1.UUID(vpcID),
+								PrivateNetworkID: infrav1.UUID(privateNetworkID),
+							},
+							Conditions: []metav1.Condition{
+								{
+									Type:   infrav1.PrivateNetworkReadyCondition,
+									Status: metav1.ConditionTrue,
+									Reason: infrav1.ReadyReason,
+								},
 							},
 						},
 					},
@@ -80,15 +89,15 @@ func TestService_Reconcile(t *testing.T) {
 			name: "managed private network",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
 							},
 						},
@@ -115,25 +124,25 @@ func TestService_Reconcile(t *testing.T) {
 				clusterScope, ok := s.(*scope.Cluster)
 				g.Expect(ok).To(BeTrue())
 				g.Expect(clusterScope.ScalewayCluster.Status.Network).NotTo(BeNil())
-				g.Expect(clusterScope.ScalewayCluster.Status.Network.PrivateNetworkID).To(Equal(scw.StringPtr(privateNetworkID)))
-				g.Expect(clusterScope.ScalewayCluster.Status.Network.VPCID).To(Equal(scw.StringPtr(vpcID)))
+				g.Expect(clusterScope.ScalewayCluster.Status.Network.PrivateNetworkID).To(BeEquivalentTo(privateNetworkID))
+				g.Expect(clusterScope.ScalewayCluster.Status.Network.VPCID).To(BeEquivalentTo(vpcID))
 			},
 		},
 		{
 			name: "existing private network",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
-									PrivateNetworkParams: v1alpha1.PrivateNetworkParams{
-										ID: scw.StringPtr(privateNetworkID),
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
+									PrivateNetwork: infrav1.PrivateNetwork{
+										ID: infrav1.UUID(privateNetworkID),
 									},
 								},
 							},
@@ -155,8 +164,8 @@ func TestService_Reconcile(t *testing.T) {
 				g.Expect(ok).To(BeTrue())
 
 				g.Expect(clusterScope.ScalewayCluster.Status.Network).NotTo(BeNil())
-				g.Expect(clusterScope.ScalewayCluster.Status.Network.PrivateNetworkID).To(Equal(scw.StringPtr(privateNetworkID)))
-				g.Expect(clusterScope.ScalewayCluster.Status.Network.VPCID).To(Equal(scw.StringPtr(vpcID)))
+				g.Expect(clusterScope.ScalewayCluster.Status.Network.PrivateNetworkID).To(BeEquivalentTo(privateNetworkID))
+				g.Expect(clusterScope.ScalewayCluster.Status.Network.VPCID).To(BeEquivalentTo(vpcID))
 			},
 		},
 	}
@@ -204,7 +213,7 @@ func TestService_Delete(t *testing.T) {
 			name: "no private network",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{},
+					ScalewayCluster: &infrav1.ScalewayCluster{},
 				},
 			},
 			args: args{
@@ -216,15 +225,15 @@ func TestService_Delete(t *testing.T) {
 			name: "find and delete",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
 							},
 						},
@@ -251,17 +260,17 @@ func TestService_Delete(t *testing.T) {
 			name: "do not remove user-provided private network",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
-									PrivateNetworkParams: v1alpha1.PrivateNetworkParams{
-										ID: scw.StringPtr(privateNetworkID),
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
+									PrivateNetwork: infrav1.PrivateNetwork{
+										ID: infrav1.UUID(privateNetworkID),
 									},
 								},
 							},

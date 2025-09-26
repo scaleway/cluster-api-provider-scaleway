@@ -9,13 +9,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
+	"github.com/scaleway/scaleway-sdk-go/scw"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/util/conditions"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/common"
-	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
-	"github.com/scaleway/scaleway-sdk-go/scw"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 const clusterRetryTime = 30 * time.Second
@@ -34,7 +39,29 @@ func (s *Service) Name() string {
 	return "k8s_cluster"
 }
 
-func (s *Service) Reconcile(ctx context.Context) error {
+func (s *Service) Reconcile(ctx context.Context) (retErr error) {
+	defer func() {
+		condition := metav1.Condition{
+			Type:   infrav1.ScalewayManagedControlPlaneClusterReadyCondition,
+			Reason: infrav1.ScalewayManagedControlPlaneClusterReconciliationFailedReason,
+		}
+
+		if retErr != nil {
+			condition.Status = metav1.ConditionFalse
+			condition.Message = retErr.Error()
+
+			// Override reason if this is a transient error (e.g. cluster is being upgraded).
+			if scaleway.IsTransientReconcileError(retErr) {
+				condition.Reason = infrav1.ScalewayManagedControlPlaneClusterTransientStatusReason
+			}
+		} else {
+			condition.Status = metav1.ConditionTrue
+			condition.Reason = infrav1.ScalewayManagedControlPlaneClusterReadyReason
+		}
+
+		conditions.Set(s.ScalewayManagedControlPlane, condition)
+	}()
+
 	cluster, err := s.getOrCreateCluster(ctx)
 	if err != nil {
 		return err
@@ -108,12 +135,12 @@ func (s *Service) Reconcile(ctx context.Context) error {
 }
 
 func (s *Service) Delete(ctx context.Context) error {
-	clusterName := s.ManagedControlPlane.ManagedControlPlane.Spec.ClusterName
-	if clusterName == nil {
+	clusterName := s.ScalewayManagedControlPlane.Spec.ClusterName
+	if clusterName == "" {
 		return nil
 	}
 
-	cluster, err := s.ScalewayClient.FindCluster(ctx, *clusterName)
+	cluster, err := s.ScalewayClient.FindCluster(ctx, clusterName)
 	if err != nil {
 		if client.IsNotFoundError(err) {
 			return nil
@@ -136,7 +163,7 @@ func (s *Service) getOrCreateCluster(ctx context.Context) (*k8s.Cluster, error) 
 	}
 
 	if cluster == nil {
-		smcp := s.ManagedControlPlane.ManagedControlPlane
+		smcp := s.ScalewayManagedControlPlane
 		autoscalerConfig, err := s.DesiredClusterAutoscalerConfig()
 		if err != nil {
 			return nil, err
@@ -146,24 +173,22 @@ func (s *Service) getOrCreateCluster(ctx context.Context) (*k8s.Cluster, error) 
 		oidcConfig := s.DesiredClusterOpenIDConnectConfig()
 
 		var podCIDR, serviceCIDR scw.IPNet
-		if clusterNetwork := s.Cluster.Spec.ClusterNetwork; clusterNetwork != nil {
-			if clusterNetwork.Pods != nil && len(clusterNetwork.Pods.CIDRBlocks) > 0 {
-				_, podCIDRIPNet, err := net.ParseCIDR(clusterNetwork.Pods.CIDRBlocks[0])
-				if err != nil {
-					return nil, err
-				}
-
-				podCIDR.IPNet = *podCIDRIPNet
+		if len(s.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
+			_, podCIDRIPNet, err := net.ParseCIDR(s.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0])
+			if err != nil {
+				return nil, err
 			}
 
-			if clusterNetwork.Services != nil && len(clusterNetwork.Services.CIDRBlocks) > 0 {
-				_, podCIDRIPNet, err := net.ParseCIDR(clusterNetwork.Services.CIDRBlocks[0])
-				if err != nil {
-					return nil, err
-				}
+			podCIDR.IPNet = *podCIDRIPNet
+		}
 
-				serviceCIDR.IPNet = *podCIDRIPNet
+		if len(s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+			_, podCIDRIPNet, err := net.ParseCIDR(s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0])
+			if err != nil {
+				return nil, err
 			}
+
+			serviceCIDR.IPNet = *podCIDRIPNet
 		}
 
 		cluster, err = s.ScalewayClient.CreateCluster(
@@ -201,9 +226,9 @@ func (s *Service) getOrCreateCluster(ctx context.Context) (*k8s.Cluster, error) 
 				ClientID:       oidcConfig.ClientID,
 				UsernameClaim:  &oidcConfig.UsernameClaim,
 				UsernamePrefix: &oidcConfig.UsernamePrefix,
-				GroupsClaim:    &oidcConfig.GroupsClaim,
 				GroupsPrefix:   &oidcConfig.GroupsPrefix,
-				RequiredClaim:  &oidcConfig.RequiredClaim,
+				GroupsClaim:    ptr.To(makeSliceIfNeeded(oidcConfig.GroupsClaim)),
+				RequiredClaim:  ptr.To(makeSliceIfNeeded(oidcConfig.RequiredClaim)),
 			},
 			podCIDR,
 			serviceCIDR,
@@ -218,30 +243,30 @@ func (s *Service) getOrCreateCluster(ctx context.Context) (*k8s.Cluster, error) 
 
 func (s *Service) updateCluster(ctx context.Context, cluster *k8s.Cluster) (bool, error) {
 	updateNeeded := false
-	smmp := s.ManagedControlPlane.ManagedControlPlane
+	smmp := s.ScalewayManagedControlPlane
 
 	var tags *[]string
 	if !common.SlicesEqualIgnoreOrder(client.TagsWithoutCreatedBy(cluster.Tags), s.DesiredTags()) {
 		updateNeeded = true
-		tags = scw.StringsPtr(s.DesiredTags())
+		tags = ptr.To(s.DesiredTags())
 	}
 
 	var featureGates *[]string
 	if !common.SlicesEqualIgnoreOrder(cluster.FeatureGates, smmp.Spec.FeatureGates) {
 		updateNeeded = true
-		featureGates = scw.StringsPtr(makeSliceIfNeeded(smmp.Spec.FeatureGates))
+		featureGates = ptr.To(makeSliceIfNeeded(smmp.Spec.FeatureGates))
 	}
 
 	var admissionPlugins *[]string
 	if !common.SlicesEqualIgnoreOrder(cluster.AdmissionPlugins, smmp.Spec.AdmissionPlugins) {
 		updateNeeded = true
-		admissionPlugins = scw.StringsPtr(makeSliceIfNeeded(smmp.Spec.AdmissionPlugins))
+		admissionPlugins = ptr.To(makeSliceIfNeeded(smmp.Spec.AdmissionPlugins))
 	}
 
 	var apiServerCertSANs *[]string
 	if !common.SlicesEqualIgnoreOrder(cluster.ApiserverCertSans, smmp.Spec.APIServerCertSANs) {
 		updateNeeded = true
-		apiServerCertSANs = scw.StringsPtr(makeSliceIfNeeded(smmp.Spec.APIServerCertSANs))
+		apiServerCertSANs = ptr.To(makeSliceIfNeeded(smmp.Spec.APIServerCertSANs))
 	}
 
 	var autoscalerConfig *k8s.UpdateClusterRequestAutoscalerConfig
@@ -284,9 +309,9 @@ func (s *Service) updateCluster(ctx context.Context, cluster *k8s.Cluster) (bool
 			ClientID:       &desiredOIDCConfig.ClientID,
 			UsernameClaim:  &desiredOIDCConfig.UsernameClaim,
 			UsernamePrefix: &desiredOIDCConfig.UsernamePrefix,
-			GroupsClaim:    &desiredOIDCConfig.GroupsClaim,
 			GroupsPrefix:   &desiredOIDCConfig.GroupsPrefix,
-			RequiredClaim:  &desiredOIDCConfig.RequiredClaim,
+			GroupsClaim:    ptr.To(makeSliceIfNeeded(desiredOIDCConfig.GroupsClaim)),
+			RequiredClaim:  ptr.To(makeSliceIfNeeded(desiredOIDCConfig.RequiredClaim)),
 		}
 	}
 
@@ -336,7 +361,7 @@ func (s *Service) updateClusterACLs(ctx context.Context, cluster *k8s.Cluster) (
 
 	if currentScalewayRanges {
 		request = append(request, &k8s.ACLRuleRequest{
-			ScalewayRanges: scw.BoolPtr(true),
+			ScalewayRanges: ptr.To(true),
 		})
 	}
 

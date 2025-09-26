@@ -8,13 +8,18 @@ import (
 	"slices"
 	"time"
 
+	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
+	"github.com/scaleway/scaleway-sdk-go/scw"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/util/conditions"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/common"
-	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
-	"github.com/scaleway/scaleway-sdk-go/scw"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 const poolRetryTime = 30 * time.Second
@@ -32,8 +37,8 @@ func (s Service) Name() string {
 }
 
 func (s *Service) Delete(ctx context.Context) error {
-	clusterName, ok := s.ClusterName()
-	if !ok {
+	clusterName := s.ClusterName()
+	if clusterName == "" {
 		return nil
 	}
 
@@ -64,9 +69,31 @@ func (s *Service) Delete(ctx context.Context) error {
 	return scaleway.WithTransientError(errors.New("pool is being deleted"), poolRetryTime)
 }
 
-func (s *Service) Reconcile(ctx context.Context) error {
-	clusterName, ok := s.ClusterName()
-	if !ok {
+func (s *Service) Reconcile(ctx context.Context) (retErr error) {
+	defer func() {
+		condition := metav1.Condition{
+			Type:   infrav1.ScalewayManagedMachinePoolPoolReadyCondition,
+			Reason: infrav1.ScalewayManagedMachinePoolPoolReconciliationFailedReason,
+		}
+
+		if retErr != nil {
+			condition.Status = metav1.ConditionFalse
+			condition.Message = retErr.Error()
+
+			// Override reason if this is a transient error (e.g. cluster is being upgraded).
+			if scaleway.IsTransientReconcileError(retErr) {
+				condition.Reason = infrav1.ScalewayManagedMachinePoolPoolTransientStatusReason
+			}
+		} else {
+			condition.Status = metav1.ConditionTrue
+			condition.Reason = infrav1.ScalewayManagedMachinePoolPoolReadyReason
+		}
+
+		conditions.Set(s.ScalewayManagedMachinePool, condition)
+	}()
+
+	clusterName := s.ClusterName()
+	if clusterName == "" {
 		return scaleway.WithTransientError(errors.New("cluster name not set"), poolRetryTime)
 	}
 
@@ -136,7 +163,7 @@ func (s *Service) getOrCreatePool(ctx context.Context, cluster *k8s.Cluster) (*k
 	}
 
 	if pool == nil {
-		mmp := s.ManagedMachinePool.ManagedMachinePool
+		mmp := s.ScalewayManagedMachinePool
 
 		autoscaling, size, min, max := s.Scaling()
 		pup := s.DesiredPoolUpgradePolicy()
@@ -147,8 +174,8 @@ func (s *Service) getOrCreatePool(ctx context.Context, cluster *k8s.Cluster) (*k
 			cluster.ID,
 			s.ResourceName(),
 			mmp.Spec.NodeType,
-			mmp.Spec.PlacementGroupID,
-			mmp.Spec.SecurityGroupID,
+			s.PlacementGroupID(),
+			s.SecurityGroupID(),
 			autoscaling,
 			s.Autohealing(),
 			s.PublicIPDisabled(),
@@ -178,7 +205,7 @@ func (s *Service) updatePool(ctx context.Context, pool *k8s.Pool) (bool, error) 
 	var autohealing *bool
 	if pool.Autohealing != s.Autohealing() {
 		updateNeeded = true
-		autohealing = scw.BoolPtr(s.Autohealing())
+		autohealing = ptr.To(s.Autohealing())
 	}
 
 	var autoscaling *bool
@@ -215,13 +242,13 @@ func (s *Service) updatePool(ctx context.Context, pool *k8s.Pool) (bool, error) 
 	var tags *[]string
 	if !common.SlicesEqualIgnoreOrder(client.TagsWithoutCreatedBy(pool.Tags), s.DesiredTags()) {
 		updateNeeded = true
-		tags = scw.StringsPtr(s.DesiredTags())
+		tags = ptr.To(s.DesiredTags())
 	}
 
 	var kubeletArgs *map[string]string
-	if !maps.Equal(pool.KubeletArgs, s.ManagedMachinePool.ManagedMachinePool.Spec.KubeletArgs) {
+	if !maps.Equal(pool.KubeletArgs, s.ScalewayManagedMachinePool.Spec.KubeletArgs) {
 		updateNeeded = true
-		kubeletArgs = &s.ManagedMachinePool.ManagedMachinePool.Spec.KubeletArgs
+		kubeletArgs = &s.ScalewayManagedMachinePool.Spec.KubeletArgs
 		if *kubeletArgs == nil {
 			kubeletArgs = &map[string]string{}
 		}

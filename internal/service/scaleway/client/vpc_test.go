@@ -6,10 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+	"k8s.io/utils/ptr"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const (
@@ -45,14 +47,14 @@ func TestClient_FindPrivateNetwork(t *testing.T) {
 			args: args{
 				ctx:   context.TODO(),
 				tags:  []string{"tag1", "tag2", "tag3"},
-				vpcID: scw.StringPtr(vpcID),
+				vpcID: ptr.To(vpcID),
 			},
 			wantErr: true,
 			expect: func(v *mock_client.MockVPCAPIMockRecorder) {
 				v.ListPrivateNetworks(&vpc.ListPrivateNetworksRequest{
 					Tags:      []string{"tag1", "tag2", "tag3"},
-					ProjectID: scw.StringPtr(projectID),
-					VpcID:     scw.StringPtr(vpcID),
+					ProjectID: ptr.To(projectID),
+					VpcID:     ptr.To(vpcID),
 				}, gomock.Any(), gomock.Any()).Return(&vpc.ListPrivateNetworksResponse{
 					PrivateNetworks: []*vpc.PrivateNetwork{},
 				}, nil)
@@ -67,7 +69,7 @@ func TestClient_FindPrivateNetwork(t *testing.T) {
 			args: args{
 				ctx:   context.TODO(),
 				tags:  []string{"tag1", "tag2", "tag3"},
-				vpcID: scw.StringPtr(vpcID),
+				vpcID: ptr.To(vpcID),
 			},
 			want: &vpc.PrivateNetwork{
 				ID:   privateNetworkID,
@@ -76,8 +78,8 @@ func TestClient_FindPrivateNetwork(t *testing.T) {
 			expect: func(v *mock_client.MockVPCAPIMockRecorder) {
 				v.ListPrivateNetworks(&vpc.ListPrivateNetworksRequest{
 					Tags:      []string{"tag1", "tag2", "tag3"},
-					ProjectID: scw.StringPtr(projectID),
-					VpcID:     scw.StringPtr(vpcID),
+					ProjectID: ptr.To(projectID),
+					VpcID:     ptr.To(vpcID),
 				}, gomock.Any(), gomock.Any()).Return(&vpc.ListPrivateNetworksResponse{
 					PrivateNetworks: []*vpc.PrivateNetwork{
 						{
@@ -97,14 +99,14 @@ func TestClient_FindPrivateNetwork(t *testing.T) {
 			args: args{
 				ctx:   context.TODO(),
 				tags:  []string{"tag1", "tag2", "tag3"},
-				vpcID: scw.StringPtr(vpcID),
+				vpcID: ptr.To(vpcID),
 			},
 			wantErr: true,
 			expect: func(v *mock_client.MockVPCAPIMockRecorder) {
 				v.ListPrivateNetworks(&vpc.ListPrivateNetworksRequest{
 					Tags:      []string{"tag1", "tag2", "tag3"},
-					ProjectID: scw.StringPtr(projectID),
-					VpcID:     scw.StringPtr(vpcID),
+					ProjectID: ptr.To(projectID),
+					VpcID:     ptr.To(vpcID),
 				}, gomock.Any(), gomock.Any()).Return(&vpc.ListPrivateNetworksResponse{
 					PrivateNetworks: []*vpc.PrivateNetwork{
 						{
@@ -233,8 +235,8 @@ func TestClient_CreatePrivateNetwork(t *testing.T) {
 			args: args{
 				ctx:    context.TODO(),
 				name:   "privatenetwork",
-				vpcID:  scw.StringPtr(vpcID),
-				subnet: scw.StringPtr("192.168.1.0/24"),
+				vpcID:  ptr.To(vpcID),
+				subnet: ptr.To("192.168.1.0/24"),
 				tags:   []string{"tag1", "tag2"},
 			},
 			want: &vpc.PrivateNetwork{
@@ -249,7 +251,7 @@ func TestClient_CreatePrivateNetwork(t *testing.T) {
 
 				v.CreatePrivateNetwork(&vpc.CreatePrivateNetworkRequest{
 					Name:    "privatenetwork",
-					VpcID:   scw.StringPtr(vpcID),
+					VpcID:   ptr.To(vpcID),
 					Tags:    []string{"tag1", "tag2", createdByTag},
 					Subnets: []scw.IPNet{{IPNet: *ipNet}},
 				}, gomock.Any()).Return(&vpc.PrivateNetwork{

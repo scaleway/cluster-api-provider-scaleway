@@ -5,16 +5,18 @@ import (
 	"errors"
 	"fmt"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 )
 
 const (
@@ -63,7 +65,17 @@ func NewMachine(params *MachineParams) (*Machine, error) {
 
 // PatchObject patches the ScalewayMachine object.
 func (m *Machine) PatchObject(ctx context.Context) error {
-	return m.patchHelper.Patch(ctx, m.ScalewayMachine)
+	summaryConditions := []string{
+		infrav1.ScalewayMachineInstanceReadyCondition,
+	}
+
+	if err := conditions.SetSummaryCondition(m.ScalewayMachine, m.ScalewayMachine, infrav1.ScalewayMachineReadyCondition, conditions.ForConditionTypes(summaryConditions)); err != nil {
+		return err
+	}
+
+	return m.patchHelper.Patch(ctx, m.ScalewayMachine, patch.WithOwnedConditions{
+		Conditions: append(summaryConditions, infrav1.ScalewayMachineReadyCondition),
+	})
 }
 
 // Close closes the Machine scope by patching the ScalewayMachine object.
@@ -90,9 +102,8 @@ func (m *Machine) Zone() (scw.Zone, error) {
 func (m *Machine) RootVolumeSize() scw.Size {
 	size := defaultRootVolumeSize
 
-	if m.ScalewayMachine.Spec.RootVolume != nil &&
-		m.ScalewayMachine.Spec.RootVolume.Size != nil {
-		size = scw.Size(*m.ScalewayMachine.Spec.RootVolume.Size) * scw.GB
+	if m.ScalewayMachine.Spec.RootVolume.Size != 0 {
+		size = scw.Size(m.ScalewayMachine.Spec.RootVolume.Size) * scw.GB
 	}
 
 	return size
@@ -102,11 +113,10 @@ func (m *Machine) RootVolumeSize() scw.Size {
 func (m *Machine) RootVolumeType() (instance.VolumeVolumeType, error) {
 	volumeType := defaultRootVolumeType
 
-	if m.ScalewayMachine.Spec.RootVolume != nil &&
-		m.ScalewayMachine.Spec.RootVolume.Type != nil {
-		volumeType = volumeTypeToInstanceVolumeType[*m.ScalewayMachine.Spec.RootVolume.Type]
+	if m.ScalewayMachine.Spec.RootVolume.Type != "" {
+		volumeType = volumeTypeToInstanceVolumeType[m.ScalewayMachine.Spec.RootVolume.Type]
 		if volumeType == "" {
-			return "", scaleway.WithTerminalError(fmt.Errorf("unknown volume type %s", *m.ScalewayMachine.Spec.RootVolume.Type))
+			return "", fmt.Errorf("unknown volume type %s", m.ScalewayMachine.Spec.RootVolume.Type)
 		}
 	}
 
@@ -117,8 +127,8 @@ func (m *Machine) RootVolumeType() (instance.VolumeVolumeType, error) {
 // If not specified, it returns nil.
 // Note: IOPS is only applicable for block volumes.
 func (m *Machine) RootVolumeIOPS() *int64 {
-	if m.ScalewayMachine.Spec.RootVolume != nil {
-		return m.ScalewayMachine.Spec.RootVolume.IOPS
+	if m.ScalewayMachine.Spec.RootVolume.IOPS != 0 {
+		return &m.ScalewayMachine.Spec.RootVolume.IOPS
 	}
 
 	return nil
@@ -132,28 +142,18 @@ func (m *Machine) HasPublicIPv4() bool {
 		return true
 	}
 
-	if m.ScalewayMachine.Spec.PublicNetwork != nil &&
-		m.ScalewayMachine.Spec.PublicNetwork.EnableIPv4 != nil {
-		return *m.ScalewayMachine.Spec.PublicNetwork.EnableIPv4
-	}
-
-	return false
+	return ptr.Deref(m.ScalewayMachine.Spec.PublicNetwork.EnableIPv4, false)
 }
 
 // HasPublicIPv6 returns true if the machine should have a Public IPv6 address.
 func (m *Machine) HasPublicIPv6() bool {
-	if m.ScalewayMachine.Spec.PublicNetwork != nil &&
-		m.ScalewayMachine.Spec.PublicNetwork.EnableIPv6 != nil {
-		return *m.ScalewayMachine.Spec.PublicNetwork.EnableIPv6
-	}
-
-	return false
+	return ptr.Deref(m.ScalewayMachine.Spec.PublicNetwork.EnableIPv6, false)
 }
 
 // SetProviderID sets the ProviderID of the ScalewayMachine if it is not already set.
 func (m *Machine) SetProviderID(providerID string) {
-	if m.ScalewayMachine.Spec.ProviderID == nil {
-		m.ScalewayMachine.Spec.ProviderID = scw.StringPtr(providerID)
+	if m.ScalewayMachine.Spec.ProviderID == "" {
+		m.ScalewayMachine.Spec.ProviderID = providerID
 	}
 }
 
@@ -187,7 +187,7 @@ func (m *Machine) GetBootstrapData(ctx context.Context) ([]byte, error) {
 // HasJoinedCluster returns true if the machine has joined the cluster.
 // A machine is considered to have joined the cluster if it has a NodeRef with a non-empty name.
 func (m *Machine) HasJoinedCluster() bool {
-	return m.Machine.Status.NodeRef != nil && m.Machine.Status.NodeRef.Name != ""
+	return m.Machine.Status.NodeRef.IsDefined()
 }
 
 // IsControlPlane returns true if the machine is a control plane machine.

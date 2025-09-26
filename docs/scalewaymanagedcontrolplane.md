@@ -10,7 +10,7 @@ This document describes the various configuration options you can set to configu
 The `ScalewayManagedControlPlane` with the minimum options looks like this:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -35,7 +35,7 @@ downgrade the version of a cluster.
 You can configure additional tags that will be set on the created Scaleway Managed Kubernetes cluster:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -56,7 +56,7 @@ spec:
 You can configure the IPs allowed to access the public endpoint of the cluster:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -80,7 +80,7 @@ IP range `0.0.0.0/0` is set on the cluster.
 You can configure the autoscaler of the cluster:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -102,7 +102,7 @@ spec:
 You can set the auto upgrade configuration of the cluster:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -121,7 +121,7 @@ spec:
 You can enable Kubernetes feature gates on the cluster:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -140,7 +140,7 @@ You can use the Scaleway CLI to list the available feature gates: `$ scw k8s ver
 You can enable Kubernetes admission plugins on the cluster:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -159,7 +159,7 @@ You can use the Scaleway CLI to list the available admission plugins: `$ scw k8s
 You can add additional API Server Cert SANs:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -175,7 +175,7 @@ spec:
 You can set the OIDC configuration of the cluster:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane
@@ -200,7 +200,7 @@ You can enable the deletion of additional resources (e.g. Load Balancers, Persis
 when the cluster is deleted:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: my-cluster-control-plane

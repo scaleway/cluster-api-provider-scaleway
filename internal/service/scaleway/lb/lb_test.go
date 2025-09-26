@@ -6,19 +6,20 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
+
 	"github.com/scaleway/scaleway-sdk-go/api/ipam/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const (
@@ -65,14 +66,14 @@ func TestService_Reconcile(t *testing.T) {
 			name: "public LB, no extra LB, no Private Network, no ACL: create",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
 					},
-					Cluster: &v1beta1.Cluster{
-						ObjectMeta: v1.ObjectMeta{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
@@ -86,7 +87,7 @@ func TestService_Reconcile(t *testing.T) {
 				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
 
 				// Main LB
-				i.GetZoneOrDefault(nil).Return(scw.ZoneFrPar1, nil)
+				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
 				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(tags, CAPSMainLBTag)).Return(nil, client.ErrNoItemFound)
 				i.CreateLB(gomock.Any(), scw.ZoneFrPar1, "cluster", "LB-S", nil, false, append(tags, CAPSMainLBTag)).Return(&lb.LB{
 					ID:     lbID,
@@ -126,27 +127,27 @@ func TestService_Reconcile(t *testing.T) {
 			},
 			asserts: func(g *WithT, c *scope.Cluster) {
 				g.Expect(c.ScalewayCluster.Status.Network).ToNot(BeNil())
-				g.Expect(c.ScalewayCluster.Status.Network.LoadBalancerIP).To(Equal(scw.StringPtr("42.42.42.42")))
+				g.Expect(c.ScalewayCluster.Status.Network.LoadBalancerIP).To(BeEquivalentTo("42.42.42.42"))
 			},
 		},
 		{
 			name: "custom public LB, no extra LB, no Private Network, no ACL: create",
 			fields: fields{
 				Cluster: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
 					},
-					Cluster: &v1beta1.Cluster{
-						ObjectMeta: v1.ObjectMeta{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1beta1.ClusterSpec{
-							ClusterNetwork: &v1beta1.ClusterNetwork{
-								APIServerPort: ptr.To(int32(4242)),
+						Spec: clusterv1.ClusterSpec{
+							ClusterNetwork: clusterv1.ClusterNetwork{
+								APIServerPort: 4242,
 							},
 						},
 					},
@@ -159,7 +160,7 @@ func TestService_Reconcile(t *testing.T) {
 				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
 
 				// Main LB
-				i.GetZoneOrDefault(nil).Return(scw.ZoneFrPar1, nil)
+				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
 				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(tags, CAPSMainLBTag)).Return(nil, client.ErrNoItemFound)
 				i.CreateLB(gomock.Any(), scw.ZoneFrPar1, "cluster", "LB-S", nil, false, append(tags, CAPSMainLBTag)).Return(&lb.LB{
 					ID:     lbID,
@@ -199,7 +200,7 @@ func TestService_Reconcile(t *testing.T) {
 			},
 			asserts: func(g *WithT, c *scope.Cluster) {
 				g.Expect(c.ScalewayCluster.Status.Network).ToNot(BeNil())
-				g.Expect(c.ScalewayCluster.Status.Network.LoadBalancerIP).To(Equal(scw.StringPtr("42.42.42.42")))
+				g.Expect(c.ScalewayCluster.Status.Network.LoadBalancerIP).To(BeEquivalentTo("42.42.42.42"))
 			},
 		},
 		{
@@ -207,33 +208,33 @@ func TestService_Reconcile(t *testing.T) {
 			fields: fields{
 				Cluster: &scope.Cluster{
 					ScalewayCluster: &infrav1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
 						Spec: infrav1.ScalewayClusterSpec{
-							Network: &infrav1.NetworkSpec{
-								PrivateNetwork: &infrav1.PrivateNetworkSpec{
-									Enabled: true,
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								ControlPlaneLoadBalancer: &infrav1.ControlPlaneLoadBalancerSpec{
+								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
 									AllowedRanges: []infrav1.CIDR{"10.10.0.0/16"},
 								},
-								ControlPlaneExtraLoadBalancers: []infrav1.LoadBalancerSpec{
-									{Zone: scw.StringPtr("fr-par-1")},
-									{Zone: scw.StringPtr("fr-par-1")},
-									{Zone: scw.StringPtr("fr-par-2")},
+								ControlPlaneExtraLoadBalancers: []infrav1.LoadBalancer{
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+									{Zone: infrav1.ScalewayZone("fr-par-2")},
 								},
 							},
 						},
 						Status: infrav1.ScalewayClusterStatus{
-							Network: &infrav1.NetworkStatus{
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: infrav1.UUID(privateNetworkID),
 							},
 						},
 					},
-					Cluster: &v1beta1.Cluster{
-						ObjectMeta: v1.ObjectMeta{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
@@ -247,7 +248,7 @@ func TestService_Reconcile(t *testing.T) {
 				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
 
 				// Main LB
-				i.GetZoneOrDefault(nil).Return(scw.ZoneFrPar1, nil)
+				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
 				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(tags, CAPSMainLBTag)).Return(&lb.LB{
 					ID:     lbID,
 					Name:   "cluster",
@@ -258,8 +259,8 @@ func TestService_Reconcile(t *testing.T) {
 				}, nil)
 
 				// Extra LBs
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-1")).Return(scw.ZoneFrPar1, nil).Times(2)
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-2")).Return(scw.ZoneFrPar2, nil)
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil).Times(2)
+				i.GetZoneOrDefault("fr-par-2").Return(scw.ZoneFrPar2, nil)
 				i.FindLBs(gomock.Any(), append(tags, CAPSExtraLBTag)).Return([]*lb.LB{
 					{
 						ID:     lbID1,
@@ -475,8 +476,8 @@ func TestService_Reconcile(t *testing.T) {
 			},
 			asserts: func(g *WithT, c *scope.Cluster) {
 				g.Expect(c.ScalewayCluster.Status.Network).ToNot(BeNil())
-				g.Expect(c.ScalewayCluster.Status.Network.LoadBalancerIP).To(Equal(scw.StringPtr(lbIP)))
-				g.Expect(c.ScalewayCluster.Status.Network.ExtraLoadBalancerIPs).To(Equal([]string{lbIP1, lbIP2, lbIP3}))
+				g.Expect(c.ScalewayCluster.Status.Network.LoadBalancerIP).To(BeEquivalentTo(lbIP))
+				g.Expect(c.ScalewayCluster.Status.Network.ExtraLoadBalancerIPs).To(Equal([]infrav1.IPv4{lbIP1, lbIP2, lbIP3}))
 			},
 		},
 	}
@@ -525,28 +526,28 @@ func TestService_Delete(t *testing.T) {
 			fields: fields{
 				Cluster: &scope.Cluster{
 					ScalewayCluster: &infrav1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
 						Spec: infrav1.ScalewayClusterSpec{
-							Network: &infrav1.NetworkSpec{
-								PrivateNetwork: &infrav1.PrivateNetworkSpec{
-									Enabled: true,
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								ControlPlaneLoadBalancer: &infrav1.ControlPlaneLoadBalancerSpec{
+								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
 									AllowedRanges: []infrav1.CIDR{"10.10.0.0/16"},
 								},
-								ControlPlaneExtraLoadBalancers: []infrav1.LoadBalancerSpec{
-									{Zone: scw.StringPtr("fr-par-1")},
-									{Zone: scw.StringPtr("fr-par-1")},
-									{Zone: scw.StringPtr("fr-par-2")},
+								ControlPlaneExtraLoadBalancers: []infrav1.LoadBalancer{
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+									{Zone: infrav1.ScalewayZone("fr-par-2")},
 								},
 							},
 						},
 						Status: infrav1.ScalewayClusterStatus{
-							Network: &infrav1.NetworkStatus{
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: infrav1.UUID(privateNetworkID),
 							},
 						},
 					},
@@ -559,7 +560,7 @@ func TestService_Delete(t *testing.T) {
 				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
 
 				// Main LB
-				i.GetZoneOrDefault(nil).Return(scw.ZoneFrPar1, nil)
+				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
 				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(tags, CAPSMainLBTag)).Return(&lb.LB{
 					ID:     lbID,
 					Name:   "cluster",

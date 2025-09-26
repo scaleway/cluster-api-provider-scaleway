@@ -8,20 +8,22 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 )
 
 var _ = Describe("ScalewayManagedMachinePool Controller", func() {
@@ -47,7 +49,7 @@ var _ = Describe("ScalewayManagedMachinePool Controller", func() {
 					},
 					Spec: infrav1.ScalewayManagedMachinePoolSpec{
 						NodeType: "DEV1-S",
-						Zone:     string(scw.ZoneFrPar1),
+						Zone:     infrav1.ScalewayZone(scw.ZoneFrPar1),
 					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
@@ -100,7 +102,7 @@ var _ = Describe("ScalewayManagedMachinePool", func() {
 						},
 						Spec: infrav1.ScalewayManagedMachinePoolSpec{
 							NodeType: "DEV1-S",
-							Zone:     string(scw.ZoneFrPar1),
+							Zone:     infrav1.ScalewayZone(scw.ZoneFrPar1),
 						},
 					}
 					Expect(k8sClient.Create(ctx, resource)).To(Succeed())
@@ -132,7 +134,7 @@ var _ = Describe("ScalewayManagedMachinePool", func() {
 				err := k8sClient.Get(ctx, typeNamespacedName, resource)
 				Expect(err).NotTo(HaveOccurred())
 
-				resource.Spec.Zone = string(scw.ZoneFrPar2)
+				resource.Spec.Zone = infrav1.ScalewayZone(scw.ZoneFrPar2)
 				Expect(k8sClient.Update(ctx, resource)).NotTo(Succeed())
 			})
 		})
@@ -185,7 +187,7 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 			},
 			want: reconcile.Result{},
 			objects: []client.Object{
-				&expclusterv1.MachinePool{
+				&clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      machinePoolNamespacedName.Name,
 						Namespace: machinePoolNamespacedName.Namespace,
@@ -193,14 +195,13 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 							clusterv1.ClusterNameLabel: clusterNamespacedName.Name,
 						},
 					},
-					Spec: expclusterv1.MachinePoolSpec{
+					Spec: clusterv1.MachinePoolSpec{
 						ClusterName: clusterNamespacedName.Name,
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								ClusterName: clusterNamespacedName.Name,
-								InfrastructureRef: corev1.ObjectReference{
-									Name:      scalewayManagedMachinePoolNamespacedName.Name,
-									Namespace: scalewayManagedMachinePoolNamespacedName.Namespace,
+								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+									Name: scalewayManagedMachinePoolNamespacedName.Name,
 								},
 							},
 						},
@@ -214,13 +215,13 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 							{
 								Name:       machinePoolNamespacedName.Name,
 								Kind:       "MachinePool",
-								APIVersion: expclusterv1.GroupVersion.String(),
+								APIVersion: clusterv1.GroupVersion.String(),
 							},
 						},
 					},
 					Spec: infrav1.ScalewayManagedMachinePoolSpec{
 						NodeType: "DEV1-S",
-						Zone:     scw.ZoneFrPar1.String(),
+						Zone:     infrav1.ScalewayZone(scw.ZoneFrPar1),
 					},
 				},
 				&infrav1.ScalewayManagedCluster{
@@ -241,7 +242,9 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 						ProjectID:          "11111111-1111-1111-1111-111111111111",
 					},
 					Status: infrav1.ScalewayManagedClusterStatus{
-						Ready: true,
+						Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
+							Provisioned: ptr.To(true),
+						},
 					},
 				},
 				&infrav1.ScalewayManagedControlPlane{
@@ -271,13 +274,11 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 						Namespace: clusterNamespacedName.Namespace,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: &corev1.ObjectReference{
-							Name:      scalewayManagedControlPlaneNamespacedName.Name,
-							Namespace: scalewayManagedControlPlaneNamespacedName.Namespace,
+						ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedControlPlaneNamespacedName.Name,
 						},
-						InfrastructureRef: &corev1.ObjectReference{
-							Name:      scalewayManagedClusterNamespacedName.Name,
-							Namespace: scalewayManagedClusterNamespacedName.Namespace,
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedClusterNamespacedName.Name,
 						},
 					},
 				},
@@ -296,8 +297,11 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 				// ScalewayManagedMachinePool checks
 				smmp := &infrav1.ScalewayManagedMachinePool{}
 				g.Expect(c.Get(context.TODO(), scalewayManagedMachinePoolNamespacedName, smmp)).To(Succeed())
-				g.Expect(smmp.Status.Ready).To(BeTrue())
-				g.Expect(smmp.Finalizers).To(ContainElement(infrav1.ManagedMachinePoolFinalizer))
+				g.Expect(smmp.Status.Ready).NotTo(BeNil())
+				g.Expect(*smmp.Status.Ready).To(BeTrue())
+				g.Expect(smmp.Status.Initialization.Provisioned).NotTo(BeNil())
+				g.Expect(*smmp.Status.Initialization.Provisioned).To(BeTrue())
+				g.Expect(smmp.Finalizers).To(ContainElement(infrav1.ScalewayManagedMachinePoolFinalizer))
 			},
 		},
 		{
@@ -317,7 +321,7 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 			},
 			want: reconcile.Result{},
 			objects: []client.Object{
-				&expclusterv1.MachinePool{
+				&clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      machinePoolNamespacedName.Name,
 						Namespace: machinePoolNamespacedName.Namespace,
@@ -325,14 +329,13 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 							clusterv1.ClusterNameLabel: clusterNamespacedName.Name,
 						},
 					},
-					Spec: expclusterv1.MachinePoolSpec{
+					Spec: clusterv1.MachinePoolSpec{
 						ClusterName: clusterNamespacedName.Name,
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								ClusterName: clusterNamespacedName.Name,
-								InfrastructureRef: corev1.ObjectReference{
-									Name:      scalewayManagedMachinePoolNamespacedName.Name,
-									Namespace: scalewayManagedMachinePoolNamespacedName.Namespace,
+								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+									Name: scalewayManagedMachinePoolNamespacedName.Name,
 								},
 							},
 						},
@@ -346,15 +349,15 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 							{
 								Name:       machinePoolNamespacedName.Name,
 								Kind:       "MachinePool",
-								APIVersion: expclusterv1.GroupVersion.String(),
+								APIVersion: clusterv1.GroupVersion.String(),
 							},
 						},
-						Finalizers:        []string{infrav1.ManagedMachinePoolFinalizer},
+						Finalizers:        []string{infrav1.ScalewayManagedMachinePoolFinalizer},
 						DeletionTimestamp: &metav1.Time{Time: time.Now()},
 					},
 					Spec: infrav1.ScalewayManagedMachinePoolSpec{
 						NodeType: "DEV1-S",
-						Zone:     scw.ZoneFrPar1.String(),
+						Zone:     infrav1.ScalewayZone(scw.ZoneFrPar1),
 					},
 				},
 				&infrav1.ScalewayManagedCluster{
@@ -375,7 +378,9 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 						ProjectID:          "11111111-1111-1111-1111-111111111111",
 					},
 					Status: infrav1.ScalewayManagedClusterStatus{
-						Ready: true,
+						Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
+							Provisioned: ptr.To(true),
+						},
 					},
 				},
 				&infrav1.ScalewayManagedControlPlane{
@@ -405,13 +410,11 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 						Namespace: clusterNamespacedName.Namespace,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: &corev1.ObjectReference{
-							Name:      scalewayManagedControlPlaneNamespacedName.Name,
-							Namespace: scalewayManagedControlPlaneNamespacedName.Namespace,
+						ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedControlPlaneNamespacedName.Name,
 						},
-						InfrastructureRef: &corev1.ObjectReference{
-							Name:      scalewayManagedClusterNamespacedName.Name,
-							Namespace: scalewayManagedClusterNamespacedName.Namespace,
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedClusterNamespacedName.Name,
 						},
 					},
 				},
@@ -442,7 +445,6 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 				corev1.AddToScheme,
 				clusterv1.AddToScheme,
 				infrav1.AddToScheme,
-				expclusterv1.AddToScheme,
 			)
 			s := runtime.NewScheme()
 

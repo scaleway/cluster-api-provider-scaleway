@@ -4,13 +4,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const (
@@ -120,7 +122,7 @@ func TestService_Reconcile(t *testing.T) {
 			name: "no private network",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{},
+					ScalewayCluster: &infrav1.ScalewayCluster{},
 				},
 			},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {},
@@ -129,21 +131,21 @@ func TestService_Reconcile(t *testing.T) {
 			name: "no gateway configured",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
 							},
 						},
 					},
@@ -158,21 +160,21 @@ func TestService_Reconcile(t *testing.T) {
 			name: "no gateway configured: delete existing",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
 							},
 						},
 					},
@@ -192,26 +194,26 @@ func TestService_Reconcile(t *testing.T) {
 			name: "gateways configured: up-to-date",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								PublicGateways: []v1alpha1.PublicGatewaySpec{
-									{Zone: scw.StringPtr("fr-par-1")},
-									{Zone: scw.StringPtr("fr-par-2")},
-									{Zone: scw.StringPtr("fr-par-3")},
+								PublicGateways: []infrav1.PublicGateway{
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+									{Zone: infrav1.ScalewayZone("fr-par-2")},
+									{Zone: infrav1.ScalewayZone("fr-par-3")},
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
 							},
 						},
 					},
@@ -221,9 +223,9 @@ func TestService_Reconcile(t *testing.T) {
 				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
 
 				// Indexing desired gateways by zone.
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-1")).Return(scw.ZoneFrPar1, nil)
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-2")).Return(scw.ZoneFrPar2, nil)
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-3")).Return(scw.ZoneFrPar3, nil)
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
+				i.GetZoneOrDefault("fr-par-2").Return(scw.ZoneFrPar2, nil)
+				i.GetZoneOrDefault("fr-par-3").Return(scw.ZoneFrPar3, nil)
 
 				i.FindGateways(gomock.Any(), tags).Return([]*vpcgw.Gateway{
 					{
@@ -260,27 +262,27 @@ func TestService_Reconcile(t *testing.T) {
 			name: "gateways configured: create missing",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								PublicGateways: []v1alpha1.PublicGatewaySpec{
-									{Zone: scw.StringPtr("fr-par-1")},
-									{Zone: scw.StringPtr("fr-par-1")},
-									{Zone: scw.StringPtr("fr-par-1"), IP: scw.StringPtr("42.42.42.42")},
-									{Zone: scw.StringPtr("fr-par-1")},
+								PublicGateways: []infrav1.PublicGateway{
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+									{Zone: infrav1.ScalewayZone("fr-par-1"), IP: infrav1.IPv4("42.42.42.42")},
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
 							},
 						},
 					},
@@ -290,7 +292,7 @@ func TestService_Reconcile(t *testing.T) {
 				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
 
 				// Indexing desired gateways by zone.
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-1")).Return(scw.ZoneFrPar1, nil).Times(4)
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil).Times(4)
 
 				i.FindGateways(gomock.Any(), tags).Return([]*vpcgw.Gateway{
 					{
@@ -322,7 +324,7 @@ func TestService_Reconcile(t *testing.T) {
 					scw.ZoneFrPar1,
 					"cluster-2", "",
 					tags,
-					scw.StringPtr(ipID),
+					ptr.To(ipID),
 				).Return(&vpcgw.Gateway{
 					ID:     gwID3,
 					Name:   "cluster-2",
@@ -351,26 +353,26 @@ func TestService_Reconcile(t *testing.T) {
 			name: "gateways configured: upgrade",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								PublicGateways: []v1alpha1.PublicGatewaySpec{
-									{Zone: scw.StringPtr("fr-par-1"), Type: scw.StringPtr("VPC-GW-S")},
-									{Zone: scw.StringPtr("fr-par-2"), Type: scw.StringPtr("VPC-GW-S")},
-									{Zone: scw.StringPtr("fr-par-3"), Type: scw.StringPtr("VPC-GW-M")},
+								PublicGateways: []infrav1.PublicGateway{
+									{Zone: infrav1.ScalewayZone("fr-par-1"), Type: "VPC-GW-S"},
+									{Zone: infrav1.ScalewayZone("fr-par-2"), Type: "VPC-GW-S"},
+									{Zone: infrav1.ScalewayZone("fr-par-3"), Type: "VPC-GW-M"},
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
 							},
 						},
 					},
@@ -380,9 +382,9 @@ func TestService_Reconcile(t *testing.T) {
 				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
 
 				// Indexing desired gateways by zone.
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-1")).Return(scw.ZoneFrPar1, nil)
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-2")).Return(scw.ZoneFrPar2, nil)
-				i.GetZoneOrDefault(scw.StringPtr("fr-par-3")).Return(scw.ZoneFrPar3, nil)
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
+				i.GetZoneOrDefault("fr-par-2").Return(scw.ZoneFrPar2, nil)
+				i.GetZoneOrDefault("fr-par-3").Return(scw.ZoneFrPar3, nil)
 
 				i.FindGateways(gomock.Any(), tags).Return([]*vpcgw.Gateway{
 					{
@@ -473,7 +475,7 @@ func TestService_Delete(t *testing.T) {
 			name: "no private network",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{},
+					ScalewayCluster: &infrav1.ScalewayCluster{},
 				},
 			},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {},
@@ -482,26 +484,26 @@ func TestService_Delete(t *testing.T) {
 			name: "delete gateways",
 			fields: fields{
 				Scope: &scope.Cluster{
-					ScalewayCluster: &v1alpha1.ScalewayCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayClusterSpec{
-							Network: &v1alpha1.NetworkSpec{
-								PrivateNetwork: &v1alpha1.PrivateNetworkSpec{
-									Enabled: true,
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
 								},
-								PublicGateways: []v1alpha1.PublicGatewaySpec{
-									{Zone: scw.StringPtr("fr-par-1")},
-									{Zone: scw.StringPtr("fr-par-2")},
-									{Zone: scw.StringPtr("fr-par-3")},
+								PublicGateways: []infrav1.PublicGateway{
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+									{Zone: infrav1.ScalewayZone("fr-par-2")},
+									{Zone: infrav1.ScalewayZone("fr-par-3")},
 								},
 							},
 						},
-						Status: v1alpha1.ScalewayClusterStatus{
-							Network: &v1alpha1.NetworkStatus{
-								PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
 							},
 						},
 					},

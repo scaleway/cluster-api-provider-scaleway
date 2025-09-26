@@ -7,7 +7,8 @@ import (
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -19,7 +20,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	infrav1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1" //nolint:staticcheck
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 )
@@ -126,6 +128,13 @@ func (r *ScalewayMachineReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
+	// Replace legacy finalizer with the up-to-date one.
+	if migrateFinalizer(scalewayMachine, infrav1alpha1.MachineFinalizer, infrav1.ScalewayMachineFinalizer) {
+		if err := machineScope.PatchObject(ctx); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Handle deleted machines
 	if !scalewayMachine.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, machineScope)
@@ -143,14 +152,14 @@ func (r *ScalewayMachineReconciler) reconcileNormal(ctx context.Context, machine
 	scalewayMachine := machineScope.ScalewayMachine
 
 	// Register our finalizer immediately to avoid orphaning Scaleway resources on delete
-	if controllerutil.AddFinalizer(scalewayMachine, infrav1.MachineFinalizer) {
+	if controllerutil.AddFinalizer(scalewayMachine, infrav1.ScalewayMachineFinalizer) {
 		if err := machineScope.PatchObject(ctx); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
 	// Make sure the Cluster Infrastructure is ready.
-	if !clusterScope.Cluster.Status.InfrastructureReady {
+	if !ptr.Deref(clusterScope.Cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info("Cluster infrastructure is not ready yet")
 		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
@@ -164,20 +173,15 @@ func (r *ScalewayMachineReconciler) reconcileNormal(ctx context.Context, machine
 	if err := r.createScalewayMachineService(machineScope).Reconcile(ctx); err != nil {
 		// Handle terminal & transient errors
 		var reconcileError *scaleway.ReconcileError
-		if errors.As(err, &reconcileError) {
-			if reconcileError.IsTerminal() {
-				log.Error(err, "Failed to reconcile ScalewayMachine")
-				return ctrl.Result{}, nil
-			} else if reconcileError.IsTransient() {
-				log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayMachine, retrying: %s", reconcileError.Error()))
-				return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
-			}
+		if errors.As(err, &reconcileError) && reconcileError.RequeueAfter() != 0 {
+			log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayMachine, retrying: %s", reconcileError.Error()))
+			return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
 		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile machine services: %w", err)
 	}
 
-	scalewayMachine.Status.Ready = true
+	scalewayMachine.Status.Initialization.Provisioned = ptr.To(true)
 
 	return ctrl.Result{}, nil
 }
@@ -190,18 +194,16 @@ func (r *ScalewayMachineReconciler) reconcileDelete(ctx context.Context, machine
 	if err := r.createScalewayMachineService(machineScope).Delete(ctx); err != nil {
 		// Handle transient errors
 		var reconcileError *scaleway.ReconcileError
-		if errors.As(err, &reconcileError) {
-			if reconcileError.IsTransient() {
-				log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayMachine, retrying: %s", reconcileError.Error()))
-				return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
-			}
+		if errors.As(err, &reconcileError) && reconcileError.RequeueAfter() != 0 {
+			log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayMachine, retrying: %s", reconcileError.Error()))
+			return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
 		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to delete machine services: %w", err)
 	}
 
 	// Machine is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(machineScope.ScalewayMachine, infrav1.MachineFinalizer)
+	controllerutil.RemoveFinalizer(machineScope.ScalewayMachine, infrav1.ScalewayMachineFinalizer)
 
 	return ctrl.Result{}, nil
 }
@@ -215,14 +217,14 @@ func (r *ScalewayMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("ScalewayMachine"))),
-			builder.WithPredicates(MachineUpdateNodeRefAvailable()),
+			builder.WithPredicates(machineUpdateNodeRefAvailable()),
 		).
 		Named("scalewaymachine").
 		Complete(r)
 }
 
-// MachineUpdateNodeRefAvailable is a predicate that checks if the Machine's NodeRef has become available.
-func MachineUpdateNodeRefAvailable() predicate.Funcs {
+// machineUpdateNodeRefAvailable is a predicate that checks if the Machine's NodeRef has become available.
+func machineUpdateNodeRefAvailable() predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldCluster, ok := e.ObjectOld.(*clusterv1.Machine)
@@ -235,7 +237,7 @@ func MachineUpdateNodeRefAvailable() predicate.Funcs {
 				return false
 			}
 
-			return oldCluster.Status.NodeRef == nil && newCluster.Status.NodeRef != nil
+			return !oldCluster.Status.NodeRef.IsDefined() && newCluster.Status.NodeRef.IsDefined()
 		},
 		CreateFunc:  func(event.CreateEvent) bool { return false },
 		DeleteFunc:  func(event.DeleteEvent) bool { return false },

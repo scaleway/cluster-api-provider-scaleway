@@ -6,21 +6,26 @@ import (
 	"fmt"
 	"time"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/util/conditions"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
-	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 type Scope interface {
 	scope.Interface
+	conditions.Setter
 
 	HasPrivateNetwork() bool
 	IsVPCStatusSet() bool
 	SetVPCStatus(privateNetworkID, VPCID string)
-	PrivateNetworkParams() infrav1.PrivateNetworkParams
+	PrivateNetwork() infrav1.PrivateNetwork
 }
 
 type Service struct {
@@ -40,18 +45,19 @@ func (s *Service) Delete(ctx context.Context) error {
 		return nil
 	}
 
-	params := s.PrivateNetworkParams()
+	params := s.PrivateNetwork()
 
 	// User has provided his private network, we should not touch it.
-	if params.ID != nil {
+	if params.ID != "" {
 		return nil
 	}
 
-	pn, err := s.Cloud().FindPrivateNetwork(
-		ctx,
-		s.ResourceTags(),
-		params.VPCID,
-	)
+	var vpcID *string
+	if params.VPCID != "" {
+		vpcID = ptr.To(string(params.VPCID))
+	}
+
+	pn, err := s.Cloud().FindPrivateNetwork(ctx, s.ResourceTags(), vpcID)
 	if err != nil {
 		if errors.Is(err, client.ErrNoItemFound) {
 			return nil
@@ -80,63 +86,84 @@ func (s *Service) Delete(ctx context.Context) error {
 
 func (s *Service) Reconcile(ctx context.Context) error {
 	if !s.HasPrivateNetwork() {
+		conditions.Set(s, metav1.Condition{
+			Type:   infrav1.PrivateNetworkReadyCondition,
+			Status: metav1.ConditionTrue,
+			Reason: infrav1.NoPrivateNetworkReason,
+		})
 		return nil
 	}
 
-	// If the VPC and Private Network IDs are already set in the status, we don't need to do anything.
-	if s.IsVPCStatusSet() {
+	// If status is already configured, we don't need to do anything.
+	if conditions.IsTrue(s, infrav1.PrivateNetworkReadyCondition) && s.IsVPCStatusSet() {
 		return nil
 	}
 
-	params := s.PrivateNetworkParams()
+	params := s.PrivateNetwork()
 
 	var err error
 	var pn *vpc.PrivateNetwork
 
-	if pnID := params.ID; pnID != nil {
-		pn, err = s.Cloud().GetPrivateNetwork(ctx, *pnID)
+	if pnID := params.ID; pnID != "" {
+		pn, err = s.Cloud().GetPrivateNetwork(ctx, string(pnID))
 		if err != nil {
+			conditions.Set(s, metav1.Condition{
+				Type:    infrav1.PrivateNetworkReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  infrav1.PrivateNetworkNotFoundReason,
+				Message: err.Error(),
+			})
 			return fmt.Errorf("failed to get existing Private Network: %w", err)
 		}
 	} else {
 		pn, err = s.getOrCreatePN(ctx, params)
 		if err != nil {
+			conditions.Set(s, metav1.Condition{
+				Type:    infrav1.PrivateNetworkReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  infrav1.CreationFailedReason,
+				Message: err.Error(),
+			})
 			return fmt.Errorf("failed to get or create Private Network: %w", err)
 		}
 	}
 
 	s.SetVPCStatus(pn.ID, pn.VpcID)
 
+	conditions.Set(s, metav1.Condition{
+		Type:   infrav1.PrivateNetworkReadyCondition,
+		Status: metav1.ConditionTrue,
+		Reason: infrav1.ReadyReason,
+	})
+
 	return nil
 }
 
-func (s *Service) getOrCreatePN(ctx context.Context, params infrav1.PrivateNetworkParams) (*vpc.PrivateNetwork, error) {
-	pn, err := s.Cloud().FindPrivateNetwork(
-		ctx,
-		s.ResourceTags(),
-		params.VPCID,
-	)
+func (s *Service) getOrCreatePN(ctx context.Context, params infrav1.PrivateNetwork) (*vpc.PrivateNetwork, error) {
+	var vpcID *string
+	if params.VPCID != "" {
+		vpcID = ptr.To(string(params.VPCID))
+	}
+
+	pn, err := s.Cloud().FindPrivateNetwork(ctx, s.ResourceTags(), vpcID)
 	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
 		return nil, err
 	}
 
+	var subnet *string
+	if params.Subnet != "" {
+		subnet = ptr.To(string(params.Subnet))
+	}
+
 	if pn == nil {
-		pn, err = s.Cloud().CreatePrivateNetwork(
-			ctx,
-			s.ResourceName(),
-			params.VPCID,
-			params.Subnet,
-			s.ResourceTags(),
-		)
+		pn, err = s.Cloud().CreatePrivateNetwork(ctx, s.ResourceName(), vpcID, subnet, s.ResourceTags())
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if !pn.DHCPEnabled {
-		return nil, scaleway.WithTerminalError(
-			fmt.Errorf("Private Network with ID %s is not supported: DHCP is not enabled", pn.ID),
-		)
+		return nil, fmt.Errorf("Private Network with ID %s is not supported: DHCP is not enabled", pn.ID)
 	}
 
 	return pn, nil

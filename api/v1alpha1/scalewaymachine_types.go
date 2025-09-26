@@ -2,7 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 )
 
 const MachineFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sm-protection"
@@ -115,7 +115,7 @@ type ImageSpec struct {
 type ScalewayMachineStatus struct {
 	// Addresses contains the associated addresses for the machine.
 	// +optional
-	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`
 
 	// Ready denotes that the Scaleway machine infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
@@ -131,7 +131,7 @@ type ScalewayMachineStatus struct {
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Node provider ID"
 // +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready",description="Indicates whether the Scaleway machine is ready"
 // +kubebuilder:resource:path=scalewaymachines,scope=Namespaced,categories=cluster-api,shortName=sm
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 
 // ScalewayMachine is the Schema for the scalewaymachines API.
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 63",message="name must be between 1 and 63 characters"
@@ -155,5 +155,5 @@ type ScalewayMachineList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayMachine{}, &ScalewayMachineList{})
+	objectTypes = append(objectTypes, &ScalewayMachine{}, &ScalewayMachineList{})
 }

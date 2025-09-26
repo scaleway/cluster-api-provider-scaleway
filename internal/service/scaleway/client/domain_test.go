@@ -5,10 +5,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+	"k8s.io/utils/ptr"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const (
@@ -243,7 +245,7 @@ func TestClient_SetDNSZoneRecords(t *testing.T) {
 										Priority: 0,
 										TTL:      60,
 										Type:     domain.RecordTypeA,
-										Comment:  scw.StringPtr(createdByDescription),
+										Comment:  ptr.To(createdByDescription),
 									},
 									{
 										Data:     "127.0.0.2",
@@ -251,7 +253,7 @@ func TestClient_SetDNSZoneRecords(t *testing.T) {
 										Priority: 0,
 										TTL:      60,
 										Type:     domain.RecordTypeA,
-										Comment:  scw.StringPtr(createdByDescription),
+										Comment:  ptr.To(createdByDescription),
 									},
 									{
 										Data:     "127.0.0.3",
@@ -259,7 +261,7 @@ func TestClient_SetDNSZoneRecords(t *testing.T) {
 										Priority: 0,
 										TTL:      60,
 										Type:     domain.RecordTypeA,
-										Comment:  scw.StringPtr(createdByDescription),
+										Comment:  ptr.To(createdByDescription),
 									},
 								},
 							},

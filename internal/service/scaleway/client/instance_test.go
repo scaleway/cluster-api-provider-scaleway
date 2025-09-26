@@ -8,10 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+	"k8s.io/utils/ptr"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const (
@@ -61,7 +63,7 @@ func TestClient_FindServer(t *testing.T) {
 				d.ListServers(&instance.ListServersRequest{
 					Zone:    scw.ZoneFrPar1,
 					Tags:    []string{"tag1", "tag2"},
-					Project: scw.StringPtr(projectID),
+					Project: ptr.To(projectID),
 				}, gomock.Any()).Return(&instance.ListServersResponse{}, nil)
 			},
 		},
@@ -80,7 +82,7 @@ func TestClient_FindServer(t *testing.T) {
 				d.ListServers(&instance.ListServersRequest{
 					Zone:    scw.ZoneFrPar1,
 					Tags:    []string{"tag1", "tag2"},
-					Project: scw.StringPtr(projectID),
+					Project: ptr.To(projectID),
 				}, gomock.Any()).Return(&instance.ListServersResponse{
 					TotalCount: 1,
 					Servers: []*instance.Server{
@@ -111,7 +113,7 @@ func TestClient_FindServer(t *testing.T) {
 				d.ListServers(&instance.ListServersRequest{
 					Zone:    scw.ZoneFrPar1,
 					Tags:    []string{"tag1", "tag2"},
-					Project: scw.StringPtr(projectID),
+					Project: ptr.To(projectID),
 				}, gomock.Any()).Return(&instance.ListServersResponse{
 					TotalCount: 2,
 					Servers: []*instance.Server{
@@ -198,8 +200,8 @@ func TestClient_CreateServer(t *testing.T) {
 				name:             "server",
 				commercialType:   "DEV1-S",
 				imageID:          imageID,
-				placementGroupID: scw.StringPtr(placementGroupID),
-				securityGroupID:  scw.StringPtr(securityGroupID),
+				placementGroupID: ptr.To(placementGroupID),
+				securityGroupID:  ptr.To(securityGroupID),
 				rootVolumeSize:   rootVolumeSize,
 				rootVolumeType:   instance.VolumeVolumeTypeBSSD,
 				tags:             []string{"tag1", "tag2", "tag3"},
@@ -214,15 +216,15 @@ func TestClient_CreateServer(t *testing.T) {
 					Zone:              scw.ZoneFrPar1,
 					Name:              "server",
 					CommercialType:    "DEV1-S",
-					DynamicIPRequired: scw.BoolPtr(false),
-					Image:             scw.StringPtr(imageID),
-					PlacementGroup:    scw.StringPtr(placementGroupID),
-					SecurityGroup:     scw.StringPtr(securityGroupID),
+					DynamicIPRequired: ptr.To(false),
+					Image:             ptr.To(imageID),
+					PlacementGroup:    ptr.To(placementGroupID),
+					SecurityGroup:     ptr.To(securityGroupID),
 					Volumes: map[string]*instance.VolumeServerTemplate{
 						"0": {
-							Size:       scw.SizePtr(rootVolumeSize),
+							Size:       ptr.To(rootVolumeSize),
 							VolumeType: instance.VolumeVolumeTypeBSSD,
-							Boot:       scw.BoolPtr(true),
+							Boot:       ptr.To(true),
 						},
 					},
 					Tags: []string{"tag1", "tag2", "tag3", createdByTag},
@@ -248,8 +250,8 @@ func TestClient_CreateServer(t *testing.T) {
 				name:             "server",
 				commercialType:   "H100-1-80G",
 				imageID:          imageID,
-				placementGroupID: scw.StringPtr(placementGroupID),
-				securityGroupID:  scw.StringPtr(securityGroupID),
+				placementGroupID: ptr.To(placementGroupID),
+				securityGroupID:  ptr.To(securityGroupID),
 				rootVolumeSize:   rootVolumeSize,
 				rootVolumeType:   instance.VolumeVolumeTypeBSSD,
 				tags:             []string{"tag1", "tag2", "tag3"},
@@ -259,26 +261,26 @@ func TestClient_CreateServer(t *testing.T) {
 					Zone: scw.ZoneFrPar2,
 					Name: "H100-1-80G",
 				}).Return(&instance.ServerType{
-					ScratchStorageMaxSize: scw.SizePtr(scratchVolumeSize),
+					ScratchStorageMaxSize: ptr.To(scratchVolumeSize),
 				}, nil)
 
 				d.CreateServer(&instance.CreateServerRequest{
 					Zone:              scw.ZoneFrPar2,
 					Name:              "server",
 					CommercialType:    "H100-1-80G",
-					DynamicIPRequired: scw.BoolPtr(false),
-					Image:             scw.StringPtr(imageID),
-					PlacementGroup:    scw.StringPtr(placementGroupID),
-					SecurityGroup:     scw.StringPtr(securityGroupID),
+					DynamicIPRequired: ptr.To(false),
+					Image:             ptr.To(imageID),
+					PlacementGroup:    ptr.To(placementGroupID),
+					SecurityGroup:     ptr.To(securityGroupID),
 					Volumes: map[string]*instance.VolumeServerTemplate{
 						"0": {
-							Size:       scw.SizePtr(rootVolumeSize),
+							Size:       ptr.To(rootVolumeSize),
 							VolumeType: instance.VolumeVolumeTypeBSSD,
-							Boot:       scw.BoolPtr(true),
+							Boot:       ptr.To(true),
 						},
 						"1": {
-							Name:       scw.StringPtr("server-scratch"),
-							Size:       scw.SizePtr(scratchVolumeSize),
+							Name:       ptr.To("server-scratch"),
+							Size:       ptr.To(scratchVolumeSize),
 							VolumeType: instance.VolumeVolumeTypeScratch,
 						},
 					},
@@ -359,9 +361,9 @@ func TestClient_FindImage(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListImages(&instance.ListImagesRequest{
 					Zone:    scw.ZoneFrPar1,
-					Project: scw.StringPtr(projectID),
-					Name:    scw.StringPtr("my-image"),
-					Public:  scw.BoolPtr(false),
+					Project: ptr.To(projectID),
+					Name:    ptr.To("my-image"),
+					Public:  ptr.To(false),
 				}, gomock.Any()).Return(&instance.ListImagesResponse{}, nil)
 			},
 		},
@@ -379,9 +381,9 @@ func TestClient_FindImage(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListImages(&instance.ListImagesRequest{
 					Zone:    scw.ZoneFrPar1,
-					Project: scw.StringPtr(projectID),
-					Name:    scw.StringPtr("my-image"),
-					Public:  scw.BoolPtr(false),
+					Project: ptr.To(projectID),
+					Name:    ptr.To("my-image"),
+					Public:  ptr.To(false),
 				}, gomock.Any()).Return(&instance.ListImagesResponse{
 					TotalCount: 1,
 					Images: []*instance.Image{
@@ -409,9 +411,9 @@ func TestClient_FindImage(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListImages(&instance.ListImagesRequest{
 					Zone:    scw.ZoneFrPar1,
-					Project: scw.StringPtr(projectID),
-					Name:    scw.StringPtr("my-image"),
-					Public:  scw.BoolPtr(false),
+					Project: ptr.To(projectID),
+					Name:    ptr.To("my-image"),
+					Public:  ptr.To(false),
 				}, gomock.Any()).Return(&instance.ListImagesResponse{
 					TotalCount: 2,
 					Images: []*instance.Image{
@@ -491,7 +493,7 @@ func TestClient_FindIPs(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListIPs(&instance.ListIPsRequest{
 					Zone:    scw.ZoneFrPar1,
-					Project: scw.StringPtr(projectID),
+					Project: ptr.To(projectID),
 					Tags:    []string{"tag1", "tag2", "tag3"},
 				}, gomock.Any(), gomock.Any()).Return(&instance.ListIPsResponse{}, nil)
 			},
@@ -510,7 +512,7 @@ func TestClient_FindIPs(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListIPs(&instance.ListIPsRequest{
 					Zone:    scw.ZoneFrPar1,
-					Project: scw.StringPtr(projectID),
+					Project: ptr.To(projectID),
 					Tags:    []string{"tag1", "tag2", "tag3"},
 				}, gomock.Any(), gomock.Any()).Return(&instance.ListIPsResponse{
 					TotalCount: 2,
@@ -1499,8 +1501,8 @@ func TestClient_FindPlacementGroup(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListPlacementGroups(&instance.ListPlacementGroupsRequest{
 					Zone:    scw.ZoneFrPar1,
-					Name:    scw.StringPtr("test-placement-group"),
-					Project: scw.StringPtr(projectID),
+					Name:    ptr.To("test-placement-group"),
+					Project: ptr.To(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&instance.ListPlacementGroupsResponse{}, nil)
 			},
 		},
@@ -1522,8 +1524,8 @@ func TestClient_FindPlacementGroup(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListPlacementGroups(&instance.ListPlacementGroupsRequest{
 					Zone:    scw.ZoneFrPar1,
-					Name:    scw.StringPtr("test-placement-group"),
-					Project: scw.StringPtr(projectID),
+					Name:    ptr.To("test-placement-group"),
+					Project: ptr.To(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&instance.ListPlacementGroupsResponse{
 					TotalCount: 1,
 					PlacementGroups: []*instance.PlacementGroup{
@@ -1550,8 +1552,8 @@ func TestClient_FindPlacementGroup(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListPlacementGroups(&instance.ListPlacementGroupsRequest{
 					Zone:    scw.ZoneFrPar1,
-					Name:    scw.StringPtr("test-placement-group"),
-					Project: scw.StringPtr(projectID),
+					Name:    ptr.To("test-placement-group"),
+					Project: ptr.To(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&instance.ListPlacementGroupsResponse{
 					TotalCount: 2,
 					PlacementGroups: []*instance.PlacementGroup{
@@ -1631,8 +1633,8 @@ func TestClient_FindSecurityGroup(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListSecurityGroups(&instance.ListSecurityGroupsRequest{
 					Zone:    scw.ZoneFrPar1,
-					Name:    scw.StringPtr("test-security-group"),
-					Project: scw.StringPtr(projectID),
+					Name:    ptr.To("test-security-group"),
+					Project: ptr.To(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&instance.ListSecurityGroupsResponse{}, nil)
 			},
 		},
@@ -1654,8 +1656,8 @@ func TestClient_FindSecurityGroup(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListSecurityGroups(&instance.ListSecurityGroupsRequest{
 					Zone:    scw.ZoneFrPar1,
-					Name:    scw.StringPtr("test-security-group"),
-					Project: scw.StringPtr(projectID),
+					Name:    ptr.To("test-security-group"),
+					Project: ptr.To(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&instance.ListSecurityGroupsResponse{
 					TotalCount: 1,
 					SecurityGroups: []*instance.SecurityGroup{
@@ -1682,8 +1684,8 @@ func TestClient_FindSecurityGroup(t *testing.T) {
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListSecurityGroups(&instance.ListSecurityGroupsRequest{
 					Zone:    scw.ZoneFrPar1,
-					Name:    scw.StringPtr("test-security-group"),
-					Project: scw.StringPtr(projectID),
+					Name:    ptr.To("test-security-group"),
+					Project: ptr.To(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&instance.ListSecurityGroupsResponse{
 					TotalCount: 2,
 					SecurityGroups: []*instance.SecurityGroup{

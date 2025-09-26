@@ -8,19 +8,21 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 )
 
 var _ = Describe("ScalewayManagedCluster Controller", func() {
@@ -45,7 +47,7 @@ var _ = Describe("ScalewayManagedCluster Controller", func() {
 						Namespace: "default",
 					},
 					Spec: infrav1.ScalewayManagedClusterSpec{
-						Region:             string(scw.RegionFrPar),
+						Region:             infrav1.ScalewayRegion(scw.RegionFrPar),
 						ProjectID:          "11111111-1111-1111-1111-111111111111",
 						ScalewaySecretName: "test-secret",
 					},
@@ -99,7 +101,7 @@ var _ = Describe("ScalewayManagedCluster", func() {
 							Namespace: "default",
 						},
 						Spec: infrav1.ScalewayManagedClusterSpec{
-							Region:             string(scw.RegionFrPar),
+							Region:             infrav1.ScalewayRegion(scw.RegionFrPar),
 							ProjectID:          "11111111-1111-1111-1111-111111111111",
 							ScalewaySecretName: "test-secret",
 						},
@@ -153,9 +155,9 @@ var _ = Describe("ScalewayManagedCluster", func() {
 				err := k8sClient.Get(ctx, typeNamespacedName, resource)
 				Expect(err).NotTo(HaveOccurred())
 
-				resource.Spec.Network = &infrav1.ManagedNetworkSpec{
-					PrivateNetwork: &infrav1.PrivateNetworkParams{
-						ID: scw.StringPtr("11111111-1111-1111-1111-111111111111"),
+				resource.Spec.Network = infrav1.ScalewayManagedClusterNetwork{
+					PrivateNetwork: infrav1.PrivateNetwork{
+						ID: "11111111-1111-1111-1111-111111111111",
 					},
 				}
 				Expect(k8sClient.Update(ctx, resource)).NotTo(Succeed())
@@ -182,7 +184,7 @@ var _ = Describe("ScalewayManagedCluster", func() {
 						},
 						Spec: infrav1.ScalewayManagedClusterSpec{
 							ProjectID:          "11111111-1111-1111-1111-111111111111",
-							Region:             string(scw.RegionFrPar),
+							Region:             infrav1.ScalewayRegion(scw.RegionFrPar),
 							ScalewaySecretName: "secret",
 							ControlPlaneEndpoint: clusterv1.APIEndpoint{
 								Host: "42.42.42.42",
@@ -324,9 +326,8 @@ func TestScalewayManagedClusterReconciler_Reconcile(t *testing.T) {
 						Namespace: clusterNamespacedName.Namespace,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: &corev1.ObjectReference{
-							Name:      scalewayManagedControlPlaneNamespacedName.Name,
-							Namespace: scalewayManagedControlPlaneNamespacedName.Namespace,
+						ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedControlPlaneNamespacedName.Name,
 						},
 					},
 				},
@@ -345,10 +346,11 @@ func TestScalewayManagedClusterReconciler_Reconcile(t *testing.T) {
 				// ScalewayManagedCluster checks
 				sc := &infrav1.ScalewayManagedCluster{}
 				g.Expect(c.Get(context.TODO(), scalewayManagedClusterNamespacedName, sc)).To(Succeed())
-				g.Expect(sc.Status.Ready).To(BeTrue())
+				g.Expect(sc.Status.Initialization.Provisioned).NotTo(BeNil())
+				g.Expect(*sc.Status.Initialization.Provisioned).To(BeTrue())
 				g.Expect(sc.Spec.ControlPlaneEndpoint.Host).To(Equal(managedEndpoint.Host))
 				g.Expect(sc.Spec.ControlPlaneEndpoint.Port).To(Equal(managedEndpoint.Port))
-				g.Expect(sc.Finalizers).To(ContainElement(infrav1.ManagedClusterFinalizer))
+				g.Expect(sc.Finalizers).To(ContainElement(infrav1.ScalewayManagedClusterFinalizer))
 
 				// Secret checks
 				s := &corev1.Secret{}
@@ -385,7 +387,7 @@ func TestScalewayManagedClusterReconciler_Reconcile(t *testing.T) {
 								APIVersion: clusterv1.GroupVersion.String(),
 							},
 						},
-						Finalizers:        []string{infrav1.ManagedClusterFinalizer},
+						Finalizers:        []string{infrav1.ScalewayManagedClusterFinalizer},
 						DeletionTimestamp: &metav1.Time{Time: time.Now()},
 					},
 					Spec: infrav1.ScalewayManagedClusterSpec{
@@ -400,9 +402,8 @@ func TestScalewayManagedClusterReconciler_Reconcile(t *testing.T) {
 						Namespace: clusterNamespacedName.Namespace,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: &corev1.ObjectReference{
-							Name:      scalewayManagedControlPlaneNamespacedName.Name,
-							Namespace: scalewayManagedControlPlaneNamespacedName.Namespace,
+						ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedControlPlaneNamespacedName.Name,
 						},
 					},
 				},
