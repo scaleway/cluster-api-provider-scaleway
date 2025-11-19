@@ -5,10 +5,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	"github.com/scaleway/scaleway-sdk-go/api/marketplace/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const marketplaceImageID = "11111111-1111-1111-1111-111111111111"

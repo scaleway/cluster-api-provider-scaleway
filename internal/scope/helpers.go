@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"golang.org/x/crypto/blake2b"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 )
 
 const base36set = "0123456789abcdefghijklmnopqrstuvwxyz"
@@ -40,14 +41,14 @@ func newScalewayClient(ctx context.Context, c client.Client, region, projectID s
 }
 
 func newScalewayClientForScalewayCluster(ctx context.Context, c client.Client, sc *infrav1.ScalewayCluster) (*scwClient.Client, error) {
-	return newScalewayClient(ctx, c, sc.Spec.Region, sc.Spec.ProjectID, types.NamespacedName{
+	return newScalewayClient(ctx, c, string(sc.Spec.Region), string(sc.Spec.ProjectID), types.NamespacedName{
 		Namespace: sc.Namespace,
 		Name:      sc.Spec.ScalewaySecretName,
 	})
 }
 
 func newScalewayClientForScalewayManagedCluster(ctx context.Context, c client.Client, smc *infrav1.ScalewayManagedCluster) (*scwClient.Client, error) {
-	return newScalewayClient(ctx, c, smc.Spec.Region, smc.Spec.ProjectID, types.NamespacedName{
+	return newScalewayClient(ctx, c, string(smc.Spec.Region), string(smc.Spec.ProjectID), types.NamespacedName{
 		Namespace: smc.Namespace,
 		Name:      smc.Spec.ScalewaySecretName,
 	})

@@ -5,6 +5,7 @@ import (
 
 	"github.com/scaleway/scaleway-sdk-go/api/ipam/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"k8s.io/utils/ptr"
 )
 
 type IPAMAPI interface {
@@ -24,7 +25,7 @@ func (c *Client) FindPrivateNICIPs(ctx context.Context, privateNICID string) ([]
 		ProjectID:    &c.projectID,
 		ResourceType: ipam.ResourceTypeInstancePrivateNic,
 		ResourceID:   &privateNICID,
-		IsIPv6:       scw.BoolPtr(false),
+		IsIPv6:       ptr.To(false),
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListIPs", err)
@@ -39,7 +40,7 @@ func (c *Client) FindLBServersIPs(ctx context.Context, privateNetworkID string, 
 		ResourceType:     ipam.ResourceTypeLBServer,
 		ResourceIDs:      lbIDs,
 		PrivateNetworkID: &privateNetworkID,
-		IsIPv6:           scw.BoolPtr(false),
+		IsIPv6:           ptr.To(false),
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListIPs", err)
@@ -52,8 +53,8 @@ func (c *Client) FindAvailableIPs(ctx context.Context, privateNetworkID string) 
 	ips, err := c.ipam.ListIPs(&ipam.ListIPsRequest{
 		ProjectID:        &c.projectID,
 		PrivateNetworkID: &privateNetworkID,
-		IsIPv6:           scw.BoolPtr(false),
-		Attached:         scw.BoolPtr(false),
+		IsIPv6:           ptr.To(false),
+		Attached:         ptr.To(false),
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListIPs", err)
@@ -66,7 +67,7 @@ func (c *Client) CleanAvailableIPs(ctx context.Context, privateNetworkID string)
 	resp, err := c.ipam.ListIPs(&ipam.ListIPsRequest{
 		ProjectID:        &c.projectID,
 		PrivateNetworkID: &privateNetworkID,
-		Attached:         scw.BoolPtr(false),
+		Attached:         ptr.To(false),
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return newCallError("ListIPs", err)

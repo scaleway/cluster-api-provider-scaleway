@@ -9,7 +9,7 @@ This document describes the various configuration options you can set to configu
 The `ScalewayManagedMachinePool` with the minimum options looks like this:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool
@@ -24,7 +24,7 @@ spec:
 You can configure additional tags that will be set on the created pool:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool
@@ -45,7 +45,7 @@ spec:
 You can enable autohealing in the pool:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool
@@ -60,7 +60,7 @@ spec:
 You can set specify a Security Group and Placement Group ID during the creation of the pool:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool
@@ -76,7 +76,7 @@ spec:
 You can enable autoscaling on the pool and set the min/max size of the pool:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool
@@ -94,7 +94,7 @@ spec:
 You can set the upgrade policy of the pool:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool
@@ -111,7 +111,7 @@ spec:
 You can set Kubelet args on the pool:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool
@@ -120,7 +120,7 @@ spec:
   # some fields were omitted...
   kubeletArgs:
     containerLogMaxFiles: "10"
-    registryPullQPS: "10
+    registryPullQPS: "10"
 ```
 
 You can use the Scaleway CLI to list the available kubelet args: `$ scw k8s version list -o json | jq`.
@@ -130,7 +130,7 @@ You can use the Scaleway CLI to list the available kubelet args: `$ scw k8s vers
 You can configure the root volume of the nodes of the pool:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool
@@ -146,7 +146,7 @@ spec:
 You can disable adding a public IP on the nodes of the pool:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: my-cluster-managed-machine-pool

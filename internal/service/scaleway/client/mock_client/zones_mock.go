@@ -117,7 +117,7 @@ func (c *MockZonesGetControlPlaneZonesCall) DoAndReturn(f func() []scw.Zone) *Mo
 }
 
 // GetZoneOrDefault mocks base method.
-func (m *MockZones) GetZoneOrDefault(zone *string) (scw.Zone, error) {
+func (m *MockZones) GetZoneOrDefault(zone string) (scw.Zone, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetZoneOrDefault", zone)
 	ret0, _ := ret[0].(scw.Zone)
@@ -144,13 +144,13 @@ func (c *MockZonesGetZoneOrDefaultCall) Return(arg0 scw.Zone, arg1 error) *MockZ
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockZonesGetZoneOrDefaultCall) Do(f func(*string) (scw.Zone, error)) *MockZonesGetZoneOrDefaultCall {
+func (c *MockZonesGetZoneOrDefaultCall) Do(f func(string) (scw.Zone, error)) *MockZonesGetZoneOrDefaultCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockZonesGetZoneOrDefaultCall) DoAndReturn(f func(*string) (scw.Zone, error)) *MockZonesGetZoneOrDefaultCall {
+func (c *MockZonesGetZoneOrDefaultCall) DoAndReturn(f func(string) (scw.Zone, error)) *MockZonesGetZoneOrDefaultCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

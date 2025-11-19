@@ -2,7 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 )
 
 const ClusterFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sc-protection"
@@ -48,7 +48,7 @@ type ScalewayClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
 }
 
 // NetworkSpec defines network specific settings.
@@ -190,7 +190,7 @@ type ScalewayClusterStatus struct {
 
 	// FailureDomains is a list of failure domain objects synced from the infrastructure provider.
 	// +optional
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 }
 
 // NetworkStatus contains information about network resources of the cluster.
@@ -223,7 +223,7 @@ type NetworkStatus struct {
 // +kubebuilder:printcolumn:name="Region",type="string",JSONPath=".spec.region",description="Region of the cluster"
 // +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready",description="Ready is true when the cluster is fully provisioned"
 // +kubebuilder:resource:path=scalewayclusters,scope=Namespaced,categories=cluster-api,shortName=sc
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 
 // ScalewayCluster is the Schema for the scalewayclusters API.
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 63",message="name must be between 1 and 63 characters"
@@ -246,5 +246,5 @@ type ScalewayClusterList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayCluster{}, &ScalewayClusterList{})
+	objectTypes = append(objectTypes, &ScalewayCluster{}, &ScalewayClusterList{})
 }

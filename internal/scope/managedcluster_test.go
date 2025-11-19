@@ -3,9 +3,10 @@ package scope
 import (
 	"testing"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"sigs.k8s.io/cluster-api/util/patch"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 )
 
 func TestManagedCluster_HasPrivateNetwork(t *testing.T) {
@@ -64,10 +65,10 @@ func TestManagedCluster_HasPrivateNetwork(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &ManagedCluster{
-				patchHelper:         tt.fields.patchHelper,
-				ManagedCluster:      tt.fields.ManagedCluster,
-				ManagedControlPlane: tt.fields.ManagedControlPlane,
-				ScalewayClient:      tt.fields.ScalewayClient,
+				patchHelper:                 tt.fields.patchHelper,
+				ScalewayManagedCluster:      tt.fields.ManagedCluster,
+				ScalewayManagedControlPlane: tt.fields.ManagedControlPlane,
+				ScalewayClient:              tt.fields.ScalewayClient,
 			}
 			if got := c.HasPrivateNetwork(); got != tt.want {
 				t.Errorf("ManagedCluster.HasPrivateNetwork() = %v, want %v", got, tt.want)

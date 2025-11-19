@@ -5,14 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/scaleway-sdk-go/scw"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 )
 
 // defaultFrontendControlPlanePort is the default port for the control plane
@@ -37,27 +41,41 @@ type ClusterParams struct {
 
 // NewCluster creates a new Cluster scope.
 func NewCluster(ctx context.Context, params *ClusterParams) (*Cluster, error) {
-	c, err := newScalewayClientForScalewayCluster(ctx, params.Client, params.ScalewayCluster)
-	if err != nil {
-		return nil, err
-	}
-
 	helper, err := patch.NewHelper(params.ScalewayCluster, params.Client)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create patch helper for ScalewayCluster: %w", err)
 	}
 
-	return &Cluster{
+	scope := &Cluster{
 		patchHelper:     helper,
 		ScalewayCluster: params.ScalewayCluster,
-		ScalewayClient:  c,
 		Cluster:         params.Cluster,
-	}, nil
+	}
+
+	scope.ScalewayClient, err = newScalewayClientForScalewayCluster(ctx, params.Client, params.ScalewayCluster)
+	if err != nil {
+		return nil, errors.Join(err, scope.Close(ctx))
+	}
+
+	return scope, nil
 }
 
 // PatchObject patches the ScalewayCluster object.
 func (c *Cluster) PatchObject(ctx context.Context) error {
-	return c.patchHelper.Patch(ctx, c.ScalewayCluster)
+	summaryConditions := []string{
+		infrav1.PrivateNetworkReadyCondition,
+		infrav1.PublicGatewaysReadyCondition,
+		infrav1.ScalewayClusterLoadBalancersReadyCondition,
+		infrav1.ScalewayClusterDomainReadyCondition,
+	}
+
+	if err := conditions.SetSummaryCondition(c.ScalewayCluster, c.ScalewayCluster, infrav1.ScalewayClusterReadyCondition, conditions.ForConditionTypes(summaryConditions)); err != nil {
+		return err
+	}
+
+	return c.patchHelper.Patch(ctx, c.ScalewayCluster, patch.WithOwnedConditions{
+		Conditions: append(summaryConditions, infrav1.ScalewayClusterReadyCondition),
+	})
 }
 
 // Close closes the Cluster scope by patching the ScalewayCluster object.
@@ -93,17 +111,12 @@ func (c *Cluster) Cloud() scwClient.Interface {
 
 // HasPrivateNetwork returns true if the cluster has a Private Network.
 func (c *Cluster) HasPrivateNetwork() bool {
-	return c.ScalewayCluster.Spec.Network != nil &&
-		c.ScalewayCluster.Spec.Network.PrivateNetwork.Enabled
+	return ptr.Deref(c.ScalewayCluster.Spec.Network.PrivateNetwork.Enabled, false)
 }
 
 // PrivateNetworkParams returns the private network parameters.
-func (c *Cluster) PrivateNetworkParams() infrav1.PrivateNetworkParams {
-	if c.ScalewayCluster.Spec.Network == nil || c.ScalewayCluster.Spec.Network.PrivateNetwork == nil {
-		return infrav1.PrivateNetworkParams{}
-	}
-
-	return c.ScalewayCluster.Spec.Network.PrivateNetwork.PrivateNetworkParams
+func (c *Cluster) PrivateNetwork() infrav1.PrivateNetwork {
+	return c.ScalewayCluster.Spec.Network.PrivateNetwork.PrivateNetwork
 }
 
 // PrivateNetworkID returns the PrivateNetwork ID of the cluster, obtained from
@@ -113,11 +126,11 @@ func (c *Cluster) PrivateNetworkID() (string, error) {
 		return "", errors.New("cluster has no Private Network")
 	}
 
-	if c.ScalewayCluster.Status.Network == nil || c.ScalewayCluster.Status.Network.PrivateNetworkID == nil {
+	if c.ScalewayCluster.Status.Network.PrivateNetworkID == "" {
 		return "", errors.New("PrivateNetworkID not found in ScalewayCluster status")
 	}
 
-	return *c.ScalewayCluster.Status.Network.PrivateNetworkID, nil
+	return string(c.ScalewayCluster.Status.Network.PrivateNetworkID), nil
 }
 
 // ControlPlaneLoadBalancerPort returns the port to use for the control plane
@@ -125,9 +138,8 @@ func (c *Cluster) PrivateNetworkID() (string, error) {
 func (c *Cluster) ControlPlaneLoadBalancerPort() int32 {
 	var port int32 = defaultFrontendControlPlanePort
 
-	if c.Cluster.Spec.ClusterNetwork != nil &&
-		c.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
-		port = *c.Cluster.Spec.ClusterNetwork.APIServerPort
+	if c.Cluster.Spec.ClusterNetwork.APIServerPort != 0 {
+		port = c.Cluster.Spec.ClusterNetwork.APIServerPort
 	}
 
 	return port
@@ -136,91 +148,65 @@ func (c *Cluster) ControlPlaneLoadBalancerPort() int32 {
 // ControlPlaneLoadBalancerAllowedRanges returns the control plane loadbalancer
 // allowed ranges.
 func (c *Cluster) ControlPlaneLoadBalancerAllowedRanges() []string {
-	var result []string
-	if c.ScalewayCluster.Spec.Network != nil &&
-		c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer != nil {
-		for _, cidr := range c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.AllowedRanges {
-			result = append(result, string(cidr))
-		}
+	result := make([]string, 0, len(c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.AllowedRanges))
+
+	for _, cidr := range c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.AllowedRanges {
+		result = append(result, string(cidr))
 	}
 
 	return result
 }
 
-// HasControlPlaneDNS returns true if the cluster has an associated domain (public or private).
-func (c *Cluster) HasControlPlaneDNS() bool {
-	return c.hasControlPlaneDNS() || c.hasControlPlanePrivateDNS()
-}
-
-// hasControlPlaneDNS returns true if the cluster has an associated domain that is public.
-func (c *Cluster) hasControlPlaneDNS() bool {
-	return c.ScalewayCluster.Spec.Network != nil &&
-		c.ScalewayCluster.Spec.Network.ControlPlaneDNS != nil
-}
-
-// hasControlPlanePrivateDNS returns true if the cluster has an associated domain that is private.
-func (c *Cluster) hasControlPlanePrivateDNS() bool {
-	return c.ControlPlaneLoadBalancerPrivate() &&
-		c.ScalewayCluster.Spec.Network.ControlPlanePrivateDNS != nil
-}
-
 // ControlPlaneDNSZoneAndName returns the DNS zone and the name of the records
 // that should be updated.
 func (c *Cluster) ControlPlaneDNSZoneAndName() (string, string, error) {
-	if c.hasControlPlanePrivateDNS() {
-		if c.ScalewayCluster.Status.Network == nil {
-			return "", "", errors.New("missing network field in status")
-		}
+	cpDNS := c.ScalewayCluster.Spec.Network.ControlPlaneDNS
+	if !cpDNS.IsDefined() {
+		return "", "", errors.New("control plane has no zone or domain")
+	}
 
-		if c.ScalewayCluster.Status.Network.VPCID == nil {
+	if c.ControlPlaneLoadBalancerPrivate() {
+		if c.ScalewayCluster.Status.Network.VPCID == "" {
 			return "", "", errors.New("missing vpcID in status")
 		}
 
-		if c.ScalewayCluster.Status.Network.PrivateNetworkID == nil {
+		if c.ScalewayCluster.Status.Network.PrivateNetworkID == "" {
 			return "", "", errors.New("missing privateNetworkID in status")
 		}
 
+		// The domain field does not need to be set for the configuration of the
+		// private zone. As a special case, we use this field to override the private
+		// zone suffix.
+		zoneSuffix := "privatedns"
+		if cpDNS.Domain != "" && !strings.Contains(cpDNS.Domain, ".") {
+			zoneSuffix = cpDNS.Domain
+		}
+
 		zone := fmt.Sprintf(
-			"%s.%s.privatedns",
-			*c.ScalewayCluster.Status.Network.PrivateNetworkID,
-			*c.ScalewayCluster.Status.Network.VPCID,
+			"%s.%s.%s",
+			c.ScalewayCluster.Status.Network.PrivateNetworkID,
+			c.ScalewayCluster.Status.Network.VPCID,
+			zoneSuffix,
 		)
 
-		return zone, c.ScalewayCluster.Spec.Network.ControlPlanePrivateDNS.Name, nil
+		return zone, cpDNS.Name, nil
 	}
 
-	if c.hasControlPlaneDNS() {
-		return c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-			c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name, nil
-	}
-
-	return "", "", errors.New("control plane has no zone or domain")
+	return c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain, c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name, nil
 }
 
 // ControlPlaneHost returns the control plane host.
 func (c *Cluster) ControlPlaneHost() (string, error) {
-	if c.hasControlPlanePrivateDNS() {
-		if c.ScalewayCluster.Status.Network == nil {
-			return "", errors.New("missing network field in status")
+	if cpDNS := c.ScalewayCluster.Spec.Network.ControlPlaneDNS; cpDNS.IsDefined() {
+		if c.ControlPlaneLoadBalancerPrivate() {
+			if c.ScalewayCluster.Status.Network.PrivateNetworkID == "" {
+				return "", errors.New("missing privateNetworkID in status")
+			}
+
+			return fmt.Sprintf("%s.%s.internal", cpDNS.Name, c.ScalewayCluster.Status.Network.PrivateNetworkID), nil
 		}
 
-		if c.ScalewayCluster.Status.Network.PrivateNetworkID == nil {
-			return "", errors.New("missing privateNetworkID in status")
-		}
-
-		return fmt.Sprintf(
-			"%s.%s.internal",
-			c.ScalewayCluster.Spec.Network.ControlPlanePrivateDNS.Name,
-			*c.ScalewayCluster.Status.Network.PrivateNetworkID,
-		), nil
-	}
-
-	if c.hasControlPlaneDNS() {
-		return fmt.Sprintf(
-			"%s.%s",
-			c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Name,
-			c.ScalewayCluster.Spec.Network.ControlPlaneDNS.Domain,
-		), nil
+		return fmt.Sprintf("%s.%s", cpDNS.Name, cpDNS.Domain), nil
 	}
 
 	if ips := c.ControlPlaneLoadBalancerIPs(); len(ips) != 0 {
@@ -234,12 +220,12 @@ func (c *Cluster) ControlPlaneHost() (string, error) {
 func (c *Cluster) ControlPlaneLoadBalancerIPs() []string {
 	ips := make([]string, 0)
 
-	if network := c.ScalewayCluster.Status.Network; network != nil {
-		if network.LoadBalancerIP != nil {
-			ips = append(ips, *network.LoadBalancerIP)
-		}
+	if c.ScalewayCluster.Status.Network.LoadBalancerIP != "" {
+		ips = append(ips, string(c.ScalewayCluster.Status.Network.LoadBalancerIP))
+	}
 
-		ips = append(ips, network.ExtraLoadBalancerIPs...)
+	for _, ip := range c.ScalewayCluster.Status.Network.ExtraLoadBalancerIPs {
+		ips = append(ips, string(ip))
 	}
 
 	return slices.Sorted(slices.Values(ips))
@@ -248,69 +234,60 @@ func (c *Cluster) ControlPlaneLoadBalancerIPs() []string {
 // ControlPlaneLoadBalancerPrivate returns true if the control plane should only
 // be accessible through a private endpoint.
 func (c *Cluster) ControlPlaneLoadBalancerPrivate() bool {
-	return c.ScalewayCluster.Spec.Network != nil &&
-		c.ScalewayCluster.Spec.Network.PrivateNetwork != nil &&
-		c.ScalewayCluster.Spec.Network.PrivateNetwork.Enabled && // Private Network must be enabled.
-		c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer != nil &&
-		c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.Private != nil &&
-		*c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.Private
+	return c.HasPrivateNetwork() && ptr.Deref(c.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.Private, false)
 }
 
 // IsVPCStatusSet if the VPC fields are set in the status.
 func (c *Cluster) IsVPCStatusSet() bool {
-	return c.ScalewayCluster.Status.Network != nil &&
-		c.ScalewayCluster.Status.Network.PrivateNetworkID != nil &&
-		c.ScalewayCluster.Status.Network.VPCID != nil
+	return c.ScalewayCluster.Status.Network.PrivateNetworkID != "" &&
+		c.ScalewayCluster.Status.Network.VPCID != ""
 }
 
 // SetVPCStatus sets the VPC fields in the status.
 func (c *Cluster) SetVPCStatus(pnID, vpcID string) {
-	if c.ScalewayCluster.Status.Network == nil {
-		c.ScalewayCluster.Status.Network = &infrav1.NetworkStatus{}
-	}
-
-	c.ScalewayCluster.Status.Network.PrivateNetworkID = &pnID
-	c.ScalewayCluster.Status.Network.VPCID = &vpcID
+	c.ScalewayCluster.Status.Network.PrivateNetworkID = infrav1.UUID(pnID)
+	c.ScalewayCluster.Status.Network.VPCID = infrav1.UUID(vpcID)
 }
 
 // SetStatusLoadBalancerIP sets the loadbalancer IP in the status.
 func (c *Cluster) SetStatusLoadBalancerIP(ip string) {
-	if c.ScalewayCluster.Status.Network == nil {
-		c.ScalewayCluster.Status.Network = &infrav1.NetworkStatus{
-			LoadBalancerIP: &ip,
-		}
-	} else {
-		c.ScalewayCluster.Status.Network.LoadBalancerIP = &ip
-	}
+	c.ScalewayCluster.Status.Network.LoadBalancerIP = infrav1.IPv4(ip)
 }
 
 // SetStatusExtraLoadBalancerIPs sets the extra loadbalancer IPs in the status.
 func (c *Cluster) SetStatusExtraLoadBalancerIPs(ips []string) {
-	if c.ScalewayCluster.Status.Network == nil {
-		c.ScalewayCluster.Status.Network = &infrav1.NetworkStatus{
-			ExtraLoadBalancerIPs: ips,
-		}
-	} else {
-		c.ScalewayCluster.Status.Network.ExtraLoadBalancerIPs = ips
+	extraIPs := make([]infrav1.IPv4, 0, len(ips))
+
+	for _, ip := range ips {
+		extraIPs = append(extraIPs, infrav1.IPv4(ip))
 	}
+
+	c.ScalewayCluster.Status.Network.ExtraLoadBalancerIPs = extraIPs
 }
 
 // SetFailureDomains sets the failure domains of the cluster.
 func (c *Cluster) SetFailureDomains(zones []scw.Zone) {
-	c.ScalewayCluster.Status.FailureDomains = make(clusterv1.FailureDomains)
+	failureDomains := make([]clusterv1.FailureDomain, 0, len(zones))
 
 	for _, zone := range zones {
-		c.ScalewayCluster.Status.FailureDomains[string(zone)] = clusterv1.FailureDomainSpec{
-			ControlPlane: true,
-		}
+		failureDomains = append(failureDomains, clusterv1.FailureDomain{
+			Name:         string(zone),
+			ControlPlane: ptr.To(true),
+		})
 	}
+
+	c.ScalewayCluster.Status.FailureDomains = failureDomains
 }
 
 // PublicGateways returns the desired Public Gateways.
-func (c *Cluster) PublicGateways() []infrav1.PublicGatewaySpec {
-	if c.ScalewayCluster.Spec.Network == nil {
-		return nil
-	}
-
+func (c *Cluster) PublicGateways() []infrav1.PublicGateway {
 	return c.ScalewayCluster.Spec.Network.PublicGateways
+}
+
+func (c *Cluster) SetConditions(cond []metav1.Condition) {
+	c.ScalewayCluster.SetConditions(cond)
+}
+
+func (c *Cluster) GetConditions() []metav1.Condition {
+	return c.ScalewayCluster.GetConditions()
 }

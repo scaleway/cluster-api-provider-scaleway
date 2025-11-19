@@ -2,7 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 )
 
 const ManagedClusterFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/smc-protection"
@@ -35,7 +35,7 @@ type ScalewayManagedClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
 }
 
 // ManagedNetworkSpec defines the network configuration of a managed cluster.
@@ -79,7 +79,7 @@ type ManagedNetworkStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=scalewaymanagedclusters,scope=Namespaced,categories=cluster-api,shortName=smc
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this ScalewayManagedCluster belongs"
 // +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready",description="Ready is true when the managed cluster is fully provisioned"
 // +kubebuilder:printcolumn:name="Region",type="string",JSONPath=".spec.region",description="Region of the managed cluster"
@@ -115,5 +115,5 @@ type ScalewayManagedClusterList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayManagedCluster{}, &ScalewayManagedClusterList{})
+	objectTypes = append(objectTypes, &ScalewayManagedCluster{}, &ScalewayManagedClusterList{})
 }

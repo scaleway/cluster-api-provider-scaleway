@@ -1,18 +1,18 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: ScalewayManagedCluster
     name: ${CLUSTER_NAME}
   controlPlaneRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: ScalewayManagedControlPlane
     name: ${CLUSTER_NAME}-control-plane
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -20,11 +20,7 @@ spec:
   projectID: ${SCW_PROJECT_ID}
   region: ${SCW_REGION}
   scalewaySecretName: ${CLUSTER_NAME}
-  network:
-    privateNetwork:
-      id: ${PRIVATE_NETWORK_ID:=null}
-      vpcID: ${VPC_ID:=null}
-    publicGateways: ${PUBLIC_GATEWAYS:=null}
+  network: ${SMC_NETWORK:=null}
 ---
 apiVersion: v1
 kind: Secret
@@ -35,7 +31,7 @@ stringData:
   SCW_ACCESS_KEY: ${SCW_ACCESS_KEY}
   SCW_SECRET_KEY: ${SCW_SECRET_KEY}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedControlPlane
 metadata:
   name: ${CLUSTER_NAME}-control-plane
@@ -45,7 +41,7 @@ spec:
   onDelete:
     withAdditionalResources: true
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachinePool
 metadata:
   name: "${CLUSTER_NAME}-mp-0"
@@ -58,12 +54,12 @@ spec:
         dataSecretName: ""
       clusterName: "${CLUSTER_NAME}"
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: ScalewayManagedMachinePool
         name: "${CLUSTER_NAME}-mp-0"
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayManagedMachinePool
 metadata:
   name: "${CLUSTER_NAME}-mp-0"

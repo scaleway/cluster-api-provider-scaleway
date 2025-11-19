@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: scalewaymanagedcontrolplanes.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -39,6 +39,7 @@ spec:
       jsonPath: .spec.controlPlaneEndpoint.port
       name: Port
       type: integer
+    deprecated: true
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -337,7 +338,6 @@ spec:
                 description: |-
                   Initialized is true when the control plane is available for initial contact.
                   This may occur before the control plane is fully ready.
-                  In the AzureManagedControlPlane implementation, these are identical.
                 type: boolean
               ready:
                 description: Ready is true when the provider resource is ready.
@@ -345,6 +345,492 @@ spec:
               version:
                 description: Version represents the version of the Scaleway managed
                   control plane.
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: name must be between 1 and 63 characters
+          rule: self.metadata.name.size() <= 63
+        - message: name must be a valid DNS label
+          rule: self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Cluster to which this ScalewayManagedControlPlane belongs
+      jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      name: Cluster
+      type: string
+    - description: This denotes whether or not the control plane can accept requests
+      jsonPath: .status.initialization.controlPlaneInitialized
+      name: Initialized
+      type: boolean
+    - description: ScalewayManagedControlPlane pass all readiness checks
+      jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - description: The Kubernetes version of the Scaleway control plane
+      jsonPath: .status.version
+      name: Version
+      type: string
+    - description: Host of the control plane
+      jsonPath: .spec.controlPlaneEndpoint.host
+      name: Host
+      type: string
+    - description: Port of the control plane
+      jsonPath: .spec.controlPlaneEndpoint.port
+      name: Port
+      type: integer
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: ScalewayManagedControlPlane is the Schema for the scalewaymanagedcontrolplanes
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of ScalewayManagedControlPlane
+            properties:
+              acl:
+                description: acl configures the ACLs of the managed cluster. If not
+                  set, ACLs will be set to [0.0.0.0/0].
+                properties:
+                  allowedRanges:
+                    description: |-
+                      allowedRanges is a list of allowed public IP ranges that can access
+                      the managed cluster. When empty, all IP ranges are DENIED. Make sure the nodes
+                      of your management cluster can still access the cluster by allowing their IPs.
+                    items:
+                      description: CIDR is an IP address range in CIDR notation (for
+                        example, "10.0.0.0/8" or "fd00::/8").
+                      maxLength: 43
+                      minLength: 1
+                      type: string
+                      x-kubernetes-validations:
+                      - message: value must be a valid CIDR network address
+                        rule: isCIDR(self)
+                    maxItems: 30
+                    type: array
+                    x-kubernetes-list-type: set
+                type: object
+              additionalTags:
+                description: additionalTags that will be added to the default tags.
+                items:
+                  maxLength: 128
+                  minLength: 1
+                  type: string
+                maxItems: 30
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: atomic
+              admissionPlugins:
+                description: admissionPlugins to enable.
+                items:
+                  maxLength: 128
+                  minLength: 1
+                  type: string
+                maxItems: 10
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: set
+              apiServerCertSANs:
+                description: |-
+                  apiServerCertSANs defines additional Subject Alternative Names for the
+                  Kubernetes API server certificate.
+                items:
+                  maxLength: 255
+                  minLength: 1
+                  type: string
+                maxItems: 10
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: set
+              autoUpgrade:
+                description: autoUpgrade configuration of the cluster.
+                properties:
+                  enabled:
+                    description: enabled defines whether auto upgrade is enabled for
+                      the cluster.
+                    type: boolean
+                  maintenanceWindow:
+                    description: maintenanceWindow of the cluster auto upgrades.
+                    minProperties: 1
+                    properties:
+                      day:
+                        description: day of the week for the maintenance window.
+                        enum:
+                        - any
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                        - sunday
+                        type: string
+                      startHour:
+                        description: startHour is the start time of the two-hour maintenance
+                          window.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
+                required:
+                - enabled
+                type: object
+              autoscaler:
+                description: autoscaler configuration of the cluster.
+                minProperties: 1
+                properties:
+                  balanceSimilarNodeGroups:
+                    description: |-
+                      balanceSimilarNodeGroups allows to detect similar node groups and balance
+                      the number of nodes between them.
+                    type: boolean
+                  estimator:
+                    description: estimator is the type of resource estimator to be
+                      used in scale up.
+                    enum:
+                    - binpacking
+                    type: string
+                  expander:
+                    description: expander is the type of node group expander to be
+                      used in scale up.
+                    enum:
+                    - random
+                    - most_pods
+                    - least_waste
+                    - priority
+                    - price
+                    type: string
+                  expendablePodsPriorityCutoff:
+                    description: |-
+                      expendablePodsPriorityCutoff defines the priority threshold below which pods
+                      are considered expendable. Pods with priority below cutoff will be expendable.
+                      They can be killed without any consideration during scale down and they won't cause scale up.
+                      Pods with null priority (PodPriority disabled) are non expendable.
+                    format: int32
+                    type: integer
+                  ignoreDaemonsetsUtilization:
+                    description: |-
+                      ignoreDaemonsetsUtilization allows to ignore DaemonSet pods when calculating
+                      resource utilization for scaling down.
+                    type: boolean
+                  maxGracefulTerminationSec:
+                    description: |-
+                      maxGracefulTerminationSec is the maximum number of seconds the cluster autoscaler
+                      waits for pod termination when trying to scale down a node.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  scaleDownDelayAfterAdd:
+                    description: scaleDownDelayAfterAdd defines how long after scale
+                      up the scale down evaluation resumes.
+                    format: duration
+                    maxLength: 10
+                    minLength: 1
+                    type: string
+                  scaleDownDisabled:
+                    description: scaleDownDisabled allows to disable the cluster autoscaler.
+                    type: boolean
+                  scaleDownUnneededTime:
+                    description: |-
+                      scaleDownUnneededTime defines how long a node should be unneeded before it
+                      is eligible to be scaled down.
+                    format: duration
+                    maxLength: 10
+                    minLength: 1
+                    type: string
+                  scaleDownUtilizationThreshold:
+                    description: |-
+                      scaleDownUtilizationThreshold is the Node utilization level, defined as a
+                      sum of requested resources divided by capacity, below which a node can be
+                      considered for scale down.
+                    format: float
+                    maxLength: 10
+                    minLength: 1
+                    type: string
+                type: object
+              clusterName:
+                description: |-
+                  clusterName allows you to specify the name of the Scaleway managed cluster.
+                  If you don't specify a name then a default name will be created
+                  based on the namespace and name of the managed control plane.
+                maxLength: 100
+                minLength: 1
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              cni:
+                description: cni plugin running in the cluster.
+                enum:
+                - cilium
+                - cilium_native
+                - calico
+                - kilo
+                - none
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              controlPlaneEndpoint:
+                description: controlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
+                minProperties: 1
+                properties:
+                  host:
+                    description: host is the hostname on which the API server is serving.
+                    maxLength: 512
+                    minLength: 1
+                    type: string
+                  port:
+                    description: port is the port on which the API server is serving.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                type: object
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              enablePrivateEndpoint:
+                description: |-
+                  enablePrivateEndpoint defines whether the apiserver's internal address
+                  is used as the cluster endpoint.
+                type: boolean
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              featureGates:
+                description: featureGates to enable.
+                items:
+                  maxLength: 128
+                  minLength: 1
+                  type: string
+                maxItems: 10
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: set
+              onDelete:
+                description: onDelete configures the settings to apply when deleting
+                  the Scaleway managed cluster.
+                minProperties: 1
+                properties:
+                  withAdditionalResources:
+                    description: |-
+                      withAdditionalResources allows to also automatically delete all volumes
+                      (including those with volume type "retain"), empty Private Networks and
+                      Load Balancers whose names start with cluster ID.
+                    type: boolean
+                type: object
+              openIDConnect:
+                description: openIDConnect defines the OpenID Connect configuration
+                  of the Kubernetes API server.
+                properties:
+                  clientID:
+                    description: clientID is a client ID that all tokens must be issued
+                      for.
+                    maxLength: 255
+                    minLength: 1
+                    type: string
+                  groupsClaim:
+                    description: groupsClaim is the JWT claim to use as the user's
+                      group.
+                    items:
+                      maxLength: 100
+                      minLength: 1
+                      type: string
+                    maxItems: 10
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: set
+                  groupsPrefix:
+                    description: |-
+                      groupsPrefix is the prefix prepended to group claims to prevent name collision (such as "system:" groups).
+                      For example, the value "oidc:" will create group names like "oidc:engineering" and "oidc:infra".
+                    maxLength: 100
+                    minLength: 1
+                    type: string
+                  issuerURL:
+                    description: |-
+                      issuerURL of the provider which allows the API server to discover public signing keys.
+                      Only URLs using the https:// scheme are accepted. This is typically the provider's
+                      discovery URL without a path, for example "https://accounts.google.com" or "https://login.salesforce.com".
+                    maxLength: 255
+                    minLength: 1
+                    type: string
+                  requiredClaim:
+                    description: |-
+                      requiredClaim is multiple key=value pairs describing a required claim in the ID token.
+                      If set, the claims are verified to be present in the ID token with a matching value.
+                    items:
+                      maxLength: 100
+                      minLength: 1
+                      type: string
+                    maxItems: 10
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: set
+                  usernameClaim:
+                    description: |-
+                      usernameClaim is the JWT claim to use as the user name. The default is "sub",
+                      which is expected to be the end user's unique identifier. Admins can choose other claims,
+                      such as email or name, depending on their provider. However, claims other
+                      than email will be prefixed with the issuer URL to prevent name collision.
+                    maxLength: 100
+                    minLength: 1
+                    type: string
+                  usernamePrefix:
+                    description: |-
+                      usernamePrefix is the prefix prepended to username claims to prevent name collision (such as "system:" users).
+                      For example, the value "oidc:"" will create usernames like "oidc:jane.doe".
+                      If this flag is not provided and "username_claim" is a value other than email,
+                      the prefix defaults to "( Issuer URL )#" where "( Issuer URL )" is the value of "issuer_url".
+                      The value "-" can be used to disable all prefixing.
+                    maxLength: 100
+                    minLength: 1
+                    type: string
+                required:
+                - clientID
+                - issuerURL
+                type: object
+              type:
+                default: kapsule
+                description: type of the cluster (e.g. kapsule, multicloud, etc.).
+                maxLength: 50
+                minLength: 1
+                type: string
+              version:
+                description: version defines the desired Kubernetes version.
+                maxLength: 256
+                minLength: 1
+                type: string
+            required:
+            - version
+            type: object
+            x-kubernetes-validations:
+            - message: controlPlaneEndpoint is required once set
+              rule: '!has(oldSelf.controlPlaneEndpoint) || has(self.controlPlaneEndpoint)'
+            - message: clusterName cannot be removed once set
+              rule: '!has(oldSelf.clusterName) || has(self.clusterName) == has(oldSelf.clusterName)'
+            - message: cni cannot be added or removed
+              rule: has(self.cni) == has(oldSelf.cni)
+            - message: enablePrivateEndpoint cannot be added or removed
+              rule: has(self.enablePrivateEndpoint) == has(oldSelf.enablePrivateEndpoint)
+          status:
+            description: status defines the observed state of ScalewayManagedControlPlane
+            minProperties: 1
+            properties:
+              conditions:
+                description: |-
+                  conditions represent the current state of the ScalewayManagedControlPlane resource.
+                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
+
+                  The status of each condition is one of True, False, or Unknown.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              externalManagedControlPlane:
+                default: true
+                description: |-
+                  externalManagedControlPlane is a bool that should be set to true if the
+                  Node objects do not exist in the cluster.
+                type: boolean
+              initialization:
+                description: |-
+                  initialization provides observations of the ScalewayManagedControlPlane initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
+                minProperties: 1
+                properties:
+                  controlPlaneInitialized:
+                    description: |-
+                      controlPlaneInitialized is true when the control plane provider reports that the Kubernetes control plane is initialized;
+                      usually a control plane is considered initialized when it can accept requests, no matter if this happens before
+                      the control plane is fully provisioned or not.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+                    type: boolean
+                type: object
+              version:
+                description: version defines the desired Kubernetes version for the
+                  control plane.
+                maxLength: 256
+                minLength: 1
                 type: string
             type: object
         required:

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: scalewaymachines.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -31,6 +31,7 @@ spec:
       jsonPath: .status.ready
       name: Ready
       type: boolean
+    deprecated: true
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -213,6 +214,320 @@ spec:
                   The value of this field is never updated after provisioning is completed. Please use conditions
                   to check the operational state of the infra machine.
                 type: boolean
+            type: object
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: name must be between 1 and 63 characters
+          rule: self.metadata.name.size() <= 63
+        - message: name must be a valid DNS label
+          rule: self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Instance commercial type
+      jsonPath: .spec.commercialType
+      name: CommercialType
+      type: string
+    - description: Node provider ID
+      jsonPath: .spec.providerID
+      name: ProviderID
+      type: string
+    - description: Provisioned is true when the machine infrastructure is fully provisioned
+      jsonPath: .status.initialization.provisioned
+      name: Provisioned
+      type: boolean
+    - description: ScalewayMachine pass all readiness checks
+      jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: ScalewayMachine is the Schema for the scalewaymachines API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of ScalewayMachine
+            properties:
+              commercialType:
+                description: commercialType of instance (e.g. PRO2-S).
+                maxLength: 20
+                minLength: 1
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              image:
+                allOf:
+                - maxProperties: 1
+                  minProperties: 1
+                - maxProperties: 1
+                  minProperties: 1
+                description: image defines an image ID, Name or Label to use to create
+                  the instance.
+                properties:
+                  id:
+                    description: id of the Scaleway resource.
+                    maxLength: 36
+                    minLength: 36
+                    pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                    type: string
+                  label:
+                    description: label of the image (as defined in the marketplace).
+                    maxLength: 100
+                    minLength: 1
+                    type: string
+                  name:
+                    description: name of the Scaleway resource.
+                    maxLength: 100
+                    minLength: 1
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              placementGroup:
+                description: placementGroup allows attaching a Placement Group to
+                  the instance.
+                maxProperties: 1
+                minProperties: 1
+                properties:
+                  id:
+                    description: id of the Scaleway resource.
+                    maxLength: 36
+                    minLength: 36
+                    pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                    type: string
+                  name:
+                    description: name of the Scaleway resource.
+                    maxLength: 100
+                    minLength: 1
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              providerID:
+                description: providerID must match the provider ID as seen on the
+                  node object corresponding to this machine.
+                maxLength: 512
+                minLength: 1
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              publicNetwork:
+                description: publicNetwork allows attaching public IPs to the instance.
+                minProperties: 1
+                properties:
+                  enableIPv4:
+                    description: enableIPv4 defines whether server should have an
+                      IPv4 created and attached.
+                    type: boolean
+                  enableIPv6:
+                    description: enableIPv6 defines whether server should have an
+                      IPv6 created and attached.
+                    type: boolean
+                type: object
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              rootVolume:
+                description: rootVolume defines the characteristics of the system
+                  (root) volume.
+                minProperties: 1
+                properties:
+                  iops:
+                    description: iops is the number of IOPS requested for the disk.
+                      This is only applicable for block volumes.
+                    format: int64
+                    minimum: 5000
+                    type: integer
+                  size:
+                    default: 20
+                    description: size of the root volume in GB. Defaults to 20 GB.
+                    format: int64
+                    maximum: 10000
+                    minimum: 8
+                    type: integer
+                  type:
+                    default: block
+                    description: |-
+                      type of the root volume. Can be local or block. Note that not all types
+                      of instances support local volumes.
+                    enum:
+                    - local
+                    - block
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+                - message: iops can only be set for block volumes
+                  rule: '!has(self.iops) || has(self.type) && self.type == ''block'''
+              securityGroup:
+                description: securityGroup allows attaching a Security Group to the
+                  instance.
+                maxProperties: 1
+                minProperties: 1
+                properties:
+                  id:
+                    description: id of the Scaleway resource.
+                    maxLength: 36
+                    minLength: 36
+                    pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+                    type: string
+                  name:
+                    description: name of the Scaleway resource.
+                    maxLength: 100
+                    minLength: 1
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+            required:
+            - commercialType
+            - image
+            type: object
+            x-kubernetes-validations:
+            - message: rootVolume cannot be added or removed
+              rule: has(self.rootVolume) == has(oldSelf.rootVolume)
+            - message: publicNetwork cannot be added or removed
+              rule: has(self.publicNetwork) == has(oldSelf.publicNetwork)
+            - message: placementGroup cannot be added or removed
+              rule: has(self.placementGroup) == has(oldSelf.placementGroup)
+            - message: securityGroup cannot be added or removed
+              rule: has(self.securityGroup) == has(oldSelf.securityGroup)
+          status:
+            description: status defines the observed state of ScalewayMachine
+            minProperties: 1
+            properties:
+              addresses:
+                description: addresses contains the associated addresses for the machine.
+                items:
+                  description: MachineAddress contains information for the node's
+                    address.
+                  properties:
+                    address:
+                      description: address is the machine address.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    type:
+                      description: type is the machine address type, one of Hostname,
+                        ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+                      enum:
+                      - Hostname
+                      - ExternalIP
+                      - InternalIP
+                      - ExternalDNS
+                      - InternalDNS
+                      type: string
+                  required:
+                  - address
+                  - type
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-type: atomic
+              conditions:
+                description: |-
+                  conditions represent the current state of the ScalewayMachine resource.
+                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
+
+                  The status of each condition is one of True, False, or Unknown.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                maxItems: 32
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              initialization:
+                description: |-
+                  initialization provides observations of the ScalewayMachine initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                minProperties: 1
+                properties:
+                  provisioned:
+                    description: |-
+                      provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+                    type: boolean
+                type: object
             type: object
         required:
         - spec

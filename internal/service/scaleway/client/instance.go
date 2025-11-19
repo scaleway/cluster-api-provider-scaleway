@@ -9,6 +9,7 @@ import (
 
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"k8s.io/utils/ptr"
 )
 
 type InstanceAPI interface {
@@ -126,7 +127,7 @@ func (c *Client) CreateServer(
 		Zone:              zone,
 		Name:              name,
 		CommercialType:    commercialType,
-		DynamicIPRequired: scw.BoolPtr(false),
+		DynamicIPRequired: ptr.To(false),
 		Image:             &imageID,
 		PlacementGroup:    placementGroupID,
 		SecurityGroup:     securityGroupID,
@@ -134,7 +135,7 @@ func (c *Client) CreateServer(
 			"0": {
 				Size:       &rootVolumeSize,
 				VolumeType: rootVolumeType,
-				Boot:       scw.BoolPtr(true),
+				Boot:       ptr.To(true),
 			},
 		},
 		Tags: append(tags, createdByTag),
@@ -143,7 +144,7 @@ func (c *Client) CreateServer(
 	// Automatically attach scratch volume if server supports it.
 	if serverType.ScratchStorageMaxSize != nil && *serverType.ScratchStorageMaxSize > 0 {
 		req.Volumes["1"] = &instance.VolumeServerTemplate{
-			Name:       scw.StringPtr(fmt.Sprintf("%s-scratch", name)),
+			Name:       ptr.To(fmt.Sprintf("%s-scratch", name)),
 			Size:       serverType.ScratchStorageMaxSize,
 			VolumeType: instance.VolumeVolumeTypeScratch,
 		}
@@ -167,8 +168,8 @@ func (c *Client) FindImage(ctx context.Context, zone scw.Zone, name string) (*in
 	resp, err := c.instance.ListImages(&instance.ListImagesRequest{
 		Zone:    zone,
 		Project: &c.projectID,
-		Name:    scw.StringPtr(name),
-		Public:  scw.BoolPtr(false),
+		Name:    ptr.To(name),
+		Public:  ptr.To(false),
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListImages", err)

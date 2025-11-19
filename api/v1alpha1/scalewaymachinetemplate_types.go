@@ -19,7 +19,7 @@ type ScalewayMachineTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=scalewaymachinetemplates,scope=Namespaced,categories=cluster-api,shortName=smt
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 
 // ScalewayMachineTemplate is the Schema for the scalewaymachinetemplates API.
 type ScalewayMachineTemplate struct {
@@ -39,5 +39,5 @@ type ScalewayMachineTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayMachineTemplate{}, &ScalewayMachineTemplateList{})
+	objectTypes = append(objectTypes, &ScalewayMachineTemplate{}, &ScalewayMachineTemplateList{})
 }

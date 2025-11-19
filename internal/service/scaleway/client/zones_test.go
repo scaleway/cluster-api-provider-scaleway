@@ -4,9 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 func TestClient_GetZoneOrDefault(t *testing.T) {
@@ -15,7 +16,7 @@ func TestClient_GetZoneOrDefault(t *testing.T) {
 		region scw.Region
 	}
 	type args struct {
-		zone *string
+		zone string
 	}
 	tests := []struct {
 		name    string
@@ -38,7 +39,7 @@ func TestClient_GetZoneOrDefault(t *testing.T) {
 				region: scw.RegionFrPar,
 			},
 			args: args{
-				zone: scw.StringPtr("invalid-zone"),
+				zone: "invalid-zone",
 			},
 			wantErr: true,
 		},
@@ -48,7 +49,7 @@ func TestClient_GetZoneOrDefault(t *testing.T) {
 				region: scw.RegionFrPar,
 			},
 			args: args{
-				zone: scw.StringPtr("fr-par-3"),
+				zone: "fr-par-3",
 			},
 			want: scw.ZoneFrPar3,
 		},
@@ -60,7 +61,7 @@ func TestClient_GetZoneOrDefault(t *testing.T) {
 				region: scw.RegionFrPar,
 			},
 			args: args{
-				zone: scw.StringPtr("nl-ams-1"),
+				zone: "nl-ams-1",
 			},
 			want: scw.ZoneNlAms1,
 		},

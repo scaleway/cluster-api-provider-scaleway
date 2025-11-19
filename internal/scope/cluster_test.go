@@ -5,12 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
-	"github.com/scaleway/scaleway-sdk-go/scw"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 )
 
 const (
@@ -39,7 +40,7 @@ func TestCluster_ResourceName(t *testing.T) {
 			name: "no suffix provided",
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster-name",
 					},
 				},
@@ -51,7 +52,7 @@ func TestCluster_ResourceName(t *testing.T) {
 			name: "suffix provided",
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster-name",
 					},
 				},
@@ -93,7 +94,7 @@ func TestCluster_ResourceTags(t *testing.T) {
 			name: "base tags",
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-cluster",
 						Namespace: "default",
 					},
@@ -106,7 +107,7 @@ func TestCluster_ResourceTags(t *testing.T) {
 			name: "with additional tag",
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
-					ObjectMeta: v1.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-cluster",
 						Namespace: "default",
 					},
@@ -153,9 +154,9 @@ func TestCluster_HasPrivateNetwork(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							PrivateNetwork: &infrav1.PrivateNetworkSpec{
-								Enabled: true,
+						Network: infrav1.ScalewayClusterNetwork{
+							PrivateNetwork: infrav1.PrivateNetworkSpec{
+								Enabled: ptr.To(true),
 							},
 						},
 					},
@@ -199,9 +200,9 @@ func TestCluster_PrivateNetworkID(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							PrivateNetwork: &infrav1.PrivateNetworkSpec{
-								Enabled: true,
+						Network: infrav1.ScalewayClusterNetwork{
+							PrivateNetwork: infrav1.PrivateNetworkSpec{
+								Enabled: ptr.To(true),
 							},
 						},
 					},
@@ -214,15 +215,15 @@ func TestCluster_PrivateNetworkID(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							PrivateNetwork: &infrav1.PrivateNetworkSpec{
-								Enabled: true,
+						Network: infrav1.ScalewayClusterNetwork{
+							PrivateNetwork: infrav1.PrivateNetworkSpec{
+								Enabled: ptr.To(true),
 							},
 						},
 					},
 					Status: infrav1.ScalewayClusterStatus{
-						Network: &infrav1.NetworkStatus{
-							PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Network: infrav1.ScalewayClusterNetworkStatus{
+							PrivateNetworkID: infrav1.UUID(privateNetworkID),
 						},
 					},
 				},
@@ -269,8 +270,8 @@ func TestCluster_ControlPlaneLoadBalancerPort(t *testing.T) {
 			fields: fields{
 				Cluster: &clusterv1.Cluster{
 					Spec: clusterv1.ClusterSpec{
-						ClusterNetwork: &clusterv1.ClusterNetwork{
-							APIServerPort: scw.Int32Ptr(443),
+						ClusterNetwork: clusterv1.ClusterNetwork{
+							APIServerPort: 443,
 						},
 					},
 				},
@@ -305,15 +306,15 @@ func TestCluster_ControlPlaneLoadBalancerAllowedRanges(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{},
 			},
-			want: nil,
+			want: []string{},
 		},
 		{
 			name: "allowed ranges set",
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							ControlPlaneLoadBalancer: &infrav1.ControlPlaneLoadBalancerSpec{
+						Network: infrav1.ScalewayClusterNetwork{
+							ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
 								AllowedRanges: []infrav1.CIDR{"127.0.0.1/32", "10.0.0.0/8"},
 							},
 						},
@@ -330,74 +331,6 @@ func TestCluster_ControlPlaneLoadBalancerAllowedRanges(t *testing.T) {
 			}
 			if got := c.ControlPlaneLoadBalancerAllowedRanges(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Cluster.ControlPlaneLoadBalancerAllowedRanges() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestCluster_HasControlPlaneDNS(t *testing.T) {
-	t.Parallel()
-	type fields struct {
-		ScalewayCluster *infrav1.ScalewayCluster
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   bool
-	}{
-		{
-			name: "empty spec",
-			fields: fields{
-				ScalewayCluster: &infrav1.ScalewayCluster{},
-			},
-			want: false,
-		},
-		{
-			name: "public dns",
-			fields: fields{
-				ScalewayCluster: &infrav1.ScalewayCluster{
-					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							ControlPlaneDNS: &infrav1.ControlPlaneDNSSpec{
-								Domain: "example.com",
-								Name:   "domain",
-							},
-						},
-					},
-				},
-			},
-			want: true,
-		},
-		{
-			name: "private dns",
-			fields: fields{
-				ScalewayCluster: &infrav1.ScalewayCluster{
-					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							PrivateNetwork: &infrav1.PrivateNetworkSpec{
-								Enabled: true,
-							},
-							ControlPlaneLoadBalancer: &infrav1.ControlPlaneLoadBalancerSpec{
-								Private: scw.BoolPtr(true),
-							},
-							ControlPlanePrivateDNS: &infrav1.ControlPlanePrivateDNSSpec{
-								Name: "domain",
-							},
-						},
-					},
-				},
-			},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			c := &Cluster{
-				ScalewayCluster: tt.fields.ScalewayCluster,
-			}
-			if got := c.HasControlPlaneDNS(); got != tt.want {
-				t.Errorf("Cluster.HasControlPlaneDNS() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -427,8 +360,8 @@ func TestCluster_ControlPlaneDNSZoneAndName(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							ControlPlaneDNS: &infrav1.ControlPlaneDNSSpec{
+						Network: infrav1.ScalewayClusterNetwork{
+							ControlPlaneDNS: infrav1.ControlPlaneDNS{
 								Domain: "example.com",
 								Name:   "domain",
 							},
@@ -444,22 +377,22 @@ func TestCluster_ControlPlaneDNSZoneAndName(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							PrivateNetwork: &infrav1.PrivateNetworkSpec{
-								Enabled: true,
+						Network: infrav1.ScalewayClusterNetwork{
+							PrivateNetwork: infrav1.PrivateNetworkSpec{
+								Enabled: ptr.To(true),
 							},
-							ControlPlaneLoadBalancer: &infrav1.ControlPlaneLoadBalancerSpec{
-								Private: scw.BoolPtr(true),
+							ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
+								Private: ptr.To(true),
 							},
-							ControlPlanePrivateDNS: &infrav1.ControlPlanePrivateDNSSpec{
+							ControlPlaneDNS: infrav1.ControlPlaneDNS{
 								Name: "domain",
 							},
 						},
 					},
 					Status: infrav1.ScalewayClusterStatus{
-						Network: &infrav1.NetworkStatus{
-							VPCID:            scw.StringPtr(vpcID),
-							PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Network: infrav1.ScalewayClusterNetworkStatus{
+							VPCID:            infrav1.UUID(vpcID),
+							PrivateNetworkID: infrav1.UUID(privateNetworkID),
 						},
 					},
 				},
@@ -512,8 +445,8 @@ func TestCluster_ControlPlaneHost(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							ControlPlaneDNS: &infrav1.ControlPlaneDNSSpec{
+						Network: infrav1.ScalewayClusterNetwork{
+							ControlPlaneDNS: infrav1.ControlPlaneDNS{
 								Domain: "example.com",
 								Name:   "domain",
 							},
@@ -528,22 +461,22 @@ func TestCluster_ControlPlaneHost(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Spec: infrav1.ScalewayClusterSpec{
-						Network: &infrav1.NetworkSpec{
-							PrivateNetwork: &infrav1.PrivateNetworkSpec{
-								Enabled: true,
+						Network: infrav1.ScalewayClusterNetwork{
+							PrivateNetwork: infrav1.PrivateNetworkSpec{
+								Enabled: ptr.To(true),
 							},
-							ControlPlaneLoadBalancer: &infrav1.ControlPlaneLoadBalancerSpec{
-								Private: scw.BoolPtr(true),
+							ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
+								Private: ptr.To(true),
 							},
-							ControlPlanePrivateDNS: &infrav1.ControlPlanePrivateDNSSpec{
+							ControlPlaneDNS: infrav1.ControlPlaneDNS{
 								Name: "domain",
 							},
 						},
 					},
 					Status: infrav1.ScalewayClusterStatus{
-						Network: &infrav1.NetworkStatus{
-							VPCID:            scw.StringPtr(vpcID),
-							PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Network: infrav1.ScalewayClusterNetworkStatus{
+							VPCID:            infrav1.UUID(vpcID),
+							PrivateNetworkID: infrav1.UUID(privateNetworkID),
 						},
 					},
 				},
@@ -555,8 +488,8 @@ func TestCluster_ControlPlaneHost(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Status: infrav1.ScalewayClusterStatus{
-						Network: &infrav1.NetworkStatus{
-							LoadBalancerIP: scw.StringPtr(lbIP),
+						Network: infrav1.ScalewayClusterNetworkStatus{
+							LoadBalancerIP: infrav1.IPv4(lbIP),
 						},
 					},
 				},
@@ -607,7 +540,7 @@ func TestCluster_IsVPCStatusSet(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Status: infrav1.ScalewayClusterStatus{
-						Network: &infrav1.NetworkStatus{},
+						Network: infrav1.ScalewayClusterNetworkStatus{},
 					},
 				},
 			},
@@ -618,9 +551,9 @@ func TestCluster_IsVPCStatusSet(t *testing.T) {
 			fields: fields{
 				ScalewayCluster: &infrav1.ScalewayCluster{
 					Status: infrav1.ScalewayClusterStatus{
-						Network: &infrav1.NetworkStatus{
-							VPCID:            scw.StringPtr(vpcID),
-							PrivateNetworkID: scw.StringPtr(privateNetworkID),
+						Network: infrav1.ScalewayClusterNetworkStatus{
+							VPCID:            infrav1.UUID(vpcID),
+							PrivateNetworkID: infrav1.UUID(privateNetworkID),
 						},
 					},
 				},

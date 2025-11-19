@@ -7,19 +7,22 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
+
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const (
@@ -56,37 +59,39 @@ func TestService_Reconcile(t *testing.T) {
 			name: "create control-plane",
 			fields: fields{
 				ManagedControlPlane: &scope.ManagedControlPlane{
-					Cluster: &v1beta1.Cluster{
-						ObjectMeta: v1.ObjectMeta{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "cluster",
 							Namespace: "default",
 						},
-						Spec: v1beta1.ClusterSpec{},
+						Spec: clusterv1.ClusterSpec{},
 					},
-					ManagedCluster: &v1alpha1.ScalewayManagedCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedCluster: &infrav1.ScalewayManagedCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "managedcluster",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayManagedClusterSpec{
+						Spec: infrav1.ScalewayManagedClusterSpec{
 							ProjectID: projectID,
 						},
-						Status: v1alpha1.ScalewayManagedClusterStatus{
-							Ready: true,
-							Network: &v1alpha1.ManagedNetworkStatus{
-								PrivateNetworkID: scw.StringPtr("11111111-1111-1111-1111-111111111111"),
+						Status: infrav1.ScalewayManagedClusterStatus{
+							Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
+								Provisioned: ptr.To(true),
+							},
+							Network: infrav1.ScalewayManagedClusterNetworkStatus{
+								PrivateNetworkID: infrav1.UUID("11111111-1111-1111-1111-111111111111"),
 							},
 						},
 					},
-					ManagedControlPlane: &v1alpha1.ScalewayManagedControlPlane{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "controlplane",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayManagedControlPlaneSpec{
+						Spec: infrav1.ScalewayManagedControlPlaneSpec{
 							Type:    "kapsule",
 							Version: "v1.31.1",
-							CNI:     scw.StringPtr("cilium"),
+							CNI:     "cilium",
 						},
 					},
 				},
@@ -102,21 +107,21 @@ func TestService_Reconcile(t *testing.T) {
 					"default-controlplane",
 					"kapsule",
 					"1.31.1",
-					scw.StringPtr(privateNetworkID),
+					ptr.To(privateNetworkID),
 					[]string{"caps-namespace=default", "caps-scalewaymanagedcontrolplane=controlplane"},
 					nil,
 					nil,
 					nil,
 					k8s.CNICilium,
 					&k8s.CreateClusterRequestAutoscalerConfig{
-						ScaleDownDisabled:             scw.BoolPtr(false),
-						ScaleDownDelayAfterAdd:        scw.StringPtr("10m"),
+						ScaleDownDisabled:             ptr.To(false),
+						ScaleDownDelayAfterAdd:        ptr.To("10m"),
 						Estimator:                     k8s.AutoscalerEstimatorBinpacking,
 						Expander:                      k8s.AutoscalerExpanderRandom,
-						IgnoreDaemonsetsUtilization:   scw.BoolPtr(false),
-						BalanceSimilarNodeGroups:      scw.BoolPtr(false),
+						IgnoreDaemonsetsUtilization:   ptr.To(false),
+						BalanceSimilarNodeGroups:      ptr.To(false),
 						ExpendablePodsPriorityCutoff:  scw.Int32Ptr(-10),
-						ScaleDownUnneededTime:         scw.StringPtr("10m"),
+						ScaleDownUnneededTime:         ptr.To("10m"),
 						ScaleDownUtilizationThreshold: scw.Float32Ptr(0.5),
 						MaxGracefulTerminationSec:     scw.Uint32Ptr(600),
 					},
@@ -128,9 +133,9 @@ func TestService_Reconcile(t *testing.T) {
 						},
 					},
 					&k8s.CreateClusterRequestOpenIDConnectConfig{
-						UsernameClaim:  scw.StringPtr(""),
-						UsernamePrefix: scw.StringPtr(""),
-						GroupsPrefix:   scw.StringPtr(""),
+						UsernameClaim:  ptr.To(""),
+						UsernamePrefix: ptr.To(""),
+						GroupsPrefix:   ptr.To(""),
 						GroupsClaim:    &[]string{},
 						RequiredClaim:  &[]string{},
 					},
@@ -181,10 +186,10 @@ func TestService_Reconcile(t *testing.T) {
 				i.GetSecretKey().Return("secret-key")
 			},
 			asserts: func(g *WithT, s *scope.ManagedControlPlane) {
-				g.Expect(s.ManagedControlPlane.Spec.ClusterName).To(HaveValue(Equal("default-controlplane")))
-				g.Expect(s.ManagedControlPlane.Status.Version).To(HaveValue(Equal("v1.31.1")))
-				g.Expect(s.ManagedControlPlane.Spec.ControlPlaneEndpoint.Host).To(Equal(fmt.Sprintf("%s.api.k8s.fr-par.scw.cloud", clusterID)))
-				g.Expect(s.ManagedControlPlane.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(6443))
+				g.Expect(s.ScalewayManagedControlPlane.Spec.ClusterName).To(HaveValue(Equal("default-controlplane")))
+				g.Expect(s.ScalewayManagedControlPlane.Status.Version).To(HaveValue(Equal("v1.31.1")))
+				g.Expect(s.ScalewayManagedControlPlane.Spec.ControlPlaneEndpoint.Host).To(Equal(fmt.Sprintf("%s.api.k8s.fr-par.scw.cloud", clusterID)))
+				g.Expect(s.ScalewayManagedControlPlane.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(6443))
 
 				kubeconfig := &corev1.Secret{}
 				g.Expect(s.Client.Get(context.TODO(), types.NamespacedName{
@@ -205,41 +210,44 @@ func TestService_Reconcile(t *testing.T) {
 			name: "control-plane is already created and up-to-date",
 			fields: fields{
 				ManagedControlPlane: &scope.ManagedControlPlane{
-					Cluster: &v1beta1.Cluster{
-						Spec: v1beta1.ClusterSpec{},
+					Cluster: &clusterv1.Cluster{
+						Spec: clusterv1.ClusterSpec{},
 					},
-					ManagedCluster: &v1alpha1.ScalewayManagedCluster{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedCluster: &infrav1.ScalewayManagedCluster{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "managedcluster",
 							Namespace: "default",
 						},
-						Status: v1alpha1.ScalewayManagedClusterStatus{
-							Ready: true,
-							Network: &v1alpha1.ManagedNetworkStatus{
-								PrivateNetworkID: scw.StringPtr("11111111-1111-1111-1111-111111111111"),
+						Status: infrav1.ScalewayManagedClusterStatus{
+							Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
+								Provisioned: ptr.To(true),
+							},
+							Network: infrav1.ScalewayManagedClusterNetworkStatus{
+								PrivateNetworkID: infrav1.UUID("11111111-1111-1111-1111-111111111111"),
 							},
 						},
 					},
-					ManagedControlPlane: &v1alpha1.ScalewayManagedControlPlane{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "controlplane",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayManagedControlPlaneSpec{
+						Spec: infrav1.ScalewayManagedControlPlaneSpec{
 							Type:        "kapsule",
 							Version:     "v1.31.1",
-							CNI:         scw.StringPtr("cilium"),
-							ClusterName: scw.StringPtr("default-controlplane"),
-							ControlPlaneEndpoint: v1beta1.APIEndpoint{
+							CNI:         "cilium",
+							ClusterName: "default-controlplane",
+							ControlPlaneEndpoint: clusterv1.APIEndpoint{
 								Host: fmt.Sprintf("%s.api.k8s.fr-par.scw.cloud", clusterID),
 								Port: 6443,
 							},
 						},
-						Status: v1alpha1.ScalewayManagedControlPlaneStatus{
-							Ready:                       true,
-							Initialized:                 true,
-							ExternalManagedControlPlane: true,
-							Version:                     scw.StringPtr("v1.31.1"),
+						Status: infrav1.ScalewayManagedControlPlaneStatus{
+							Version: "v1.31.1",
+							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
+								ControlPlaneInitialized: ptr.To(true),
+							},
+							ExternalManagedControlPlane: ptr.To(true),
 						},
 					},
 				},
@@ -341,26 +349,27 @@ func TestService_Delete(t *testing.T) {
 			name: "delete cluster",
 			fields: fields{
 				ManagedControlPlane: &scope.ManagedControlPlane{
-					ManagedControlPlane: &v1alpha1.ScalewayManagedControlPlane{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "controlplane",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayManagedControlPlaneSpec{
+						Spec: infrav1.ScalewayManagedControlPlaneSpec{
 							Type:        "kapsule",
 							Version:     "v1.31.1",
-							CNI:         scw.StringPtr("cilium"),
-							ClusterName: scw.StringPtr("default-controlplane"),
-							ControlPlaneEndpoint: v1beta1.APIEndpoint{
+							CNI:         "cilium",
+							ClusterName: "default-controlplane",
+							ControlPlaneEndpoint: clusterv1.APIEndpoint{
 								Host: fmt.Sprintf("%s.api.k8s.fr-par.scw.cloud", clusterID),
 								Port: 6443,
 							},
 						},
-						Status: v1alpha1.ScalewayManagedControlPlaneStatus{
-							Ready:                       true,
-							Initialized:                 true,
-							ExternalManagedControlPlane: true,
-							Version:                     scw.StringPtr("v1.31.1"),
+						Status: infrav1.ScalewayManagedControlPlaneStatus{
+							Version: "v1.31.1",
+							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
+								ControlPlaneInitialized: ptr.To(true),
+							},
+							ExternalManagedControlPlane: ptr.To(true),
 						},
 					},
 				},
@@ -379,29 +388,30 @@ func TestService_Delete(t *testing.T) {
 			name: "delete cluster with additional resources",
 			fields: fields{
 				ManagedControlPlane: &scope.ManagedControlPlane{
-					ManagedControlPlane: &v1alpha1.ScalewayManagedControlPlane{
-						ObjectMeta: v1.ObjectMeta{
+					ScalewayManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "controlplane",
 							Namespace: "default",
 						},
-						Spec: v1alpha1.ScalewayManagedControlPlaneSpec{
+						Spec: infrav1.ScalewayManagedControlPlaneSpec{
 							Type:        "kapsule",
 							Version:     "v1.31.1",
-							CNI:         scw.StringPtr("cilium"),
-							ClusterName: scw.StringPtr("default-controlplane"),
-							ControlPlaneEndpoint: v1beta1.APIEndpoint{
+							CNI:         "cilium",
+							ClusterName: "default-controlplane",
+							ControlPlaneEndpoint: clusterv1.APIEndpoint{
 								Host: fmt.Sprintf("%s.api.k8s.fr-par.scw.cloud", clusterID),
 								Port: 6443,
 							},
-							OnDelete: &v1alpha1.OnDeleteSpec{
-								WithAdditionalResources: scw.BoolPtr(true),
+							OnDelete: infrav1.OnDelete{
+								WithAdditionalResources: ptr.To(true),
 							},
 						},
-						Status: v1alpha1.ScalewayManagedControlPlaneStatus{
-							Ready:                       true,
-							Initialized:                 true,
-							ExternalManagedControlPlane: true,
-							Version:                     scw.StringPtr("v1.31.1"),
+						Status: infrav1.ScalewayManagedControlPlaneStatus{
+							Version: "v1.31.1",
+							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
+								ControlPlaneInitialized: ptr.To(true),
+							},
+							ExternalManagedControlPlane: ptr.To(true),
 						},
 					},
 				},

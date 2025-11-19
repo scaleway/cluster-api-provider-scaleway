@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -9,15 +9,15 @@ spec:
       cidrBlocks:
         - 10.244.0.0/16
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiGroup: controlplane.cluster.x-k8s.io
     kind: KubeadmControlPlane
     name: ${CLUSTER_NAME}-control-plane
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: ScalewayCluster
     name: ${CLUSTER_NAME}
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
 metadata:
   name: ${CLUSTER_NAME}-control-plane
@@ -28,9 +28,12 @@ spec:
         advertiseAddress: "[[[ .NodeIP ]]]"
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
-          node-ip: "[[[ .NodeIP ]]]"
-          cloud-provider: external
+          - name: provider-id
+            value: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
+          - name: node-ip
+            value: "[[[ .NodeIP ]]]"
+          - name: cloud-provider
+            value: external
         name: "{{ ds.meta_data.hostname }}"
     joinConfiguration:
       controlPlane:
@@ -38,19 +41,23 @@ spec:
           advertiseAddress: "[[[ .NodeIP ]]]"
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
-          node-ip: "[[[ .NodeIP ]]]"
-          cloud-provider: external
+          - name: provider-id
+            value: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
+          - name: node-ip
+            value: "[[[ .NodeIP ]]]"
+          - name: cloud-provider
+            value: external
         name: "{{ ds.meta_data.hostname }}"
   machineTemplate:
-    infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-      kind: ScalewayMachineTemplate
-      name: ${CLUSTER_NAME}-control-plane
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: ScalewayMachineTemplate
+        name: ${CLUSTER_NAME}-control-plane
   replicas: ${CONTROL_PLANE_MACHINE_COUNT:=1}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -67,7 +74,7 @@ spec:
       vpcID: ${VPC_ID:=null}
     controlPlaneLoadBalancer:
       private: ${CONTROL_PLANE_LOAD_BALANCER_PRIVATE:=false}
-    publicGateways: ${PUBLIC_GATEWAYS:=[]}
+    publicGateways: ${PUBLIC_GATEWAYS:=null}
 ---
 apiVersion: v1
 kind: Secret
@@ -78,7 +85,7 @@ stringData:
   SCW_ACCESS_KEY: ${SCW_ACCESS_KEY}
   SCW_SECRET_KEY: ${SCW_SECRET_KEY}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
@@ -93,7 +100,7 @@ spec:
       publicNetwork:
         enableIPv4: ${CONTROL_PLANE_MACHINE_IPV4:=true}
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -106,18 +113,18 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: KubeadmConfigTemplate
           name: ${CLUSTER_NAME}-md-0
       clusterName: ${CLUSTER_NAME}
       failureDomain: ${WORKER_FAILURE_DOMAIN:=${SCW_REGION}-1}
       infrastructureRef:
         name: ${CLUSTER_NAME}-md-0
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: ScalewayMachineTemplate
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -127,12 +134,15 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
-            node-ip: "[[[ .NodeIP ]]]"
-            cloud-provider: external
+            - name: provider-id
+              value: "scaleway://instance/{{ ds.meta_data.zone }}/{{ ds.meta_data.id }}"
+            - name: node-ip
+              value: "[[[ .NodeIP ]]]"
+            - name: cloud-provider
+              value: external
           name: "{{ ds.meta_data.hostname }}"
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0

@@ -6,10 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+	"k8s.io/utils/ptr"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const vpcgwID = "11111111-1111-1111-1111-111111111111"
@@ -52,7 +54,7 @@ func TestClient_FindGateways(t *testing.T) {
 				v.Zones()
 				v.ListGateways(&vpcgw.ListGatewaysRequest{
 					Zone:      scw.ZoneFrPar1,
-					ProjectID: scw.StringPtr(projectID),
+					ProjectID: ptr.To(projectID),
 					Tags:      []string{"tag1", "tag2"},
 				}, gomock.Any(), gomock.Any(), gomock.Any()).Return(&vpcgw.ListGatewaysResponse{
 					TotalCount: 1,
@@ -196,8 +198,8 @@ func TestClient_FindGatewayIP(t *testing.T) {
 			expect: func(v *mock_client.MockVPCGWAPIMockRecorder) {
 				v.ListIPs(&vpcgw.ListIPsRequest{
 					Zone:      scw.ZoneFrPar1,
-					IsFree:    scw.BoolPtr(true),
-					ProjectID: scw.StringPtr(projectID),
+					IsFree:    ptr.To(true),
+					ProjectID: ptr.To(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&vpcgw.ListIPsResponse{
 					TotalCount: 1,
 					IPs: []*vpcgw.IP{
@@ -272,7 +274,7 @@ func TestClient_CreateGateway(t *testing.T) {
 				name:   "gateway",
 				gwType: "VPC-GW-S",
 				tags:   []string{"tag1", "tag2"},
-				ipID:   scw.StringPtr(ipID),
+				ipID:   ptr.To(ipID),
 			},
 			want: &vpcgw.Gateway{
 				ID: vpcgwID,
@@ -283,7 +285,7 @@ func TestClient_CreateGateway(t *testing.T) {
 					Name: "gateway",
 					Tags: []string{"tag1", "tag2", createdByTag},
 					Type: "VPC-GW-S",
-					IPID: scw.StringPtr(ipID),
+					IPID: ptr.To(ipID),
 				}, gomock.Any()).Return(&vpcgw.Gateway{
 					ID: vpcgwID,
 				}, nil)
@@ -502,7 +504,7 @@ func TestClient_UpgradeGateway(t *testing.T) {
 				v.UpgradeGateway(&vpcgw.UpgradeGatewayRequest{
 					Zone:      scw.ZoneFrPar1,
 					GatewayID: vpcgwID,
-					Type:      scw.StringPtr("VPC-GW-M"),
+					Type:      ptr.To("VPC-GW-M"),
 				}, gomock.Any()).Return(&vpcgw.Gateway{
 					ID: vpcgwID,
 				}, nil)

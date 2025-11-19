@@ -11,23 +11,29 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	pflag "github.com/spf13/pflag"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	// +kubebuilder:scaffold:imports
+	infrav1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1" //nolint:staticcheck
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/controller"
 	internalVersion "github.com/scaleway/cluster-api-provider-scaleway/internal/version"
-	// +kubebuilder:scaffold:imports
+	webhookv1 "github.com/scaleway/cluster-api-provider-scaleway/internal/webhook/v1alpha2"
 )
 
 var (
@@ -38,11 +44,19 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
-	utilruntime.Must(expclusterv1.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 
 	utilruntime.Must(infrav1.AddToScheme(scheme))
+	utilruntime.Must(infrav1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
+
+// ADD CRD RBAC for CRD Migrator.
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=scalewayclusters.infrastructure.cluster.x-k8s.io;scalewayclustertemplates.infrastructure.cluster.x-k8s.io;scalewaymachines.infrastructure.cluster.x-k8s.io;scalewaymachinetemplates.infrastructure.cluster.x-k8s.io;scalewaymanagedclusters.infrastructure.cluster.x-k8s.io;scalewaymanagedcontrolplanes.infrastructure.cluster.x-k8s.io;scalewaymanagedmachinepools.infrastructure.cluster.x-k8s.io
+// ADD CR RBAC for CRD Migrator.
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=scalewayclustertemplates,verbs=get;list;watch;patch;update
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=scalewaymachinetemplates,verbs=get;list;watch;patch;update
 
 // nolint:gocyclo
 func main() {
@@ -53,32 +67,36 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var skipCRDMigrationPhases []string
 	var version bool
 	var tlsOpts []func(*tls.Config)
-	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
+	pflag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+	pflag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	pflag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&secureMetrics, "metrics-secure", true,
+	pflag.BoolVar(&secureMetrics, "metrics-secure", true,
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
-	flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate.")
-	flag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "The name of the webhook certificate file.")
-	flag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "The name of the webhook key file.")
-	flag.StringVar(&metricsCertPath, "metrics-cert-path", "",
+	pflag.StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate.")
+	pflag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "The name of the webhook certificate file.")
+	pflag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "The name of the webhook key file.")
+	pflag.StringVar(&metricsCertPath, "metrics-cert-path", "",
 		"The directory that contains the metrics server certificate.")
-	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
-	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
-	flag.BoolVar(&enableHTTP2, "enable-http2", false,
+	pflag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
+	pflag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
+	pflag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
-	flag.BoolVar(&version, "version", false,
+	pflag.StringArrayVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
+		"List of CRD migration phases to skip. Valid values are: StorageVersionMigration, CleanupManagedFields.")
+	pflag.BoolVar(&version, "version", false,
 		"If set, display version and exit")
 	opts := zap.Options{
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
 
 	if version {
 		fmt.Println("cluster-api-provider-scaleway", internalVersion.Version)
@@ -226,7 +244,82 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedMachinePool")
 		os.Exit(1)
 	}
+	// nolint:goconst
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1.SetupScalewayClusterWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayCluster")
+			os.Exit(1)
+		}
+	}
+	// nolint:goconst
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1.SetupScalewayMachineWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayMachine")
+			os.Exit(1)
+		}
+	}
+	// nolint:goconst
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1.SetupScalewayClusterTemplateWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayClusterTemplate")
+			os.Exit(1)
+		}
+	}
+	// nolint:goconst
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1.SetupScalewayMachineTemplateWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayMachineTemplate")
+			os.Exit(1)
+		}
+	}
+	// nolint:goconst
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1.SetupScalewayManagedClusterWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedCluster")
+			os.Exit(1)
+		}
+	}
+	// nolint:goconst
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1.SetupScalewayManagedControlPlaneWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedControlPlane")
+			os.Exit(1)
+		}
+	}
+	// nolint:goconst
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1.SetupScalewayManagedMachinePoolWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedMachinePool")
+			os.Exit(1)
+		}
+	}
 	// +kubebuilder:scaffold:builder
+
+	crdMigratorSkipPhases := []crdmigrator.Phase{}
+	for _, p := range skipCRDMigrationPhases {
+		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
+	}
+	if err := (&crdmigrator.CRDMigrator{
+		Client:                 mgr.GetClient(),
+		APIReader:              mgr.GetAPIReader(),
+		SkipCRDMigrationPhases: crdMigratorSkipPhases,
+		// Note: The kubebuilder RBAC markers above has to be kept in sync
+		// with the CRDs that should be migrated by this provider.
+		Config: map[client.Object]crdmigrator.ByObjectConfig{
+			&infrav1.ScalewayCluster{}:             {UseCache: true},
+			&infrav1.ScalewayClusterTemplate{}:     {UseCache: false},
+			&infrav1.ScalewayMachine{}:             {UseCache: true},
+			&infrav1.ScalewayClusterTemplate{}:     {UseCache: false},
+			&infrav1.ScalewayManagedCluster{}:      {UseCache: true},
+			&infrav1.ScalewayManagedControlPlane{}: {UseCache: true},
+			&infrav1.ScalewayManagedMachinePool{}:  {UseCache: true},
+		},
+		// The CRDMigrator is run with only concurrency 1 to ensure we don't overwhelm
+		// the apiserver by patching a lot of CRs concurrently.
+	}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "CRDMigrator")
+		os.Exit(1)
+	}
 
 	if metricsCertWatcher != nil {
 		setupLog.Info("Adding metrics certificate watcher to manager")

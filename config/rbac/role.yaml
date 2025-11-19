@@ -17,6 +17,30 @@ rules:
   - update
   - watch
 - apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resourceNames:
+  - scalewayclusters.infrastructure.cluster.x-k8s.io
+  - scalewayclustertemplates.infrastructure.cluster.x-k8s.io
+  - scalewaymachines.infrastructure.cluster.x-k8s.io
+  - scalewaymachinetemplates.infrastructure.cluster.x-k8s.io
+  - scalewaymanagedclusters.infrastructure.cluster.x-k8s.io
+  - scalewaymanagedcontrolplanes.infrastructure.cluster.x-k8s.io
+  - scalewaymanagedmachinepools.infrastructure.cluster.x-k8s.io
+  resources:
+  - customresourcedefinitions
+  - customresourcedefinitions/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusters
@@ -67,3 +91,14 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - scalewayclustertemplates
+  - scalewaymachinetemplates
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch

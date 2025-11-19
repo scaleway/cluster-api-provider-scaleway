@@ -6,10 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+	"k8s.io/utils/ptr"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
 
 const (
@@ -51,8 +53,8 @@ func TestClient_FindCluster(t *testing.T) {
 			},
 			expect: func(d *mock_client.MockK8sAPIMockRecorder) {
 				d.ListClusters(&k8s.ListClustersRequest{
-					ProjectID: scw.StringPtr(projectID),
-					Name:      scw.StringPtr("mycluster"),
+					ProjectID: ptr.To(projectID),
+					Name:      ptr.To("mycluster"),
 				}, gomock.Any()).Return(&k8s.ListClustersResponse{
 					TotalCount: 1,
 					Clusters: []*k8s.Cluster{
@@ -76,8 +78,8 @@ func TestClient_FindCluster(t *testing.T) {
 			wantErr: true,
 			expect: func(d *mock_client.MockK8sAPIMockRecorder) {
 				d.ListClusters(&k8s.ListClustersRequest{
-					ProjectID: scw.StringPtr(projectID),
-					Name:      scw.StringPtr("mycluster"),
+					ProjectID: ptr.To(projectID),
+					Name:      ptr.To("mycluster"),
 				}, gomock.Any(), gomock.Any()).Return(&k8s.ListClustersResponse{}, nil)
 			},
 		},
@@ -142,21 +144,21 @@ func TestClient_CreateCluster(t *testing.T) {
 				name:              "test",
 				clusterType:       "kapsule",
 				version:           "1.30.4",
-				pnID:              scw.StringPtr(privateNetworkID),
+				pnID:              ptr.To(privateNetworkID),
 				tags:              []string{"tag1", "tag2"},
 				featureGates:      []string{"HPAScaleToZero"},
 				admissionPlugins:  []string{"AlwaysPullImages"},
 				apiServerCertSANs: []string{"my-cluster.test"},
 				cni:               k8s.CNICilium,
 				autoscalerConfig: &k8s.CreateClusterRequestAutoscalerConfig{
-					ScaleDownDisabled:             scw.BoolPtr(false),
-					ScaleDownDelayAfterAdd:        scw.StringPtr("1m"),
+					ScaleDownDisabled:             ptr.To(false),
+					ScaleDownDelayAfterAdd:        ptr.To("1m"),
 					Estimator:                     k8s.AutoscalerEstimatorBinpacking,
 					Expander:                      k8s.AutoscalerExpanderMostPods,
-					IgnoreDaemonsetsUtilization:   scw.BoolPtr(true),
-					BalanceSimilarNodeGroups:      scw.BoolPtr(true),
+					IgnoreDaemonsetsUtilization:   ptr.To(true),
+					BalanceSimilarNodeGroups:      ptr.To(true),
 					ExpendablePodsPriorityCutoff:  scw.Int32Ptr(1),
-					ScaleDownUnneededTime:         scw.StringPtr("1m"),
+					ScaleDownUnneededTime:         ptr.To("1m"),
 					ScaleDownUtilizationThreshold: scw.Float32Ptr(1),
 					MaxGracefulTerminationSec:     scw.Uint32Ptr(30),
 				},
@@ -170,10 +172,10 @@ func TestClient_CreateCluster(t *testing.T) {
 				openIDConnectConfig: &k8s.CreateClusterRequestOpenIDConnectConfig{
 					IssuerURL:      "http://oidcprovider.test",
 					ClientID:       "abcd",
-					UsernameClaim:  scw.StringPtr("username"),
-					UsernamePrefix: scw.StringPtr("usernameprefix"),
+					UsernameClaim:  ptr.To("username"),
+					UsernamePrefix: ptr.To("usernameprefix"),
 					GroupsClaim:    &[]string{"groups"},
-					GroupsPrefix:   scw.StringPtr("groupsprefix"),
+					GroupsPrefix:   ptr.To("groupsprefix"),
 					RequiredClaim:  &[]string{"verified"},
 				},
 				podCIDR:     scw.IPNet{IPNet: net.IPNet{IP: net.IPv4(192, 168, 0, 0), Mask: net.IPv4Mask(255, 255, 0, 0)}},
@@ -192,14 +194,14 @@ func TestClient_CreateCluster(t *testing.T) {
 					Version:     "1.30.4",
 					Cni:         k8s.CNICilium,
 					AutoscalerConfig: &k8s.CreateClusterRequestAutoscalerConfig{
-						ScaleDownDisabled:             scw.BoolPtr(false),
-						ScaleDownDelayAfterAdd:        scw.StringPtr("1m"),
+						ScaleDownDisabled:             ptr.To(false),
+						ScaleDownDelayAfterAdd:        ptr.To("1m"),
 						Estimator:                     k8s.AutoscalerEstimatorBinpacking,
 						Expander:                      k8s.AutoscalerExpanderMostPods,
-						IgnoreDaemonsetsUtilization:   scw.BoolPtr(true),
-						BalanceSimilarNodeGroups:      scw.BoolPtr(true),
+						IgnoreDaemonsetsUtilization:   ptr.To(true),
+						BalanceSimilarNodeGroups:      ptr.To(true),
 						ExpendablePodsPriorityCutoff:  scw.Int32Ptr(1),
-						ScaleDownUnneededTime:         scw.StringPtr("1m"),
+						ScaleDownUnneededTime:         ptr.To("1m"),
 						ScaleDownUtilizationThreshold: scw.Float32Ptr(1),
 						MaxGracefulTerminationSec:     scw.Uint32Ptr(30),
 					},
@@ -215,14 +217,14 @@ func TestClient_CreateCluster(t *testing.T) {
 					OpenIDConnectConfig: &k8s.CreateClusterRequestOpenIDConnectConfig{
 						IssuerURL:      "http://oidcprovider.test",
 						ClientID:       "abcd",
-						UsernameClaim:  scw.StringPtr("username"),
-						UsernamePrefix: scw.StringPtr("usernameprefix"),
+						UsernameClaim:  ptr.To("username"),
+						UsernamePrefix: ptr.To("usernameprefix"),
 						GroupsClaim:    &[]string{"groups"},
-						GroupsPrefix:   scw.StringPtr("groupsprefix"),
+						GroupsPrefix:   ptr.To("groupsprefix"),
 						RequiredClaim:  &[]string{"verified"},
 					},
 					ApiserverCertSans: []string{"my-cluster.test"},
-					PrivateNetworkID:  scw.StringPtr(privateNetworkID),
+					PrivateNetworkID:  ptr.To(privateNetworkID),
 					PodCidr:           &scw.IPNet{IPNet: net.IPNet{IP: net.IPv4(192, 168, 0, 0), Mask: net.IPv4Mask(255, 255, 0, 0)}},
 					ServiceCidr:       &scw.IPNet{IPNet: net.IPNet{IP: net.IPv4(10, 0, 0, 0), Mask: net.IPv4Mask(255, 0, 0, 0)}},
 				}, gomock.Any()).Return(&k8s.Cluster{
@@ -391,31 +393,31 @@ func TestClient_UpdateCluster(t *testing.T) {
 				admissionPlugins:  &[]string{"AlwaysPullImages"},
 				apiServerCertSANs: &[]string{"mycluster.test"},
 				autoscalerConfig: &k8s.UpdateClusterRequestAutoscalerConfig{
-					ScaleDownDisabled:             scw.BoolPtr(false),
-					ScaleDownDelayAfterAdd:        scw.StringPtr("1m"),
+					ScaleDownDisabled:             ptr.To(false),
+					ScaleDownDelayAfterAdd:        ptr.To("1m"),
 					Estimator:                     k8s.AutoscalerEstimatorBinpacking,
 					Expander:                      k8s.AutoscalerExpanderMostPods,
-					IgnoreDaemonsetsUtilization:   scw.BoolPtr(true),
-					BalanceSimilarNodeGroups:      scw.BoolPtr(true),
+					IgnoreDaemonsetsUtilization:   ptr.To(true),
+					BalanceSimilarNodeGroups:      ptr.To(true),
 					ExpendablePodsPriorityCutoff:  scw.Int32Ptr(1),
-					ScaleDownUnneededTime:         scw.StringPtr("1m"),
+					ScaleDownUnneededTime:         ptr.To("1m"),
 					ScaleDownUtilizationThreshold: scw.Float32Ptr(1),
 					MaxGracefulTerminationSec:     scw.Uint32Ptr(30),
 				},
 				autoUpgrade: &k8s.UpdateClusterRequestAutoUpgrade{
-					Enable: scw.BoolPtr(true),
+					Enable: ptr.To(true),
 					MaintenanceWindow: &k8s.MaintenanceWindow{
 						StartHour: 1,
 						Day:       k8s.MaintenanceWindowDayOfTheWeekFriday,
 					},
 				},
 				openIDConnectConfig: &k8s.UpdateClusterRequestOpenIDConnectConfig{
-					IssuerURL:      scw.StringPtr("http://oidcprovider.test"),
-					ClientID:       scw.StringPtr("abcd"),
-					UsernameClaim:  scw.StringPtr("username"),
-					UsernamePrefix: scw.StringPtr("usernameprefix"),
+					IssuerURL:      ptr.To("http://oidcprovider.test"),
+					ClientID:       ptr.To("abcd"),
+					UsernameClaim:  ptr.To("username"),
+					UsernamePrefix: ptr.To("usernameprefix"),
 					GroupsClaim:    &[]string{"groups"},
-					GroupsPrefix:   scw.StringPtr("groupsprefix"),
+					GroupsPrefix:   ptr.To("groupsprefix"),
 					RequiredClaim:  &[]string{"verified"},
 				},
 			},
@@ -424,19 +426,19 @@ func TestClient_UpdateCluster(t *testing.T) {
 					ClusterID: clusterID,
 					Tags:      &[]string{"tag1", "tag2", createdByTag},
 					AutoscalerConfig: &k8s.UpdateClusterRequestAutoscalerConfig{
-						ScaleDownDisabled:             scw.BoolPtr(false),
-						ScaleDownDelayAfterAdd:        scw.StringPtr("1m"),
+						ScaleDownDisabled:             ptr.To(false),
+						ScaleDownDelayAfterAdd:        ptr.To("1m"),
 						Estimator:                     k8s.AutoscalerEstimatorBinpacking,
 						Expander:                      k8s.AutoscalerExpanderMostPods,
-						IgnoreDaemonsetsUtilization:   scw.BoolPtr(true),
-						BalanceSimilarNodeGroups:      scw.BoolPtr(true),
+						IgnoreDaemonsetsUtilization:   ptr.To(true),
+						BalanceSimilarNodeGroups:      ptr.To(true),
 						ExpendablePodsPriorityCutoff:  scw.Int32Ptr(1),
-						ScaleDownUnneededTime:         scw.StringPtr("1m"),
+						ScaleDownUnneededTime:         ptr.To("1m"),
 						ScaleDownUtilizationThreshold: scw.Float32Ptr(1),
 						MaxGracefulTerminationSec:     scw.Uint32Ptr(30),
 					},
 					AutoUpgrade: &k8s.UpdateClusterRequestAutoUpgrade{
-						Enable: scw.BoolPtr(true),
+						Enable: ptr.To(true),
 						MaintenanceWindow: &k8s.MaintenanceWindow{
 							StartHour: 1,
 							Day:       k8s.MaintenanceWindowDayOfTheWeekFriday,
@@ -446,12 +448,12 @@ func TestClient_UpdateCluster(t *testing.T) {
 					AdmissionPlugins:  &[]string{"AlwaysPullImages"},
 					ApiserverCertSans: &[]string{"mycluster.test"},
 					OpenIDConnectConfig: &k8s.UpdateClusterRequestOpenIDConnectConfig{
-						IssuerURL:      scw.StringPtr("http://oidcprovider.test"),
-						ClientID:       scw.StringPtr("abcd"),
-						UsernameClaim:  scw.StringPtr("username"),
-						UsernamePrefix: scw.StringPtr("usernameprefix"),
+						IssuerURL:      ptr.To("http://oidcprovider.test"),
+						ClientID:       ptr.To("abcd"),
+						UsernameClaim:  ptr.To("username"),
+						UsernamePrefix: ptr.To("usernameprefix"),
 						GroupsClaim:    &[]string{"groups"},
-						GroupsPrefix:   scw.StringPtr("groupsprefix"),
+						GroupsPrefix:   ptr.To("groupsprefix"),
 						RequiredClaim:  &[]string{"verified"},
 					},
 				}, gomock.Any()).Return(&k8s.Cluster{
@@ -608,7 +610,7 @@ func TestClient_FindPool(t *testing.T) {
 			expect: func(d *mock_client.MockK8sAPIMockRecorder) {
 				d.ListPools(&k8s.ListPoolsRequest{
 					ClusterID: clusterID,
-					Name:      scw.StringPtr("mypool"),
+					Name:      ptr.To("mypool"),
 				}, gomock.Any(), gomock.Any()).Return(&k8s.ListPoolsResponse{
 					TotalCount: 1,
 					Pools: []*k8s.Pool{
@@ -631,7 +633,7 @@ func TestClient_FindPool(t *testing.T) {
 			expect: func(d *mock_client.MockK8sAPIMockRecorder) {
 				d.ListPools(&k8s.ListPoolsRequest{
 					ClusterID: clusterID,
-					Name:      scw.StringPtr("mypool"),
+					Name:      ptr.To("mypool"),
 				}, gomock.Any(), gomock.Any()).Return(&k8s.ListPoolsResponse{}, nil)
 			},
 		},
@@ -699,8 +701,8 @@ func TestClient_CreatePool(t *testing.T) {
 				clusterID:        clusterID,
 				name:             "mypool",
 				nodeType:         "DEV1-S",
-				placementGroupID: scw.StringPtr(placementGroupID),
-				securityGroupID:  scw.StringPtr(securityGroupID),
+				placementGroupID: ptr.To(placementGroupID),
+				securityGroupID:  ptr.To(securityGroupID),
 				autoscaling:      true,
 				autohealing:      true,
 				publicIPDisabled: true,
@@ -728,7 +730,7 @@ func TestClient_CreatePool(t *testing.T) {
 					ClusterID:        clusterID,
 					Name:             "mypool",
 					NodeType:         "DEV1-S",
-					PlacementGroupID: scw.StringPtr(placementGroupID),
+					PlacementGroupID: ptr.To(placementGroupID),
 					Autoscaling:      true,
 					Size:             1,
 					MinSize:          scw.Uint32Ptr(1),
@@ -745,9 +747,9 @@ func TestClient_CreatePool(t *testing.T) {
 					},
 					Zone:             scw.ZoneFrPar1,
 					RootVolumeType:   k8s.PoolVolumeTypeBSSD,
-					RootVolumeSize:   scw.SizePtr(30 * scw.GB),
+					RootVolumeSize:   ptr.To(30 * scw.GB),
 					PublicIPDisabled: true,
-					SecurityGroupID:  scw.StringPtr(securityGroupID),
+					SecurityGroupID:  ptr.To(securityGroupID),
 				}, gomock.Any()).Return(&k8s.Pool{
 					ID:   poolID,
 					Name: "mypool",
@@ -806,8 +808,8 @@ func TestClient_UpdatePool(t *testing.T) {
 			args: args{
 				ctx:         context.TODO(),
 				id:          poolID,
-				autoscaling: scw.BoolPtr(true),
-				autohealing: scw.BoolPtr(true),
+				autoscaling: ptr.To(true),
+				autohealing: ptr.To(true),
 				size:        scw.Uint32Ptr(1),
 				minSize:     scw.Uint32Ptr(1),
 				maxSize:     scw.Uint32Ptr(5),
@@ -824,8 +826,8 @@ func TestClient_UpdatePool(t *testing.T) {
 			expect: func(d *mock_client.MockK8sAPIMockRecorder) {
 				d.UpdatePool(&k8s.UpdatePoolRequest{
 					PoolID:      poolID,
-					Autoscaling: scw.BoolPtr(true),
-					Autohealing: scw.BoolPtr(true),
+					Autoscaling: ptr.To(true),
+					Autohealing: ptr.To(true),
 					Size:        scw.Uint32Ptr(1),
 					MinSize:     scw.Uint32Ptr(1),
 					MaxSize:     scw.Uint32Ptr(5),
@@ -990,7 +992,7 @@ func TestClient_ListNodes(t *testing.T) {
 			expect: func(d *mock_client.MockK8sAPIMockRecorder) {
 				d.ListNodes(&k8s.ListNodesRequest{
 					ClusterID: clusterID,
-					PoolID:    scw.StringPtr(poolID),
+					PoolID:    ptr.To(poolID),
 				}, gomock.Any(), gomock.Any()).Return(&k8s.ListNodesResponse{
 					TotalCount: 2,
 					Nodes: []*k8s.Node{
@@ -1121,7 +1123,7 @@ func TestClient_SetClusterACLRules(t *testing.T) {
 				clusterID: clusterID,
 				rules: []*k8s.ACLRuleRequest{
 					{
-						ScalewayRanges: scw.BoolPtr(true),
+						ScalewayRanges: ptr.To(true),
 					},
 					{
 						IP: &scw.IPNet{IPNet: net.IPNet{IP: net.IPv4(0, 0, 0, 0), Mask: net.IPv4Mask(0, 0, 0, 0)}},
@@ -1133,7 +1135,7 @@ func TestClient_SetClusterACLRules(t *testing.T) {
 					ClusterID: clusterID,
 					ACLs: []*k8s.ACLRuleRequest{
 						{
-							ScalewayRanges: scw.BoolPtr(true),
+							ScalewayRanges: ptr.To(true),
 							Description:    createdByDescription,
 						},
 						{

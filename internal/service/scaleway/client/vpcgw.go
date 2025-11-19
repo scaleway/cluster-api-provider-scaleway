@@ -6,6 +6,7 @@ import (
 
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"k8s.io/utils/ptr"
 )
 
 type VPCGWAPI interface {
@@ -81,7 +82,7 @@ func (c *Client) FindGatewayIP(ctx context.Context, zone scw.Zone, ip string) (*
 
 	ips, err := c.vpcgw.ListIPs(&vpcgw.ListIPsRequest{
 		Zone:      zone,
-		IsFree:    scw.BoolPtr(true),
+		IsFree:    ptr.To(true),
 		ProjectID: &c.projectID,
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {

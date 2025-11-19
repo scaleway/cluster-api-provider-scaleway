@@ -33,4 +33,4 @@ dist/*
 # e2e files
 _artifacts
 *-envsubst.yaml
-test/e2e/data/infrastructure-scaleway/v1beta1/*.yaml
+test/e2e/data/infrastructure-scaleway/v1beta2/*.yaml

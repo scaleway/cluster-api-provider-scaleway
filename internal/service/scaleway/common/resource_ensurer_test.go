@@ -6,9 +6,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/common/mock_common"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/common/mock_common"
 )
 
 type resource int

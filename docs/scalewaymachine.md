@@ -13,7 +13,7 @@ Scaleway availability zone that is based on the associated `Machine`'s `failureD
 You will usually never create a `ScalewayMachine` directly, `ScalewayMachineTemplate` should be used instead:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayMachineTemplate
 metadata:
   name: my-machine-template
@@ -54,7 +54,7 @@ The `image` field must contain one of the following:
 - An image ID:
 
   ```yaml
-  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
   kind: ScalewayMachine
   metadata:
     name: my-machine
@@ -68,7 +68,7 @@ The `image` field must contain one of the following:
 - An image name:
 
   ```yaml
-  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
   kind: ScalewayMachine
   metadata:
     name: my-machine
@@ -89,7 +89,7 @@ The `image` field must contain one of the following:
 - An image [Marketplace label](https://www.scaleway.com/en/developers/api/marketplace/):
 
   ```yaml
-  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
   kind: ScalewayMachine
   metadata:
     name: my-machine
@@ -107,7 +107,7 @@ To build your own image, you can use the [Kubernetes image-builder project](http
 During machine creation, a root volume will be provisioned based on the chosen image.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayMachine
 metadata:
   name: my-machine
@@ -144,7 +144,7 @@ The `publicNetwork` field defines if an IPv4 and/or IPv6 should be created and a
 during the Instance server creation.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ScalewayMachine
 metadata:
   name: my-machine
@@ -187,7 +187,7 @@ The `placementGroup` field must contain one of the following:
 - A placement group ID:
 
   ```yaml
-  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
   kind: ScalewayMachine
   metadata:
     name: my-machine
@@ -201,7 +201,7 @@ The `placementGroup` field must contain one of the following:
 - A placement group name:
 
   ```yaml
-  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
   kind: ScalewayMachine
   metadata:
     name: my-machine
@@ -233,7 +233,7 @@ The `securityGroup` field must contain one of the following:
 - A security group ID:
 
   ```yaml
-  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
   kind: ScalewayMachine
   metadata:
     name: my-machine
@@ -247,7 +247,7 @@ The `securityGroup` field must contain one of the following:
 - A security group name:
 
   ```yaml
-  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
   kind: ScalewayMachine
   metadata:
     name: my-machine

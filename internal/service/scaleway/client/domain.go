@@ -5,6 +5,7 @@ import (
 
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"k8s.io/utils/ptr"
 )
 
 type DomainAPI interface {
@@ -62,7 +63,7 @@ func (c *Client) SetDNSZoneRecords(ctx context.Context, zone, name string, ips [
 			Priority: 0,
 			TTL:      60,
 			Type:     domain.RecordTypeA,
-			Comment:  scw.StringPtr(createdByDescription),
+			Comment:  ptr.To(createdByDescription),
 		})
 	}
 

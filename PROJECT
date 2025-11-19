@@ -69,4 +69,96 @@ resources:
   kind: ScalewayManagedMachinePool
   path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayCluster
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2
+  version: v1alpha2
+  webhooks:
+    conversion: true
+    spoke:
+    - v1alpha1
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayMachine
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2
+  version: v1alpha2
+  webhooks:
+    conversion: true
+    spoke:
+    - v1alpha1
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayClusterTemplate
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2
+  version: v1alpha2
+  webhooks:
+    conversion: true
+    spoke:
+    - v1alpha1
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayMachineTemplate
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2
+  version: v1alpha2
+  webhooks:
+    conversion: true
+    spoke:
+    - v1alpha1
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayManagedCluster
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2
+  version: v1alpha2
+  webhooks:
+    conversion: true
+    spoke:
+    - v1alpha1
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayManagedControlPlane
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2
+  version: v1alpha2
+  webhooks:
+    conversion: true
+    defaulting: true
+    spoke:
+    - v1alpha1
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: ScalewayManagedMachinePool
+  path: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2
+  version: v1alpha2
+  webhooks:
+    conversion: true
+    spoke:
+    - v1alpha1
+    webhookVersion: v1
 version: "3"

@@ -8,19 +8,22 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 )
 
 var _ = Describe("ScalewayMachine Controller", func() {
@@ -45,8 +48,9 @@ var _ = Describe("ScalewayMachine Controller", func() {
 						Namespace: "default",
 					},
 					Spec: infrav1.ScalewayMachineSpec{
-						Image: infrav1.ImageSpec{
-							Label: scw.StringPtr("ubuntu_focal"),
+						CommercialType: "PRO2-S",
+						Image: infrav1.Image{
+							Label: "ubuntu_focal",
 						},
 					},
 				}
@@ -148,12 +152,14 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 						Namespace: clusterNamespacedName.Namespace,
 					},
 					Spec: clusterv1.ClusterSpec{
-						InfrastructureRef: &corev1.ObjectReference{
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 							Name: scalewayClusterNamespacedName.Name,
 						},
 					},
 					Status: clusterv1.ClusterStatus{
-						InfrastructureReady: true,
+						Initialization: clusterv1.ClusterInitializationStatus{
+							InfrastructureProvisioned: ptr.To(true),
+						},
 					},
 				},
 				&corev1.Secret{
@@ -189,7 +195,7 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: scw.StringPtr("bootstrap"),
+							DataSecretName: ptr.To("bootstrap"),
 						},
 					},
 				},
@@ -198,8 +204,9 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 				// ScalewayMachine checks
 				sc := &infrav1.ScalewayMachine{}
 				g.Expect(c.Get(context.TODO(), scalewayMachineNamespacedName, sc)).To(Succeed())
-				g.Expect(sc.Status.Ready).To(BeTrue())
-				g.Expect(sc.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
+				g.Expect(sc.Status.Initialization.Provisioned).NotTo(BeNil())
+				g.Expect(*sc.Status.Initialization.Provisioned).To(BeTrue())
+				g.Expect(sc.Finalizers).To(ContainElement(infrav1.ScalewayMachineFinalizer))
 			},
 		},
 		{
@@ -244,12 +251,14 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 						Namespace: clusterNamespacedName.Namespace,
 					},
 					Spec: clusterv1.ClusterSpec{
-						InfrastructureRef: &corev1.ObjectReference{
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 							Name: scalewayClusterNamespacedName.Name,
 						},
 					},
 					Status: clusterv1.ClusterStatus{
-						InfrastructureReady: true,
+						Initialization: clusterv1.ClusterInitializationStatus{
+							InfrastructureProvisioned: ptr.To(true),
+						},
 					},
 				},
 				&corev1.Secret{
@@ -273,7 +282,7 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 								APIVersion: clusterv1.GroupVersion.String(),
 							},
 						},
-						Finalizers:        []string{infrav1.MachineFinalizer},
+						Finalizers:        []string{infrav1.ScalewayMachineFinalizer},
 						DeletionTimestamp: &metav1.Time{Time: time.Now()},
 					},
 				},
@@ -287,7 +296,7 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: scw.StringPtr("bootstrap"),
+							DataSecretName: ptr.To("bootstrap"),
 						},
 					},
 				},

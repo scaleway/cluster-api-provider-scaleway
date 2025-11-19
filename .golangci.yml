@@ -31,9 +31,9 @@ linters:
       alias:
         - pkg: sigs.k8s.io/controller-runtime/pkg/log
           alias: logf
-        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
           alias: clusterv1
-        - pkg: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1
+        - pkg: github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2
           alias: infrav1
         - pkg: k8s.io/apimachinery/pkg/api/errors
           alias: apierrors
@@ -41,6 +41,8 @@ linters:
           alias: utilerrors
         - pkg: github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/lb/util
           alias: lbutil
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: metav1
   exclusions:
     generated: lax
     rules:
@@ -49,14 +51,14 @@ linters:
         path: api/*
       - linters:
           - lll
+        path: cmd/main.go
+      - linters:
+          - lll
         path: test/e2e/*
       - linters:
           - dupl
           - lll
         path: internal/*
-      - linters:
-          - staticcheck
-        text: "ST1019"
       - linters:
           - staticcheck
         text: "ST1005"
@@ -73,11 +75,22 @@ linters:
       - examples$
 formatters:
   enable:
+    - gci
     - gofmt
     - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - blank
+        - dot
+        - default
+        - localmodule
+      custom-order: true
   exclusions:
-    generated: lax
+    generated: strict
     paths:
+      - zz_generated.*\.go$
       - third_party$
       - builtin$
       - examples$

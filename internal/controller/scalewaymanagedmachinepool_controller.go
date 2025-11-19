@@ -8,8 +8,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -20,7 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	infrav1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1" //nolint:staticcheck
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
 )
@@ -121,6 +122,13 @@ func (r *ScalewayManagedMachinePoolReconciler) Reconcile(ctx context.Context, re
 		}
 	}()
 
+	// Replace legacy finalizer with the up-to-date one.
+	if migrateFinalizer(managedMachinePool, infrav1alpha1.ManagedMachinePoolFinalizer, infrav1.ScalewayManagedMachinePoolFinalizer) {
+		if err := managedMachinePoolScope.PatchObject(ctx); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Handle deleted machine pool
 	if !managedMachinePool.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, managedMachinePoolScope)
@@ -134,10 +142,10 @@ func (r *ScalewayManagedMachinePoolReconciler) reconcileNormal(ctx context.Conte
 	log := logf.FromContext(ctx)
 
 	log.Info("Reconciling ScalewayManagedMachinePool")
-	managedMachinePool := s.ManagedMachinePool
+	managedMachinePool := s.ScalewayManagedMachinePool
 
 	// Register our finalizer immediately to avoid orphaning Scaleway resources on delete
-	if controllerutil.AddFinalizer(managedMachinePool, infrav1.ManagedMachinePoolFinalizer) {
+	if controllerutil.AddFinalizer(managedMachinePool, infrav1.ScalewayManagedMachinePoolFinalizer) {
 		if err := s.PatchObject(ctx); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -146,20 +154,16 @@ func (r *ScalewayManagedMachinePoolReconciler) reconcileNormal(ctx context.Conte
 	if err := r.createScalewayManagedMachinePoolService(s).Reconcile(ctx); err != nil {
 		// Handle terminal & transient errors
 		var reconcileError *scaleway.ReconcileError
-		if errors.As(err, &reconcileError) {
-			if reconcileError.IsTerminal() {
-				log.Error(err, "Failed to reconcile ScalewayManagedMachinePool")
-				return ctrl.Result{}, nil
-			} else if reconcileError.IsTransient() {
-				log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayManagedMachinePool, retrying: %s", reconcileError.Error()))
-				return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
-			}
+		if errors.As(err, &reconcileError) && reconcileError.RequeueAfter() != 0 {
+			log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayManagedMachinePool, retrying: %s", reconcileError.Error()))
+			return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
 		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile cluster services: %w", err)
 	}
 
-	s.ManagedMachinePool.Status.Ready = true
+	s.ScalewayManagedMachinePool.Status.Initialization.Provisioned = ptr.To(true)
+	s.ScalewayManagedMachinePool.Status.Ready = ptr.To(true)
 
 	return ctrl.Result{}, nil
 }
@@ -169,23 +173,21 @@ func (r *ScalewayManagedMachinePoolReconciler) reconcileDelete(ctx context.Conte
 
 	log.Info("Reconciling ScalewayManagedMachinePool delete")
 
-	managedMachinePool := s.ManagedMachinePool
+	managedMachinePool := s.ScalewayManagedMachinePool
 
 	if err := r.createScalewayManagedMachinePoolService(s).Delete(ctx); err != nil {
 		// Handle transient errors
 		var reconcileError *scaleway.ReconcileError
-		if errors.As(err, &reconcileError) {
-			if reconcileError.IsTransient() {
-				log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayManagedMachinePool, retrying: %s", reconcileError.Error()))
-				return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
-			}
+		if errors.As(err, &reconcileError) && reconcileError.RequeueAfter() != 0 {
+			log.Info(fmt.Sprintf("Transient failure to reconcile ScalewayManagedMachinePool, retrying: %s", reconcileError.Error()))
+			return ctrl.Result{RequeueAfter: reconcileError.RequeueAfter()}, nil
 		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to delete services: %w", err)
 	}
 
 	// Pool is deleted so remove the finalizer.
-	controllerutil.RemoveFinalizer(managedMachinePool, infrav1.ManagedMachinePoolFinalizer)
+	controllerutil.RemoveFinalizer(managedMachinePool, infrav1.ScalewayManagedMachinePoolFinalizer)
 
 	return ctrl.Result{}, nil
 }
@@ -203,7 +205,7 @@ func (r *ScalewayManagedMachinePoolReconciler) SetupWithManager(ctx context.Cont
 		WithEventFilter(predicates.ResourceNotPaused(mgr.GetScheme(), mgr.GetLogger())).
 		// watch for changes in CAPI MachinePool resources
 		Watches(
-			&expclusterv1.MachinePool{},
+			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("ScalewayManagedMachinePool"))),
 		).
 		// watch for changes in ScalewayManagedControlPlanes
@@ -215,13 +217,13 @@ func (r *ScalewayManagedMachinePoolReconciler) SetupWithManager(ctx context.Cont
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(scalewayManagedMachinePoolMapper),
-			builder.WithPredicates(predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), mgr.GetLogger())),
+			builder.WithPredicates(predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), mgr.GetLogger())),
 		).
 		Complete(r)
 }
 
 // getOwnerMachinePool returns the MachinePool object owning the current resource.
-func getOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*expclusterv1.MachinePool, error) {
+func getOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.MachinePool, error) {
 	for _, ref := range obj.OwnerReferences {
 		if ref.Kind != "MachinePool" {
 			continue
@@ -230,7 +232,7 @@ func getOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse group version: %w", err)
 		}
-		if gv.Group == expclusterv1.GroupVersion.Group {
+		if gv.Group == clusterv1.GroupVersion.Group {
 			return getMachinePoolByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
@@ -238,8 +240,8 @@ func getOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 }
 
 // getMachinePoolByName finds and return a Machine object using the specified params.
-func getMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*expclusterv1.MachinePool, error) {
-	m := &expclusterv1.MachinePool{}
+func getMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachinePool, error) {
+	m := &clusterv1.MachinePool{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	if err := c.Get(ctx, key, m); err != nil {
 		return nil, err
@@ -251,7 +253,7 @@ func getMachinePoolByName(ctx context.Context, c client.Client, namespace, name 
 // MachinePool events and returns reconciliation requests for an infrastructure provider object.
 func machinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
 	return func(_ context.Context, o client.Object) []ctrl.Request {
-		m, ok := o.(*expclusterv1.MachinePool)
+		m, ok := o.(*clusterv1.MachinePool)
 		if !ok {
 			return nil
 		}
@@ -259,7 +261,7 @@ func machinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.Map
 		gk := gvk.GroupKind()
 		ref := m.Spec.Template.Spec.InfrastructureRef
 		// Return early if the GroupKind doesn't match what we expect.
-		infraGK := ref.GroupVersionKind().GroupKind()
+		infraGK := ref.GroupKind()
 		if gk != infraGK {
 			return nil
 		}
@@ -317,7 +319,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(ctx context.Context, c clien
 			return nil
 		}
 
-		managedPoolForClusterList := expclusterv1.MachinePoolList{}
+		managedPoolForClusterList := clusterv1.MachinePoolList{}
 		if err := c.List(
 			ctx, &managedPoolForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterKey.Name},
 		); err != nil {

@@ -2,7 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 )
 
 const ManagedControlPlaneFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/smcp-protection"
@@ -82,7 +82,7 @@ type ScalewayManagedControlPlaneSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
 }
 
 // OnDeleteSpec configures the settings to apply when deleting the Scaleway managed cluster.
@@ -215,7 +215,6 @@ type ScalewayManagedControlPlaneStatus struct {
 
 	// Initialized is true when the control plane is available for initial contact.
 	// This may occur before the control plane is fully ready.
-	// In the AzureManagedControlPlane implementation, these are identical.
 	// +optional
 	Initialized bool `json:"initialized,omitempty"`
 
@@ -244,7 +243,7 @@ type ACLSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=scalewaymanagedcontrolplanes,scope=Namespaced,categories=cluster-api,shortName=smcp
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this ScalewayManagedControlPlane belongs"
 // +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready",description="Ready is true when the managed cluster is fully provisioned"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The Kubernetes version of the Scaleway control plane"
@@ -280,5 +279,5 @@ type ScalewayManagedControlPlaneList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayManagedControlPlane{}, &ScalewayManagedControlPlaneList{})
+	objectTypes = append(objectTypes, &ScalewayManagedControlPlane{}, &ScalewayManagedControlPlaneList{})
 }

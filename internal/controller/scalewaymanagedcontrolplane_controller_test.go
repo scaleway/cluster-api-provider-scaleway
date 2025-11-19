@@ -8,19 +8,22 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
+
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 )
 
 var _ = Describe("ScalewayManagedControlPlane Controller", func() {
@@ -121,7 +124,7 @@ var _ = Describe("ScalewayManagedControlPlane", func() {
 				err := k8sClient.Get(ctx, typeNamespacedName, resource)
 				Expect(err).NotTo(HaveOccurred())
 
-				resource.Spec.CNI = scw.StringPtr("calico")
+				resource.Spec.CNI = "calico"
 				Expect(k8sClient.Update(ctx, resource)).NotTo(Succeed())
 			})
 		})
@@ -252,7 +255,9 @@ func TestScalewayManagedControlPlaneReconciler_Reconcile(t *testing.T) {
 						ProjectID:          "11111111-1111-1111-1111-111111111111",
 					},
 					Status: infrav1.ScalewayManagedClusterStatus{
-						Ready: true,
+						Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
+							Provisioned: ptr.To(true),
+						},
 					},
 				},
 				&infrav1.ScalewayManagedControlPlane{
@@ -282,13 +287,11 @@ func TestScalewayManagedControlPlaneReconciler_Reconcile(t *testing.T) {
 						Namespace: clusterNamespacedName.Namespace,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: &corev1.ObjectReference{
-							Name:      scalewayManagedControlPlaneNamespacedName.Name,
-							Namespace: scalewayManagedControlPlaneNamespacedName.Namespace,
+						ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedControlPlaneNamespacedName.Name,
 						},
-						InfrastructureRef: &corev1.ObjectReference{
-							Name:      scalewayManagedClusterNamespacedName.Name,
-							Namespace: scalewayManagedClusterNamespacedName.Namespace,
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedClusterNamespacedName.Name,
 						},
 					},
 				},
@@ -307,10 +310,10 @@ func TestScalewayManagedControlPlaneReconciler_Reconcile(t *testing.T) {
 				// ScalewayManagedControlPlane checks
 				smcp := &infrav1.ScalewayManagedControlPlane{}
 				g.Expect(c.Get(context.TODO(), scalewayManagedControlPlaneNamespacedName, smcp)).To(Succeed())
-				g.Expect(smcp.Status.Ready).To(BeTrue())
-				g.Expect(smcp.Status.Initialized).To(BeTrue())
-				g.Expect(smcp.Status.ExternalManagedControlPlane).To(BeTrue())
-				g.Expect(smcp.Finalizers).To(ContainElement(infrav1.ManagedControlPlaneFinalizer))
+				g.Expect(smcp.Status.Initialization.ControlPlaneInitialized).NotTo(BeNil())
+				g.Expect(*smcp.Status.Initialization.ControlPlaneInitialized).To(BeTrue())
+				g.Expect(*smcp.Status.ExternalManagedControlPlane).To(BeTrue())
+				g.Expect(smcp.Finalizers).To(ContainElement(infrav1.ScalewayManagedControlPlaneFinalizer))
 			},
 		},
 		{
@@ -348,7 +351,9 @@ func TestScalewayManagedControlPlaneReconciler_Reconcile(t *testing.T) {
 						ProjectID:          "11111111-1111-1111-1111-111111111111",
 					},
 					Status: infrav1.ScalewayManagedClusterStatus{
-						Ready: true,
+						Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
+							Provisioned: ptr.To(true),
+						},
 					},
 				},
 				&infrav1.ScalewayManagedControlPlane{
@@ -362,7 +367,7 @@ func TestScalewayManagedControlPlaneReconciler_Reconcile(t *testing.T) {
 								APIVersion: clusterv1.GroupVersion.String(),
 							},
 						},
-						Finalizers:        []string{infrav1.ManagedControlPlaneFinalizer},
+						Finalizers:        []string{infrav1.ScalewayManagedControlPlaneFinalizer},
 						DeletionTimestamp: &metav1.Time{Time: time.Now()},
 					},
 					Spec: infrav1.ScalewayManagedControlPlaneSpec{
@@ -380,13 +385,11 @@ func TestScalewayManagedControlPlaneReconciler_Reconcile(t *testing.T) {
 						Namespace: clusterNamespacedName.Namespace,
 					},
 					Spec: clusterv1.ClusterSpec{
-						ControlPlaneRef: &corev1.ObjectReference{
-							Name:      scalewayManagedControlPlaneNamespacedName.Name,
-							Namespace: scalewayManagedControlPlaneNamespacedName.Namespace,
+						ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedControlPlaneNamespacedName.Name,
 						},
-						InfrastructureRef: &corev1.ObjectReference{
-							Name:      scalewayManagedClusterNamespacedName.Name,
-							Namespace: scalewayManagedClusterNamespacedName.Namespace,
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedClusterNamespacedName.Name,
 						},
 					},
 				},

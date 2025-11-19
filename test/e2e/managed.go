@@ -7,14 +7,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"k8s.io/klog/v2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 )
 
 const (
@@ -43,7 +43,7 @@ type ApplyManagedClusterTemplateAndWaitResult struct {
 	ClusterClass *clusterv1.ClusterClass
 	Cluster      *clusterv1.Cluster
 	ControlPlane *infrav1.ScalewayManagedControlPlane
-	MachinePools []*expv1.MachinePool
+	MachinePools []*clusterv1.MachinePool
 }
 
 // ApplyManagedClusterTemplateAndWait gets a managed cluster template using clusterctl, and waits for the cluster to be ready.

@@ -3,35 +3,35 @@ package scope
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
-	"github.com/scaleway/scaleway-sdk-go/scw"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	scwClient "github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client"
 )
 
 type ManagedMachinePool struct {
-	patchHelper         *patch.Helper
-	Client              client.Client
-	Cluster             *clusterv1.Cluster
-	MachinePool         *expclusterv1.MachinePool
-	ManagedCluster      *infrav1.ScalewayManagedCluster
-	ManagedControlPlane *infrav1.ScalewayManagedControlPlane
-	ManagedMachinePool  *infrav1.ScalewayManagedMachinePool
-	ScalewayClient      scwClient.Interface
+	patchHelper                 *patch.Helper
+	Client                      client.Client
+	Cluster                     *clusterv1.Cluster
+	MachinePool                 *clusterv1.MachinePool
+	ScalewayManagedCluster      *infrav1.ScalewayManagedCluster
+	ScalewayManagedControlPlane *infrav1.ScalewayManagedControlPlane
+	ScalewayManagedMachinePool  *infrav1.ScalewayManagedMachinePool
+	ScalewayClient              scwClient.Interface
 }
 
 // ClusterParams contains mandatory params for creating the Cluster scope.
 type ManagedMachinePoolParams struct {
 	Client              client.Client
 	Cluster             *clusterv1.Cluster
-	MachinePool         *expclusterv1.MachinePool
+	MachinePool         *clusterv1.MachinePool
 	ManagedCluster      *infrav1.ScalewayManagedCluster
 	ManagedControlPlane *infrav1.ScalewayManagedControlPlane
 	ManagedMachinePool  *infrav1.ScalewayManagedMachinePool
@@ -39,31 +39,46 @@ type ManagedMachinePoolParams struct {
 
 // NewCluster creates a new Cluster scope.
 func NewManagedMachinePool(ctx context.Context, params *ManagedMachinePoolParams) (*ManagedMachinePool, error) {
-	c, err := newScalewayClientForScalewayManagedCluster(ctx, params.Client, params.ManagedCluster)
-	if err != nil {
-		return nil, err
-	}
-
 	helper, err := patch.NewHelper(params.ManagedMachinePool, params.Client)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create patch helper for ScalewayManagedMachinePool: %w", err)
 	}
 
-	return &ManagedMachinePool{
-		patchHelper:         helper,
-		Client:              params.Client,
-		ScalewayClient:      c,
-		Cluster:             params.Cluster,
-		MachinePool:         params.MachinePool,
-		ManagedCluster:      params.ManagedCluster,
-		ManagedControlPlane: params.ManagedControlPlane,
-		ManagedMachinePool:  params.ManagedMachinePool,
-	}, nil
+	mmp := &ManagedMachinePool{
+		patchHelper:                 helper,
+		Client:                      params.Client,
+		Cluster:                     params.Cluster,
+		MachinePool:                 params.MachinePool,
+		ScalewayManagedCluster:      params.ManagedCluster,
+		ScalewayManagedControlPlane: params.ManagedControlPlane,
+		ScalewayManagedMachinePool:  params.ManagedMachinePool,
+	}
+
+	mmp.ScalewayClient, err = newScalewayClientForScalewayManagedCluster(ctx, params.Client, params.ManagedCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	return mmp, nil
 }
 
 // PatchObject patches the ScalewayManagedControlPlane object.
 func (m *ManagedMachinePool) PatchObject(ctx context.Context) error {
-	return m.patchHelper.Patch(ctx, m.ManagedMachinePool)
+	summaryConditions := []string{
+		infrav1.ScalewayManagedMachinePoolPoolReadyCondition,
+	}
+
+	if err := conditions.SetSummaryCondition(
+		m.ScalewayManagedMachinePool, m.ScalewayManagedMachinePool,
+		infrav1.ScalewayManagedMachinePoolReadyCondition,
+		conditions.ForConditionTypes(summaryConditions),
+	); err != nil {
+		return err
+	}
+
+	return m.patchHelper.Patch(ctx, m.ScalewayManagedMachinePool, patch.WithOwnedConditions{
+		Conditions: append(summaryConditions, infrav1.ScalewayManagedMachinePoolReadyCondition),
+	})
 }
 
 // Close closes the Machine scope by patching the ScalewayManagedControlPlane object.
@@ -74,7 +89,7 @@ func (m *ManagedMachinePool) Close(ctx context.Context) error {
 // ResourceName returns the name/prefix that resources created for the cluster should have.
 // It is possible to provide additional suffixes that will be appended to the name with a leading "-".
 func (m *ManagedMachinePool) ResourceName(suffixes ...string) string {
-	return strings.Join(append([]string{m.ManagedMachinePool.Name}, suffixes...), "-")
+	return strings.Join(append([]string{m.ScalewayManagedMachinePool.Name}, suffixes...), "-")
 }
 
 // ResourceTags returns the tags that resources created for the cluster should have.
@@ -82,77 +97,57 @@ func (m *ManagedMachinePool) ResourceName(suffixes ...string) string {
 func (c *ManagedMachinePool) ResourceTags(additional ...string) []string {
 	return append(
 		[]string{
-			fmt.Sprintf("caps-namespace=%s", c.ManagedMachinePool.Namespace),
-			fmt.Sprintf("caps-scalewaymanagedmachinepool=%s", c.ManagedMachinePool.Name),
+			fmt.Sprintf("caps-namespace=%s", c.ScalewayManagedMachinePool.Namespace),
+			fmt.Sprintf("caps-scalewaymanagedmachinepool=%s", c.ScalewayManagedMachinePool.Name),
 		}, additional...)
 }
 
-func (c *ManagedMachinePool) ClusterName() (string, bool) {
-	if c.ManagedControlPlane.Spec.ClusterName == nil {
-		return "", false
-	}
-
-	return *c.ManagedControlPlane.Spec.ClusterName, true
+func (c *ManagedMachinePool) ClusterName() string {
+	return c.ScalewayManagedControlPlane.Spec.ClusterName
 }
 
-func (c *ManagedMachinePool) Scaling() (autoscaling bool, size, min, max uint32) {
+func (c *ManagedMachinePool) Scaling() (autoscaling bool, size, minSize, maxSize uint32) {
 	// Completely ignore scaling parameters for external node pools.
-	if c.ManagedMachinePool.Spec.NodeType == "external" {
+	if c.ScalewayManagedMachinePool.Spec.NodeType == "external" {
 		return
 	}
 
+	scaling := c.ScalewayManagedMachinePool.Spec.Scaling
+
 	size = c.replicas()
-
-	if c.ManagedMachinePool.Spec.Scaling != nil {
-		if c.ManagedMachinePool.Spec.Scaling.Autoscaling != nil {
-			autoscaling = *c.ManagedMachinePool.Spec.Scaling.Autoscaling
-		}
-
-		if c.ManagedMachinePool.Spec.Scaling.MinSize != nil {
-			min = uint32(*c.ManagedMachinePool.Spec.Scaling.MinSize)
-		}
-
-		if c.ManagedMachinePool.Spec.Scaling.MaxSize != nil {
-			max = uint32(*c.ManagedMachinePool.Spec.Scaling.MaxSize)
-		}
-	}
-
-	min = uint32(math.Min(float64(min), float64(size)))
-	max = uint32(math.Max(float64(max), float64(size)))
+	autoscaling = ptr.Deref(scaling.Autoscaling, false)
+	minSize = min(uint32(ptr.Deref(scaling.MinSize, 0)), size)
+	maxSize = max(uint32(ptr.Deref(scaling.MaxSize, 0)), size)
 
 	return
 }
 
 func (c *ManagedMachinePool) Autohealing() bool {
-	if c.ManagedMachinePool.Spec.Autohealing == nil {
+	if c.ScalewayManagedMachinePool.Spec.Autohealing == nil {
 		return false
 	}
 
-	return *c.ManagedMachinePool.Spec.Autohealing
+	return *c.ScalewayManagedMachinePool.Spec.Autohealing
 }
 
 func (c *ManagedMachinePool) PublicIPDisabled() bool {
-	if c.ManagedMachinePool.Spec.PublicIPDisabled == nil {
+	if c.ScalewayManagedMachinePool.Spec.PublicIPDisabled == nil {
 		return false
 	}
 
-	return *c.ManagedMachinePool.Spec.PublicIPDisabled
+	return *c.ScalewayManagedMachinePool.Spec.PublicIPDisabled
 }
 
 func (c *ManagedMachinePool) replicas() uint32 {
-	if c.MachinePool.Spec.Replicas == nil {
-		return 3
-	}
-
-	return uint32(*c.MachinePool.Spec.Replicas)
+	return uint32(ptr.Deref(c.MachinePool.Spec.Replicas, 3))
 }
 
 func (c *ManagedMachinePool) RootVolumeSizeGB() *uint64 {
-	if c.ManagedMachinePool.Spec.RootVolumeSizeGB == nil {
+	if c.ScalewayManagedMachinePool.Spec.RootVolumeSizeGB == 0 {
 		return nil
 	}
 
-	return scw.Uint64Ptr(uint64(*c.ManagedMachinePool.Spec.RootVolumeSizeGB))
+	return ptr.To(uint64(c.ScalewayManagedMachinePool.Spec.RootVolumeSizeGB))
 }
 
 func (c *ManagedMachinePool) SetProviderIDs(nodes []*k8s.Node) {
@@ -166,52 +161,54 @@ func (c *ManagedMachinePool) SetProviderIDs(nodes []*k8s.Node) {
 		providerIDs = append(providerIDs, node.ProviderID)
 	}
 
-	c.ManagedMachinePool.Spec.ProviderIDList = providerIDs
+	c.ScalewayManagedMachinePool.Spec.ProviderIDList = providerIDs
 }
 
 func (c *ManagedMachinePool) SetStatusReplicas(replicas uint32) {
-	c.ManagedMachinePool.Status.Replicas = int32(replicas)
+	c.ScalewayManagedMachinePool.Status.Replicas = ptr.To(int32(replicas))
 }
 
 func (c *ManagedMachinePool) RootVolumeType() k8s.PoolVolumeType {
-	if c.ManagedMachinePool.Spec.RootVolumeType == nil {
+	if c.ScalewayManagedMachinePool.Spec.RootVolumeType == "" {
 		return k8s.PoolVolumeTypeDefaultVolumeType
 	}
 
-	return k8s.PoolVolumeType(*c.ManagedMachinePool.Spec.RootVolumeType)
+	return k8s.PoolVolumeType(c.ScalewayManagedMachinePool.Spec.RootVolumeType)
 }
 
 func (c *ManagedMachinePool) DesiredPoolUpgradePolicy() *k8s.PoolUpgradePolicy {
-	policy := &k8s.PoolUpgradePolicy{
-		MaxSurge:       0,
-		MaxUnavailable: 1,
+	return &k8s.PoolUpgradePolicy{
+		MaxSurge:       uint32(ptr.Deref(c.ScalewayManagedMachinePool.Spec.UpgradePolicy.MaxSurge, 0)),
+		MaxUnavailable: uint32(ptr.Deref(c.ScalewayManagedMachinePool.Spec.UpgradePolicy.MaxUnavailable, 1)),
 	}
-
-	if c.ManagedMachinePool.Spec.UpgradePolicy == nil {
-		return policy
-	}
-
-	if c.ManagedMachinePool.Spec.UpgradePolicy.MaxSurge != nil {
-		policy.MaxSurge = uint32(*c.ManagedMachinePool.Spec.UpgradePolicy.MaxSurge)
-	}
-
-	if c.ManagedMachinePool.Spec.UpgradePolicy.MaxUnavailable != nil {
-		policy.MaxUnavailable = uint32(*c.ManagedMachinePool.Spec.UpgradePolicy.MaxUnavailable)
-	}
-
-	return policy
 }
 
 func (m *ManagedMachinePool) DesiredTags() []string {
-	return m.ResourceTags(m.ManagedMachinePool.Spec.AdditionalTags...)
+	return m.ResourceTags(m.ScalewayManagedMachinePool.Spec.AdditionalTags...)
 }
 
 func (m *ManagedMachinePool) DesiredVersion() *string {
 	version := m.MachinePool.Spec.Template.Spec.Version
-	if version == nil {
+	if version == "" {
 		return nil
 	}
 
-	*version, _ = strings.CutPrefix(*version, "v")
-	return version
+	version, _ = strings.CutPrefix(version, "v")
+	return &version
+}
+
+func (m *ManagedMachinePool) PlacementGroupID() *string {
+	if m.ScalewayManagedMachinePool.Spec.PlacementGroupID == "" {
+		return nil
+	}
+
+	return ptr.To(string(m.ScalewayManagedMachinePool.Spec.PlacementGroupID))
+}
+
+func (m *ManagedMachinePool) SecurityGroupID() *string {
+	if m.ScalewayManagedMachinePool.Spec.SecurityGroupID == "" {
+		return nil
+	}
+
+	return ptr.To(string(m.ScalewayManagedMachinePool.Spec.SecurityGroupID))
 }

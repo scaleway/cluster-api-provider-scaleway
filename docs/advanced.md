@@ -16,7 +16,7 @@ of the node instead.
 Here is an example of `KubeadmControlPlane` configuration:
 
 ```yaml
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
 metadata:
   name: my-kubeadm-controlplane
@@ -28,21 +28,23 @@ spec:
         advertiseAddress: "[[[ .NodeIP ]]]"
       nodeRegistration:
         kubeletExtraArgs:
-          node-ip: "[[[ .NodeIP ]]]"
+          - name: node-ip
+            value: "[[[ .NodeIP ]]]"
     joinConfiguration:
       controlPlane:
         localAPIEndpoint:
           advertiseAddress: "[[[ .NodeIP ]]]"
       nodeRegistration:
         kubeletExtraArgs:
-          node-ip: "[[[ .NodeIP ]]]"
+          - name: node-ip
+            value: "[[[ .NodeIP ]]]"
   # important: some fields were omitted...
 ```
 
 Here is an example of `KubeadmConfigTemplate` configuration:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: my-kubeadmconfig-template
@@ -53,6 +55,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            node-ip: "[[[ .NodeIP ]]]"
+            - name: node-ip
+              value: "[[[ .NodeIP ]]]"
   # important: some fields were omitted...
 ```

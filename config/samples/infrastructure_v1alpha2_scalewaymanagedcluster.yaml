@@ -1,0 +1,9 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: ScalewayManagedCluster
+metadata:
+  labels:
+    app.kubernetes.io/name: cluster-api-provider-scaleway
+    app.kubernetes.io/managed-by: kustomize
+  name: scalewaymanagedcluster-sample
+spec:
+  # TODO(user): Add fields here

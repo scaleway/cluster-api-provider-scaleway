@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -13,8 +12,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
+
+	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 )
 
 func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *k8s.Cluster, getKubeconfig kubeconfigGetter) error {
@@ -51,22 +53,23 @@ func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *k
 			return fmt.Errorf("getting kubeconfig (user) secret %s: %w", clusterRef, err)
 		}
 
-		createErr := s.createUserKubeconfigSecret(
-			ctx,
-			cluster,
-			getKubeconfig,
-			&clusterRef,
-		)
+		createErr := s.createUserKubeconfigSecret(ctx, cluster, getKubeconfig, &clusterRef, s.Cluster.Name)
 		if createErr != nil {
-			return fmt.Errorf("creating additional kubeconfig secret: %w", err)
+			return fmt.Errorf("creating additional kubeconfig secret: %w", createErr)
 		}
 	}
 
 	return nil
 }
 
-func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *k8s.Cluster, getKubeconfig kubeconfigGetter, clusterRef *types.NamespacedName) error {
-	controllerOwnerRef := *metav1.NewControllerRef(s.ManagedControlPlane.ManagedControlPlane, infrav1.GroupVersion.WithKind("ScalewayManagedControlPlane"))
+func (s *Service) createUserKubeconfigSecret(
+	ctx context.Context,
+	cluster *k8s.Cluster,
+	getKubeconfig kubeconfigGetter,
+	clusterRef *types.NamespacedName,
+	clusterName string,
+) error {
+	controllerOwnerRef := *metav1.NewControllerRef(s.ScalewayManagedControlPlane, infrav1.GroupVersion.WithKind("ScalewayManagedControlPlane"))
 
 	contextName := s.getKubeConfigContextName(false)
 
@@ -99,6 +102,8 @@ func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *k8s.C
 	}
 
 	kubeconfigSecret := kubeconfig.GenerateSecretWithOwner(*clusterRef, out, controllerOwnerRef)
+	kubeconfigSecret.Labels[clusterv1.ClusterNameLabel] = clusterName
+
 	if err := s.Client.Create(ctx, kubeconfigSecret); err != nil {
 		return fmt.Errorf("creating secret: %w", err)
 	}
@@ -107,7 +112,7 @@ func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *k8s.C
 }
 
 func (s *Service) createCAPIKubeconfigSecret(ctx context.Context, cluster *k8s.Cluster, getKubeconfig kubeconfigGetter, clusterRef *types.NamespacedName) error {
-	controllerOwnerRef := *metav1.NewControllerRef(s.ManagedControlPlane.ManagedControlPlane, infrav1.GroupVersion.WithKind("ScalewayManagedControlPlane"))
+	controllerOwnerRef := *metav1.NewControllerRef(s.ScalewayManagedControlPlane, infrav1.GroupVersion.WithKind("ScalewayManagedControlPlane"))
 
 	contextName := s.getKubeConfigContextName(false)
 
@@ -208,7 +213,7 @@ func (s *Service) createBaseKubeConfig(contextName string, cluster *k8s.Cluster,
 }
 
 func (s *Service) getKubeConfigContextName(isUser bool) string {
-	contextName := fmt.Sprintf("scw_%s_%s_%s", s.ManagedCluster.Spec.ProjectID, s.ManagedCluster.Spec.Region, s.ClusterName())
+	contextName := fmt.Sprintf("scw_%s_%s_%s", s.ScalewayManagedCluster.Spec.ProjectID, s.ScalewayManagedCluster.Spec.Region, s.ClusterName())
 	if isUser {
 		contextName += "-user"
 	}
