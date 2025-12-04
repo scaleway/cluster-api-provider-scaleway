@@ -79,7 +79,7 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 		conditions.Set(s.ScalewayCluster, condition)
 	}()
 
-	lb, err := s.ensureLB(ctx)
+	mainLB, err := s.ensureMainLB(ctx)
 	if err != nil {
 		condition.Reason = infrav1.ScalewayClusterMainLoadBalancerReconciliationFailedReason
 		return err
@@ -101,17 +101,17 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 		return err
 	}
 
-	if err := checkLBsReadiness(append(extraLBs, lb)); err != nil {
+	if err := checkLBsReadiness(append(extraLBs, mainLB)); err != nil {
 		condition.Reason = infrav1.ScalewayClusterLoadBalancersNotReadyReason
 		return err
 	}
 
-	if err := s.ensurePrivateNetwork(ctx, append(extraLBs, lb), pnID); err != nil {
+	if err := s.ensurePrivateNetwork(ctx, append(extraLBs, mainLB), pnID); err != nil {
 		condition.Reason = infrav1.ScalewayClusterLoadBalancerPrivateNetworkAttachmentFailedReason
 		return err
 	}
 
-	backendByLB, err := s.ensureBackend(ctx, lb, extraLBs)
+	backendByLB, err := s.ensureBackend(ctx, mainLB, extraLBs)
 	if err != nil {
 		condition.Reason = infrav1.ScalewayClusterBackendReconciliationFailedReason
 		return fmt.Errorf("failed to ensure lb backend: %w", err)
@@ -123,7 +123,7 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 		return fmt.Errorf("failed to ensure lb frontend: %w", err)
 	}
 
-	if err := s.ensureACLs(ctx, lb, frontendByLB, pnID); err != nil {
+	if err := s.ensureACLs(ctx, mainLB, frontendByLB, pnID); err != nil {
 		condition.Reason = infrav1.ScalewayClusterLoadBalancerACLReconciliationFailedReason
 		return fmt.Errorf("failed to ensure ACLs: %w", err)
 	}
@@ -132,7 +132,7 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 	// private IP are set during this step.
 	private := s.ControlPlaneLoadBalancerPrivate()
 
-	lbIP, err := getLBIPv4(lb, private)
+	lbIP, err := getLBIPv4(mainLB, private)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 }
 
 func (s *Service) Delete(ctx context.Context) error {
-	if err := s.ensureDeleteLB(ctx); err != nil {
+	if err := s.ensureDeleteMainLB(ctx); err != nil {
 		return err
 	}
 
@@ -178,8 +178,8 @@ type lbWithPrivateIP struct {
 func sliceLBToLBWithPrivateIP(lbs []*lb.LB) []*lbWithPrivateIP {
 	out := make([]*lbWithPrivateIP, 0, len(lbs))
 
-	for _, lb := range lbs {
-		out = append(out, &lbWithPrivateIP{LB: lb})
+	for _, l := range lbs {
+		out = append(out, &lbWithPrivateIP{LB: l})
 	}
 
 	return out
@@ -198,7 +198,7 @@ func checkLBsReadiness(lbs []*lbWithPrivateIP) error {
 	return nil
 }
 
-func (s *Service) ensureLB(ctx context.Context) (*lbWithPrivateIP, error) {
+func (s *Service) ensureMainLB(ctx context.Context) (*lbWithPrivateIP, error) {
 	spec := s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.LoadBalancer
 
 	zone, lbType, err := lbutil.LBSpec(s.ScalewayClient, spec)
@@ -206,18 +206,18 @@ func (s *Service) ensureLB(ctx context.Context) (*lbWithPrivateIP, error) {
 		return nil, err
 	}
 
-	lb, err := s.ScalewayClient.FindLB(ctx, zone, s.ResourceTags(CAPSMainLBTag))
+	mainLB, err := s.ScalewayClient.FindLB(ctx, zone, s.ResourceTags(CAPSMainLBTag))
 	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
 		return nil, err
 	}
 
 	// If lb type does not match, migrate the LB.
-	if lb != nil && !strings.EqualFold(lb.Type, lbType) {
-		lb, err = s.ScalewayClient.MigrateLB(ctx, zone, lb.ID, lbType)
+	if mainLB != nil && !strings.EqualFold(mainLB.Type, lbType) {
+		mainLB, err = s.ScalewayClient.MigrateLB(ctx, zone, mainLB.ID, lbType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to migrate lb: %w", err)
 		}
-	} else if lb == nil {
+	} else if mainLB == nil {
 		var ipID *string
 
 		if spec.IP != "" {
@@ -234,7 +234,7 @@ func (s *Service) ensureLB(ctx context.Context) (*lbWithPrivateIP, error) {
 		}
 
 		logf.FromContext(ctx).Info("Creating main LB", "zone", zone)
-		lb, err = s.ScalewayClient.CreateLB(
+		mainLB, err = s.ScalewayClient.CreateLB(
 			ctx,
 			zone,
 			s.ResourceName(),
@@ -249,12 +249,12 @@ func (s *Service) ensureLB(ctx context.Context) (*lbWithPrivateIP, error) {
 	}
 
 	return &lbWithPrivateIP{
-		LB:        lb,
+		LB:        mainLB,
 		privateIP: string(spec.PrivateIP),
 	}, nil
 }
 
-func (s *Service) ensureDeleteLB(ctx context.Context) error {
+func (s *Service) ensureDeleteMainLB(ctx context.Context) error {
 	spec := s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.LoadBalancer
 
 	zone, _, err := lbutil.LBSpec(s.ScalewayClient, spec)
@@ -264,7 +264,7 @@ func (s *Service) ensureDeleteLB(ctx context.Context) error {
 		return nil
 	}
 
-	lb, err := s.ScalewayClient.FindLB(ctx, zone, s.ResourceTags(CAPSMainLBTag))
+	mainLB, err := s.ScalewayClient.FindLB(ctx, zone, s.ResourceTags(CAPSMainLBTag))
 	if err != nil {
 		if errors.Is(err, client.ErrNoItemFound) {
 			return nil
@@ -274,23 +274,23 @@ func (s *Service) ensureDeleteLB(ctx context.Context) error {
 	}
 
 	logf.FromContext(ctx).Info("Deleting main LB")
-	if err := s.ScalewayClient.DeleteLB(ctx, zone, lb.ID, spec.IP == ""); err != nil {
+	if err := s.ScalewayClient.DeleteLB(ctx, zone, mainLB.ID, spec.IP == ""); err != nil {
 		return fmt.Errorf("failed to delete lb: %w", err)
 	}
 
 	return nil
 }
 
-func getLBIPv4(lb *lbWithPrivateIP, private bool) (string, error) {
+func getLBIPv4(lbWithPrivateIP *lbWithPrivateIP, private bool) (string, error) {
 	if private {
-		if lb.privateIP == "" {
-			return "", fmt.Errorf("did not find private ipv4 for lb %s", lb.ID)
+		if lbWithPrivateIP.privateIP == "" {
+			return "", fmt.Errorf("did not find private ipv4 for lb %s", lbWithPrivateIP.ID)
 		}
 
-		return lb.privateIP, nil
+		return lbWithPrivateIP.privateIP, nil
 	}
 
-	for _, ip := range lb.IP {
+	for _, ip := range lbWithPrivateIP.IP {
 		addr, err := netip.ParseAddr(ip.IPAddress)
 		if err != nil {
 			return "", err
@@ -301,7 +301,7 @@ func getLBIPv4(lb *lbWithPrivateIP, private bool) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("did not find ipv4 for lb %s", lb.ID)
+	return "", fmt.Errorf("did not find ipv4 for lb %s", lbWithPrivateIP.ID)
 }
 
 func (s *Service) ensureExtraLBs(ctx context.Context, pnID *string, delete bool) ([]*lbWithPrivateIP, error) {
@@ -431,13 +431,13 @@ func (d *desiredResourceListManager) CreateResource(
 	}
 
 	logf.FromContext(ctx).Info("Creating extra LB", "lbName", name, "zone", zone)
-	lb, err := d.ScalewayClient.CreateLB(ctx, zone, name, lbType, ipID, d.ControlPlaneLoadBalancerPrivate(), tags)
+	l, err := d.ScalewayClient.CreateLB(ctx, zone, name, lbType, ipID, d.ControlPlaneLoadBalancerPrivate(), tags)
 	if err != nil {
 		return nil, err
 	}
 
 	return &lbWithPrivateIP{
-		LB:        lb,
+		LB:        l,
 		privateIP: string(desired.IP),
 	}, nil
 }
@@ -449,12 +449,12 @@ func (d *desiredResourceListManager) UpdateResource(
 ) (*lbWithPrivateIP, error) {
 	if desired.Type != "" && !strings.EqualFold(desired.Type, resource.Type) {
 		logf.FromContext(ctx).Info("Migrating extra LB", "lbName", resource.Name, "zone", resource, "type", desired.Type)
-		lb, err := d.ScalewayClient.MigrateLB(ctx, resource.Zone, resource.ID, desired.Type)
+		l, err := d.ScalewayClient.MigrateLB(ctx, resource.Zone, resource.ID, desired.Type)
 		if err != nil {
 			return nil, err
 		}
 
-		resource.LB = lb
+		resource.LB = l
 	}
 
 	// Set desired private IP.
@@ -465,13 +465,13 @@ func (d *desiredResourceListManager) UpdateResource(
 
 func (s *Service) getOrCreateBackend(
 	ctx context.Context,
-	lb *lbWithPrivateIP,
+	lbWithPrivateIP *lbWithPrivateIP,
 	servers []string,
 	updateServers bool,
 ) (*lb.Backend, error) {
 	servers = slices.Sorted(slices.Values(servers))
 
-	backend, err := s.ScalewayClient.FindBackend(ctx, lb.Zone, lb.ID, BackendName)
+	backend, err := s.ScalewayClient.FindBackend(ctx, lbWithPrivateIP.Zone, lbWithPrivateIP.ID, BackendName)
 	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
 		return nil, err
 	}
@@ -479,8 +479,8 @@ func (s *Service) getOrCreateBackend(
 	if backend == nil {
 		backend, err = s.ScalewayClient.CreateBackend(
 			ctx,
-			lb.Zone,
-			lb.ID,
+			lbWithPrivateIP.Zone,
+			lbWithPrivateIP.ID,
 			BackendName,
 			servers,
 			backendControlPlanePort,
@@ -489,7 +489,7 @@ func (s *Service) getOrCreateBackend(
 			return nil, err
 		}
 	} else if updateServers && !slices.Equal(servers, slices.Sorted(slices.Values(backend.Pool))) {
-		backend, err = s.ScalewayClient.SetBackendServers(ctx, lb.Zone, backend.ID, servers)
+		backend, err = s.ScalewayClient.SetBackendServers(ctx, lbWithPrivateIP.Zone, backend.ID, servers)
 		if err != nil {
 			return nil, err
 		}
@@ -561,8 +561,8 @@ func (s *Service) ensurePrivateNetwork(ctx context.Context, lbs []*lbWithPrivate
 	var availableIPs []*ipam.IP // Will be lazy loaded if needed.
 	var lbIDsWithMissingIP []string
 
-	for _, lb := range lbs {
-		lbPN, err := s.ScalewayClient.FindLBPrivateNetwork(ctx, lb.Zone, lb.ID, *pnID)
+	for _, l := range lbs {
+		lbPN, err := s.ScalewayClient.FindLBPrivateNetwork(ctx, l.Zone, l.ID, *pnID)
 		if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
 			return err
 		}
@@ -570,7 +570,7 @@ func (s *Service) ensurePrivateNetwork(ctx context.Context, lbs []*lbWithPrivate
 		if lbPN == nil {
 			var ipID *string
 
-			if lb.privateIP != "" {
+			if l.privateIP != "" {
 				// Lazy load available IPs.
 				if len(availableIPs) == 0 {
 					availableIPs, err = s.ScalewayClient.FindAvailableIPs(ctx, *pnID)
@@ -579,21 +579,21 @@ func (s *Service) ensurePrivateNetwork(ctx context.Context, lbs []*lbWithPrivate
 					}
 				}
 
-				ipIndex := slices.IndexFunc(availableIPs, ipMatchFunc(lb.privateIP))
+				ipIndex := slices.IndexFunc(availableIPs, ipMatchFunc(l.privateIP))
 				if ipIndex == -1 {
-					return fmt.Errorf("did not find available IP with address %s in IPAM", lb.privateIP)
+					return fmt.Errorf("did not find available IP with address %s in IPAM", l.privateIP)
 				}
 
 				ipID = &availableIPs[ipIndex].ID
 			}
 
-			if err := s.ScalewayClient.AttachLBPrivateNetwork(ctx, lb.Zone, lb.ID, *pnID, ipID); err != nil {
+			if err := s.ScalewayClient.AttachLBPrivateNetwork(ctx, l.Zone, l.ID, *pnID, ipID); err != nil {
 				return err
 			}
 		}
 
-		if lb.privateIP == "" {
-			lbIDsWithMissingIP = append(lbIDsWithMissingIP, lb.ID)
+		if l.privateIP == "" {
+			lbIDsWithMissingIP = append(lbIDsWithMissingIP, l.ID)
 		}
 	}
 
@@ -602,17 +602,17 @@ func (s *Service) ensurePrivateNetwork(ctx context.Context, lbs []*lbWithPrivate
 		return fmt.Errorf("failed to find lb missing IPs: %w", err)
 	}
 
-	for _, lb := range lbs {
-		if lb.privateIP != "" {
+	for _, l := range lbs {
+		if l.privateIP != "" {
 			continue
 		}
 
-		ipIndex := slices.IndexFunc(missingIPs, ipResourceMatchFunc(lb.ID))
+		ipIndex := slices.IndexFunc(missingIPs, ipResourceMatchFunc(l.ID))
 		if ipIndex == -1 {
-			return scaleway.WithTransientError(fmt.Errorf("private IP for lb %s is not yet available in IPAM", lb.Name), 3*time.Second)
+			return scaleway.WithTransientError(fmt.Errorf("private IP for lb %s is not yet available in IPAM", l.Name), 3*time.Second)
 		}
 
-		lb.privateIP = missingIPs[ipIndex].Address.IP.String()
+		l.privateIP = missingIPs[ipIndex].Address.IP.String()
 	}
 
 	return nil
