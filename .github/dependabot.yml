@@ -1,0 +1,35 @@
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+        interval: weekly
+    commit-message:
+      prefix: "chore"
+    ignore:
+      # cluster-api is always updated manually. Refer to the version migration doc:
+      # https://cluster-api.sigs.k8s.io/developer/providers/migrations/overview
+      - dependency-name: "sigs.k8s.io/cluster-api"
+      - dependency-name: "sigs.k8s.io/cluster-api/test"
+      # These versions should always match with versions used by sigs.k8s.io/cluster-api.
+      - dependency-name: "github.com/onsi/ginkgo/v2"
+      - dependency-name: "github.com/onsi/gomega"
+      - dependency-name: "github.com/spf13/pflag"
+      - dependency-name: "k8s.io/api"
+      - dependency-name: "k8s.io/apiextensions-apiserver"
+      - dependency-name: "k8s.io/apimachinery"
+      - dependency-name: "k8s.io/client-go"
+      - dependency-name: "k8s.io/klog/v2"
+      - dependency-name: "k8s.io/utils"
+      - dependency-name: "sigs.k8s.io/controller-runtime"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore"

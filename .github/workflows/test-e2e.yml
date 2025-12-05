@@ -6,6 +6,11 @@ on:
   workflow_dispatch:
     branches: [ "main" ]
 
+# Avoid orphan/garbage resources on Scaleway
+concurrency:
+  group: test-e2e
+  cancel-in-progress: false
+
 jobs:
   test-e2e:
     name: Run on Ubuntu
