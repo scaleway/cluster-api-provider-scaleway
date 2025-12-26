@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
-	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.35
+	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.36
 	github.com/spf13/pflag v1.0.7
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.46.0
