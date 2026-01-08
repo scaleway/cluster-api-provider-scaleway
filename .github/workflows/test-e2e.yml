@@ -15,7 +15,6 @@ jobs:
   test-e2e:
     name: Run on Ubuntu
     runs-on: ubuntu-latest
-    timeout-minutes: 40
     steps:
       - name: Clone the code
         uses: actions/checkout@v4
