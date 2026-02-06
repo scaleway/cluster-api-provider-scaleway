@@ -444,6 +444,7 @@ func Convert_v1alpha2_ScalewayMachineStatus_To_v1alpha1_ScalewayMachineStatus(in
 
 	return nil
 }
+
 func Convert_v1alpha1_ScalewayManagedClusterSpec_To_v1alpha2_ScalewayManagedClusterSpec(in *ScalewayManagedClusterSpec, out *infrav1.ScalewayManagedClusterSpec, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1alpha1_ScalewayManagedClusterSpec_To_v1alpha2_ScalewayManagedClusterSpec(in, out, s); err != nil {
 		return err
