@@ -9,10 +9,10 @@ namespace: caps-system
 namePrefix: caps-
 
 # Labels to add to all resources and selectors.
-#labels:
-#- includeSelectors: true
-#  pairs:
-#    someName: someValue
+labels:
+- includeSelectors: true
+  pairs:
+    cluster.x-k8s.io/provider: infrastructure-scaleway
 
 resources:
 - ../crd
