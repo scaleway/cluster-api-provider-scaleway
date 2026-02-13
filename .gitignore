@@ -26,10 +26,9 @@ go.work
 *.swo
 *~
 
-<<<<<<< HEAD
 # Kubeconfig might contain secrets
 *.kubeconfig
-=======
+
 # release directory
 out/*
 dist/*
@@ -38,4 +37,3 @@ dist/*
 _artifacts
 *-envsubst.yaml
 test/e2e/data/infrastructure-scaleway/v1beta2/*.yaml
->>>>>>> tmp-original-13-02-26-16-17

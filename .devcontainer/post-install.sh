@@ -32,7 +32,7 @@ for i in {1..30}; do
   if docker info >/dev/null 2>&1; then
     break
   fi
-  if [ $i -eq 30 ]; then
+  if [ "$i" -eq 30 ]; then
     echo "WARNING: Docker not ready after 30s"
   fi
   sleep 1

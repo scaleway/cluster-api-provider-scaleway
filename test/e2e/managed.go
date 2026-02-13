@@ -26,9 +26,9 @@ const (
 type ApplyManagedClusterTemplateAndWaitInput struct {
 	ClusterProxy                   framework.ClusterProxy
 	ConfigCluster                  clusterctl.ConfigClusterInput
-	WaitForClusterIntervals        []interface{}
-	WaitForControlPlaneIntervals   []interface{}
-	WaitForMachinePools            []interface{}
+	WaitForClusterIntervals        []any
+	WaitForControlPlaneIntervals   []any
+	WaitForMachinePools            []any
 	Options                        []framework.CreateOrUpdateOption
 	PreWaitForCluster              func()
 	PostMachinesProvisioned        func()
@@ -129,7 +129,7 @@ type DiscoveryAndWaitForManagedControlPlaneInitializedInput struct {
 }
 
 // DiscoveryAndWaitForManagedControlPlaneInitialized discovers the KubeadmControlPlane object attached to a cluster and waits for it to be initialized.
-func DiscoveryAndWaitForManagedControlPlaneInitialized(ctx context.Context, input DiscoveryAndWaitForManagedControlPlaneInitializedInput, intervals ...interface{}) *infrav1.ScalewayManagedControlPlane {
+func DiscoveryAndWaitForManagedControlPlaneInitialized(ctx context.Context, input DiscoveryAndWaitForManagedControlPlaneInitializedInput, intervals ...any) *infrav1.ScalewayManagedControlPlane {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForManagedControlPlaneInitialized")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForManagedControlPlaneInitialized")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForManagedControlPlaneInitialized")

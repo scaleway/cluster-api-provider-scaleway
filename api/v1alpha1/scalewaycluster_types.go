@@ -7,18 +7,6 @@ import (
 
 const ClusterFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sc-protection"
 
-<<<<<<< HEAD
-// ScalewayClusterSpec defines the desired state of ScalewayCluster
-type ScalewayClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
-
-	// foo is an example field of ScalewayCluster. Edit scalewaycluster_types.go to remove/update
-	// +optional
-	Foo *string `json:"foo,omitempty"`
-=======
 // ScalewayClusterSpec defines the desired state of ScalewayCluster.
 //
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.controlPlaneEndpoint) || has(self.controlPlaneEndpoint)", message="controlPlaneEndpoint is required once set"
@@ -186,32 +174,10 @@ type PrivateNetworkSpec struct {
 	// Network ID is provided.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	Enabled bool `json:"enabled"`
->>>>>>> tmp-original-13-02-26-16-17
 }
 
 // ScalewayClusterStatus defines the observed state of ScalewayCluster.
 type ScalewayClusterStatus struct {
-<<<<<<< HEAD
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
-
-	// conditions represent the current state of the ScalewayCluster resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
-	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
-	//
-	// The status of each condition is one of True, False, or Unknown.
-	// +listType=map
-	// +listMapKey=type
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-=======
 	// Ready denotes that the Scaleway cluster infrastructure is fully provisioned.
 	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed.
@@ -248,7 +214,6 @@ type NetworkStatus struct {
 	// ExtraLoadBalancerIPs is a list of IPs of the extra loadbalancers.
 	// +optional
 	ExtraLoadBalancerIPs []string `json:"extraLoadBalancerIPs,omitempty"`
->>>>>>> tmp-original-13-02-26-16-17
 }
 
 // +kubebuilder:object:root=true
@@ -260,35 +225,23 @@ type NetworkStatus struct {
 // +kubebuilder:resource:path=scalewayclusters,scope=Namespaced,categories=cluster-api,shortName=sc
 // +kubebuilder:deprecatedversion
 
-<<<<<<< HEAD
-// ScalewayCluster is the Schema for the scalewayclusters API
-=======
 // ScalewayCluster is the Schema for the scalewayclusters API.
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 63",message="name must be between 1 and 63 characters"
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')",message="name must be a valid DNS label"
->>>>>>> tmp-original-13-02-26-16-17
 type ScalewayCluster struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// metadata is a standard object metadata
-	// +optional
-	metav1.ObjectMeta `json:"metadata,omitzero"`
-
-	// spec defines the desired state of ScalewayCluster
-	// +required
-	Spec ScalewayClusterSpec `json:"spec"`
-
-	// status defines the observed state of ScalewayCluster
-	// +optional
-	Status ScalewayClusterStatus `json:"status,omitzero"`
+	Spec   ScalewayClusterSpec   `json:"spec,omitempty"`
+	Status ScalewayClusterStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// ScalewayClusterList contains a list of ScalewayCluster
+// ScalewayClusterList contains a list of ScalewayCluster.
 type ScalewayClusterList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitzero"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ScalewayCluster `json:"items"`
 }
 

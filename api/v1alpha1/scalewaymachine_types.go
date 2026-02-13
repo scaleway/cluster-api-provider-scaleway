@@ -7,18 +7,6 @@ import (
 
 const MachineFinalizer = "scalewaycluster.infrastructure.cluster.x-k8s.io/sm-protection"
 
-<<<<<<< HEAD
-// ScalewayMachineSpec defines the desired state of ScalewayMachine
-type ScalewayMachineSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
-
-	// foo is an example field of ScalewayMachine. Edit scalewaymachine_types.go to remove/update
-	// +optional
-	Foo *string `json:"foo,omitempty"`
-=======
 // ScalewayMachineSpec defines the desired state of ScalewayMachine.
 // +kubebuilder:validation:XValidation:rule="has(self.rootVolume) == has(oldSelf.rootVolume)",message="rootVolume cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.publicNetwork) == has(oldSelf.publicNetwork)",message="publicNetwork cannot be added or removed"
@@ -121,32 +109,10 @@ type ImageSpec struct {
 	Name *string `json:"name,omitempty"`
 	// Label of the image.
 	Label *string `json:"label,omitempty"`
->>>>>>> tmp-original-13-02-26-16-17
 }
 
 // ScalewayMachineStatus defines the observed state of ScalewayMachine.
 type ScalewayMachineStatus struct {
-<<<<<<< HEAD
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
-
-	// conditions represent the current state of the ScalewayMachine resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
-	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
-	//
-	// The status of each condition is one of True, False, or Unknown.
-	// +listType=map
-	// +listMapKey=type
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-=======
 	// Addresses contains the associated addresses for the machine.
 	// +optional
 	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`
@@ -157,7 +123,6 @@ type ScalewayMachineStatus struct {
 	// to check the operational state of the infra machine.
 	// +optional
 	Ready bool `json:"ready"`
->>>>>>> tmp-original-13-02-26-16-17
 }
 
 // +kubebuilder:object:root=true
@@ -168,41 +133,24 @@ type ScalewayMachineStatus struct {
 // +kubebuilder:resource:path=scalewaymachines,scope=Namespaced,categories=cluster-api,shortName=sm
 // +kubebuilder:deprecatedversion
 
-<<<<<<< HEAD
-// ScalewayMachine is the Schema for the scalewaymachines API
-=======
 // ScalewayMachine is the Schema for the scalewaymachines API.
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 63",message="name must be between 1 and 63 characters"
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')",message="name must be a valid DNS label"
->>>>>>> tmp-original-13-02-26-16-17
 type ScalewayMachine struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-<<<<<<< HEAD
-	// metadata is a standard object metadata
-	// +optional
-	metav1.ObjectMeta `json:"metadata,omitzero"`
-
-	// spec defines the desired state of ScalewayMachine
-	// +required
-	Spec ScalewayMachineSpec `json:"spec"`
-
-	// status defines the observed state of ScalewayMachine
-	// +optional
-	Status ScalewayMachineStatus `json:"status,omitzero"`
-=======
 	// +kubebuilder:validation:Required
 	Spec   ScalewayMachineSpec   `json:"spec,omitempty"`
 	Status ScalewayMachineStatus `json:"status,omitempty"`
->>>>>>> tmp-original-13-02-26-16-17
 }
 
 // +kubebuilder:object:root=true
 
-// ScalewayMachineList contains a list of ScalewayMachine
+// ScalewayMachineList contains a list of ScalewayMachine.
 type ScalewayMachineList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitzero"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ScalewayMachine `json:"items"`
 }
 

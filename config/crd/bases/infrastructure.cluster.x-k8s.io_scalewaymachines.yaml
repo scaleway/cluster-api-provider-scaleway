@@ -3,11 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-<<<<<<< HEAD
-    controller-gen.kubebuilder.io/version: v0.20.0
-=======
-    controller-gen.kubebuilder.io/version: v0.19.0
->>>>>>> tmp-original-13-02-26-16-17
+    controller-gen.kubebuilder.io/version: v0.20.1
   name: scalewaymachines.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -39,7 +35,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ScalewayMachine is the Schema for the scalewaymachines API
+        description: ScalewayMachine is the Schema for the scalewaymachines API.
         properties:
           apiVersion:
             description: |-
@@ -59,17 +55,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the desired state of ScalewayMachine
+            description: ScalewayMachineSpec defines the desired state of ScalewayMachine.
             properties:
-<<<<<<< HEAD
-              foo:
-                description: foo is an example field of ScalewayMachine. Edit scalewaymachine_types.go
-                  to remove/update
-=======
               commercialType:
                 default: PRO2-S
                 description: CommercialType of instance (e.g. PRO2-S).
->>>>>>> tmp-original-13-02-26-16-17
                 type: string
                 x-kubernetes-validations:
                 - message: Value is immutable
@@ -189,79 +179,6 @@ spec:
             - message: securityGroup cannot be added or removed
               rule: has(self.securityGroup) == has(oldSelf.securityGroup)
           status:
-<<<<<<< HEAD
-            description: status defines the observed state of ScalewayMachine
-            properties:
-              conditions:
-                description: |-
-                  conditions represent the current state of the ScalewayMachine resource.
-                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
-
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-                  The status of each condition is one of True, False, or Unknown.
-                items:
-                  description: Condition contains details for one aspect of the current
-                    state of this API Resource.
-                  properties:
-                    lastTransitionTime:
-                      description: |-
-                        lastTransitionTime is the last time the condition transitioned from one status to another.
-                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
-                      format: date-time
-                      type: string
-                    message:
-                      description: |-
-                        message is a human readable message indicating details about the transition.
-                        This may be an empty string.
-                      maxLength: 32768
-                      type: string
-                    observedGeneration:
-                      description: |-
-                        observedGeneration represents the .metadata.generation that the condition was set based upon.
-                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-                        with respect to the current state of the instance.
-                      format: int64
-                      minimum: 0
-                      type: integer
-                    reason:
-                      description: |-
-                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
-                        Producers of specific condition types may define expected values and meanings for this field,
-                        and whether the values are considered a guaranteed API.
-                        The value should be a CamelCase string.
-                        This field may not be empty.
-                      maxLength: 1024
-                      minLength: 1
-                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
-                      type: string
-                    status:
-                      description: status of the condition, one of True, False, Unknown.
-                      enum:
-                      - "True"
-                      - "False"
-                      - Unknown
-                      type: string
-                    type:
-                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
-                      maxLength: 316
-                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
-                      type: string
-                  required:
-                  - lastTransitionTime
-                  - message
-                  - reason
-                  - status
-                  - type
-                  type: object
-                type: array
-                x-kubernetes-list-map-keys:
-                - type
-                x-kubernetes-list-type: map
-=======
             description: ScalewayMachineStatus defines the observed state of ScalewayMachine.
             properties:
               addresses:
@@ -297,7 +214,6 @@ spec:
                   The value of this field is never updated after provisioning is completed. Please use conditions
                   to check the operational state of the infra machine.
                 type: boolean
->>>>>>> tmp-original-13-02-26-16-17
             type: object
         required:
         - spec
@@ -353,16 +269,10 @@ spec:
           spec:
             description: spec defines the desired state of ScalewayMachine
             properties:
-<<<<<<< HEAD
-              foo:
-                description: foo is an example field of ScalewayMachine. Edit scalewaymachine_types.go
-                  to remove/update
-=======
               commercialType:
                 description: commercialType of instance (e.g. PRO2-S).
                 maxLength: 20
                 minLength: 1
->>>>>>> tmp-original-13-02-26-16-17
                 type: string
                 x-kubernetes-validations:
                 - message: Value is immutable
@@ -511,9 +421,6 @@ spec:
               rule: has(self.securityGroup) == has(oldSelf.securityGroup)
           status:
             description: status defines the observed state of ScalewayMachine
-<<<<<<< HEAD
-            properties:
-=======
             minProperties: 1
             properties:
               addresses:
@@ -544,20 +451,11 @@ spec:
                 maxItems: 32
                 type: array
                 x-kubernetes-list-type: atomic
->>>>>>> tmp-original-13-02-26-16-17
               conditions:
                 description: |-
                   conditions represent the current state of the ScalewayMachine resource.
                   Each condition has a unique type and reflects the status of a specific aspect of the resource.
 
-<<<<<<< HEAD
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-=======
->>>>>>> tmp-original-13-02-26-16-17
                   The status of each condition is one of True, False, or Unknown.
                 items:
                   description: Condition contains details for one aspect of the current
@@ -613,16 +511,11 @@ spec:
                   - status
                   - type
                   type: object
-<<<<<<< HEAD
-=======
                 maxItems: 32
->>>>>>> tmp-original-13-02-26-16-17
                 type: array
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
-<<<<<<< HEAD
-=======
               initialization:
                 description: |-
                   initialization provides observations of the ScalewayMachine initialization process.
@@ -635,7 +528,6 @@ spec:
                       NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
                     type: boolean
                 type: object
->>>>>>> tmp-original-13-02-26-16-17
             type: object
         required:
         - spec

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,6 +25,8 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
+	ctx       context.Context
+	cancel    context.CancelFunc
 	testEnv   *envtest.Environment
 	cfg       *rest.Config
 	k8sClient client.Client
@@ -37,6 +40,8 @@ func TestControllers(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	ctx, cancel = context.WithCancel(context.TODO())
 
 	var err error
 	err = infrav1.AddToScheme(scheme.Scheme)
@@ -67,15 +72,10 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-<<<<<<< HEAD
 	cancel()
 	Eventually(func() error {
 		return testEnv.Stop()
 	}, time.Minute, time.Second).Should(Succeed())
-=======
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
->>>>>>> tmp-original-13-02-26-16-17
 })
 
 // getFirstFoundEnvTestBinaryDir locates the first binary in the specified path.

@@ -17,17 +17,11 @@ jobs:
         with:
           go-version-file: go.mod
 
-<<<<<<< HEAD
-      - name: Run linter
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: v2.7.2
-=======
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           install-mode: goinstall
-          version: v2.7.0
+          version: v2.7.2
 
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
@@ -39,4 +33,3 @@ jobs:
       - name: Running golang-ci-lint-kube-api-linter
         run: |
           make lint-api
->>>>>>> tmp-original-13-02-26-16-17

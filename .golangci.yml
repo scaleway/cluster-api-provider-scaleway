@@ -28,11 +28,9 @@ linters:
       rules:
         - name: comment-spacings
         - name: import-shadowing
-<<<<<<< HEAD
     modernize:
       disable:
         - omitzero
-=======
     importas:
       alias:
         - pkg: sigs.k8s.io/controller-runtime/pkg/log
@@ -49,7 +47,6 @@ linters:
           alias: lbutil
         - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
           alias: metav1
->>>>>>> tmp-original-13-02-26-16-17
   exclusions:
     generated: lax
     rules:
@@ -57,11 +54,6 @@ linters:
           - lll
         path: api/*
       - linters:
-<<<<<<< HEAD
-          - dupl
-          - lll
-        path: internal/*
-=======
           - lll
         path: cmd/main.go
       - linters:
@@ -81,20 +73,12 @@ linters:
           - staticcheck
         text: "ST1001"
         path: test/e2e/*
->>>>>>> tmp-original-13-02-26-16-17
     paths:
       - third_party$
       - builtin$
       - examples$
 formatters:
   enable:
-<<<<<<< HEAD
-    - gofmt
-    - goimports
-  exclusions:
-    generated: lax
-    paths:
-=======
     - gci
     - gofmt
     - goimports
@@ -111,7 +95,6 @@ formatters:
     generated: strict
     paths:
       - zz_generated.*\.go$
->>>>>>> tmp-original-13-02-26-16-17
       - third_party$
       - builtin$
       - examples$

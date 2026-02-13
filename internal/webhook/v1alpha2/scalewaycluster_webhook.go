@@ -13,10 +13,6 @@ var scalewayclusterlog = logf.Log.WithName("scalewaycluster-resource")
 
 // SetupScalewayClusterWebhookWithManager registers the webhook for ScalewayCluster in the manager.
 func SetupScalewayClusterWebhookWithManager(mgr ctrl.Manager) error {
-<<<<<<< HEAD
-	return ctrl.NewWebhookManagedBy(mgr, &infrastructurev1alpha2.ScalewayCluster{}).
-=======
 	return ctrl.NewWebhookManagedBy(mgr).For(&infrav1.ScalewayCluster{}).
->>>>>>> tmp-original-13-02-26-16-17
 		Complete()
 }

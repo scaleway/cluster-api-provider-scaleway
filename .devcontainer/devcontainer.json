@@ -1,10 +1,6 @@
 {
   "name": "Kubebuilder DevContainer",
-<<<<<<< HEAD
   "image": "golang:1.25",
-=======
-  "image": "golang:1.23",
->>>>>>> tmp-original-13-02-26-16-17
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": false,

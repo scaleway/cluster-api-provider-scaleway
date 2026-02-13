@@ -18,25 +18,14 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	ctrl "sigs.k8s.io/controller-runtime"
-<<<<<<< HEAD
-=======
-	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
->>>>>>> tmp-original-13-02-26-16-17
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-<<<<<<< HEAD
-	infrastructurev1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
-	infrastructurev1alpha2 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/controller"
-	webhookv1alpha2 "github.com/scaleway/cluster-api-provider-scaleway/internal/webhook/v1alpha2"
-=======
->>>>>>> tmp-original-13-02-26-16-17
 	// +kubebuilder:scaffold:imports
 	infrav1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1" //nolint:staticcheck
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -211,40 +200,6 @@ func main() {
 		os.Exit(1)
 	}
 
-<<<<<<< HEAD
-	if err := (&controller.ScalewayClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ScalewayCluster")
-		os.Exit(1)
-	}
-	if err := (&controller.ScalewayMachineReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ScalewayMachine")
-		os.Exit(1)
-	}
-	if err := (&controller.ScalewayManagedClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedCluster")
-		os.Exit(1)
-	}
-	if err := (&controller.ScalewayManagedControlPlaneReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedControlPlane")
-		os.Exit(1)
-	}
-	if err := (&controller.ScalewayManagedMachinePoolReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-=======
 	if err = controller.NewScalewayClusterReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayCluster")
 		os.Exit(1)
@@ -262,91 +217,60 @@ func main() {
 		os.Exit(1)
 	}
 	if err := controller.NewScalewayManagedMachinePoolReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
->>>>>>> tmp-original-13-02-26-16-17
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedMachinePool")
 		os.Exit(1)
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-<<<<<<< HEAD
-		if err := webhookv1alpha2.SetupScalewayClusterWebhookWithManager(mgr); err != nil {
-=======
 		if err := webhookv1.SetupScalewayClusterWebhookWithManager(mgr); err != nil {
->>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayCluster")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-<<<<<<< HEAD
-		if err := webhookv1alpha2.SetupScalewayMachineWebhookWithManager(mgr); err != nil {
-=======
 		if err := webhookv1.SetupScalewayMachineWebhookWithManager(mgr); err != nil {
->>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayMachine")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-<<<<<<< HEAD
-		if err := webhookv1alpha2.SetupScalewayClusterTemplateWebhookWithManager(mgr); err != nil {
-=======
 		if err := webhookv1.SetupScalewayClusterTemplateWebhookWithManager(mgr); err != nil {
->>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayClusterTemplate")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-<<<<<<< HEAD
-		if err := webhookv1alpha2.SetupScalewayMachineTemplateWebhookWithManager(mgr); err != nil {
-=======
 		if err := webhookv1.SetupScalewayMachineTemplateWebhookWithManager(mgr); err != nil {
->>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayMachineTemplate")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-<<<<<<< HEAD
-		if err := webhookv1alpha2.SetupScalewayManagedClusterWebhookWithManager(mgr); err != nil {
-=======
 		if err := webhookv1.SetupScalewayManagedClusterWebhookWithManager(mgr); err != nil {
->>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedCluster")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-<<<<<<< HEAD
-		if err := webhookv1alpha2.SetupScalewayManagedControlPlaneWebhookWithManager(mgr); err != nil {
-=======
 		if err := webhookv1.SetupScalewayManagedControlPlaneWebhookWithManager(mgr); err != nil {
->>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedControlPlane")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-<<<<<<< HEAD
-		if err := webhookv1alpha2.SetupScalewayManagedMachinePoolWebhookWithManager(mgr); err != nil {
-=======
 		if err := webhookv1.SetupScalewayManagedMachinePoolWebhookWithManager(mgr); err != nil {
->>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedMachinePool")
 			os.Exit(1)
 		}
 	}
 	// +kubebuilder:scaffold:builder
 
-<<<<<<< HEAD
-=======
 	crdMigratorSkipPhases := []crdmigrator.Phase{}
 	for _, p := range skipCRDMigrationPhases {
 		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
@@ -373,23 +297,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if metricsCertWatcher != nil {
-		setupLog.Info("Adding metrics certificate watcher to manager")
-		if err := mgr.Add(metricsCertWatcher); err != nil {
-			setupLog.Error(err, "unable to add metrics certificate watcher to manager")
-			os.Exit(1)
-		}
-	}
-
-	if webhookCertWatcher != nil {
-		setupLog.Info("Adding webhook certificate watcher to manager")
-		if err := mgr.Add(webhookCertWatcher); err != nil {
-			setupLog.Error(err, "unable to add webhook certificate watcher to manager")
-			os.Exit(1)
-		}
-	}
-
->>>>>>> tmp-original-13-02-26-16-17
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)

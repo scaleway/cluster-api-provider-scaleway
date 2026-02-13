@@ -37,7 +37,7 @@ type cleanupInput struct {
 	Namespace            *corev1.Namespace
 	CancelWatches        context.CancelFunc
 	Cluster              *clusterv1.Cluster
-	IntervalsGetter      func(spec, key string) []interface{}
+	IntervalsGetter      func(spec, key string) []any
 	SkipCleanup          bool
 	AdditionalCleanup    func()
 }

@@ -74,11 +74,11 @@ func base36TruncatedHash(str string, hashLen int) (string, error) {
 // It is not an encoding since it returns a same-length string
 // for any byte value.
 func base36Truncate(bytes []byte) string {
-	var chars string
+	var chars strings.Builder
 	for _, bite := range bytes {
 		idx := int(bite) % 36
-		chars += string(base36set[idx])
+		chars.WriteString(string(base36set[idx]))
 	}
 
-	return chars
+	return chars.String()
 }
