@@ -86,7 +86,7 @@ replacements:
 #         delimiter: '.'
 #         index: 0
 #         create: true
-#
+
 # - source:
 #     kind: Service
 #     version: v1
@@ -116,7 +116,11 @@ replacements:
 #         delimiter: '.'
 #         index: 1
 #         create: true
+<<<<<<< HEAD
+
+=======
 #
+>>>>>>> tmp-original-13-02-26-16-17
  - source: # Uncomment the following block if you have any webhook
      kind: Service
      version: v1
@@ -153,7 +157,11 @@ replacements:
          delimiter: '.'
          index: 1
          create: true
+<<<<<<< HEAD
+
+=======
 #
+>>>>>>> tmp-original-13-02-26-16-17
 # - source: # Uncomment the following block if you have a ValidatingWebhook (--programmatic-validation)
 #     kind: Certificate
 #     group: cert-manager.io
@@ -184,7 +192,11 @@ replacements:
 #         delimiter: '/'
 #         index: 1
 #         create: true
+<<<<<<< HEAD
+
+=======
 #
+>>>>>>> tmp-original-13-02-26-16-17
  - source: # Uncomment the following block if you have a DefaultingWebhook (--defaulting )
      kind: Certificate
      group: cert-manager.io
@@ -215,7 +227,11 @@ replacements:
          delimiter: '/'
          index: 1
          create: true
+<<<<<<< HEAD
+
+=======
 #
+>>>>>>> tmp-original-13-02-26-16-17
  - source: # Uncomment the following block if you have a ConversionWebhook (--conversion)
      kind: Certificate
      group: cert-manager.io
@@ -232,6 +248,62 @@ replacements:
          delimiter: '/'
          index: 0
          create: true
+<<<<<<< HEAD
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymachines.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 0
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewayclustertemplates.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 0
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymachinetemplates.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 0
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymanagedclusters.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 0
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymanagedcontrolplanes.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 0
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymanagedmachinepools.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 0
+#         create: true
+=======
      - select:
          kind: CustomResourceDefinition
          name: scalewaymachines.infrastructure.cluster.x-k8s.io
@@ -286,6 +358,7 @@ replacements:
          delimiter: '/'
          index: 0
          create: true
+>>>>>>> tmp-original-13-02-26-16-17
 # +kubebuilder:scaffold:crdkustomizecainjectionns
  - source:
      kind: Certificate
@@ -303,6 +376,62 @@ replacements:
          delimiter: '/'
          index: 1
          create: true
+<<<<<<< HEAD
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymachines.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 1
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewayclustertemplates.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 1
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymachinetemplates.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 1
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymanagedclusters.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 1
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymanagedcontrolplanes.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 1
+#         create: true
+#     - select:
+#         kind: CustomResourceDefinition
+#         name: scalewaymanagedmachinepools.infrastructure.cluster.x-k8s.io
+#       fieldPaths:
+#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+#       options:
+#         delimiter: '/'
+#         index: 1
+#         create: true
+=======
      - select:
          kind: CustomResourceDefinition
          name: scalewaymachines.infrastructure.cluster.x-k8s.io
@@ -357,4 +486,5 @@ replacements:
          delimiter: '/'
          index: 1
          create: true
+>>>>>>> tmp-original-13-02-26-16-17
 # +kubebuilder:scaffold:crdkustomizecainjectionname

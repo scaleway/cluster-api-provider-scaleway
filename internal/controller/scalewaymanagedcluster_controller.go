@@ -51,8 +51,20 @@ func NewScalewayManagedClusterReconciler(c client.Client) *ScalewayManagedCluste
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+<<<<<<< HEAD
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the ScalewayManagedCluster object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.23.1/pkg/reconcile
+func (r *ScalewayManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	_ = logf.FromContext(ctx)
+=======
 func (r *ScalewayManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	log := logf.FromContext(ctx)
+>>>>>>> tmp-original-13-02-26-16-17
 
 	managedCluster := &infrav1.ScalewayManagedCluster{}
 	if err := r.Get(ctx, req.NamespacedName, managedCluster); err != nil {

@@ -2,12 +2,9 @@ package v1alpha2
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
@@ -19,7 +16,11 @@ var scalewaymanagedcontrolplanelog = logf.Log.WithName("scalewaymanagedcontrolpl
 
 // SetupScalewayManagedControlPlaneWebhookWithManager registers the webhook for ScalewayManagedControlPlane in the manager.
 func SetupScalewayManagedControlPlaneWebhookWithManager(mgr ctrl.Manager) error {
+<<<<<<< HEAD
+	return ctrl.NewWebhookManagedBy(mgr, &infrastructurev1alpha2.ScalewayManagedControlPlane{}).
+=======
 	return ctrl.NewWebhookManagedBy(mgr).For(&infrav1.ScalewayManagedControlPlane{}).
+>>>>>>> tmp-original-13-02-26-16-17
 		WithDefaulter(&ScalewayManagedControlPlaneCustomDefaulter{}).
 		Complete()
 }
@@ -34,9 +35,11 @@ func SetupScalewayManagedControlPlaneWebhookWithManager(mgr ctrl.Manager) error 
 type ScalewayManagedControlPlaneCustomDefaulter struct {
 }
 
-var _ webhook.CustomDefaulter = &ScalewayManagedControlPlaneCustomDefaulter{}
-
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind ScalewayManagedControlPlane.
+<<<<<<< HEAD
+func (d *ScalewayManagedControlPlaneCustomDefaulter) Default(_ context.Context, obj *infrastructurev1alpha2.ScalewayManagedControlPlane) error {
+	scalewaymanagedcontrolplanelog.Info("Defaulting for ScalewayManagedControlPlane", "name", obj.GetName())
+=======
 func (d *ScalewayManagedControlPlaneCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
 	scalewaymanagedcontrolplane, ok := obj.(*infrav1.ScalewayManagedControlPlane)
 	if !ok {
@@ -44,6 +47,7 @@ func (d *ScalewayManagedControlPlaneCustomDefaulter) Default(_ context.Context, 
 	}
 
 	scalewaymanagedcontrolplanelog.Info("Defaulting for ScalewayManagedControlPlane", "name", scalewaymanagedcontrolplane.GetName())
+>>>>>>> tmp-original-13-02-26-16-17
 
 	if scalewaymanagedcontrolplane.Spec.ClusterName == "" {
 		name, err := scope.GenerateClusterName(scalewaymanagedcontrolplane)

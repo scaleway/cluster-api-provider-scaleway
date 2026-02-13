@@ -23,6 +23,18 @@ const (
 	ScalewayMachineInstanceReconciliationFailedReason = ReconciliationFailedReason
 )
 
+<<<<<<< HEAD
+// ScalewayMachineSpec defines the desired state of ScalewayMachine
+type ScalewayMachineSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+	// The following markers will use OpenAPI v3 schema to validate the value
+	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
+
+	// foo is an example field of ScalewayMachine. Edit scalewaymachine_types.go to remove/update
+	// +optional
+	Foo *string `json:"foo,omitempty"`
+=======
 // ScalewayMachineSpec defines the desired state of ScalewayMachine.
 // +kubebuilder:validation:XValidation:rule="has(self.rootVolume) == has(oldSelf.rootVolume)",message="rootVolume cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.publicNetwork) == has(oldSelf.publicNetwork)",message="publicNetwork cannot be added or removed"
@@ -131,11 +143,33 @@ type PublicNetwork struct {
 	// enableIPv6 defines whether server should have an IPv6 created and attached.
 	// +optional
 	EnableIPv6 *bool `json:"enableIPv6,omitempty"`
+>>>>>>> tmp-original-13-02-26-16-17
 }
 
 // ScalewayMachineStatus defines the observed state of ScalewayMachine.
 // +kubebuilder:validation:MinProperties=1
 type ScalewayMachineStatus struct {
+<<<<<<< HEAD
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
+	// For Kubernetes API conventions, see:
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+
+	// conditions represent the current state of the ScalewayMachine resource.
+	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
+	//
+	// Standard condition types include:
+	// - "Available": the resource is fully functional
+	// - "Progressing": the resource is being created or updated
+	// - "Degraded": the resource failed to reach or maintain its desired state
+	//
+	// The status of each condition is one of True, False, or Unknown.
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+=======
 	// conditions represent the current state of the ScalewayMachine resource.
 	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
 	//
@@ -165,6 +199,7 @@ type ScalewayMachineInitializationStatus struct {
 	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
 	// +optional
 	Provisioned *bool `json:"provisioned,omitempty"`
+>>>>>>> tmp-original-13-02-26-16-17
 }
 
 // +kubebuilder:object:root=true
@@ -177,13 +212,27 @@ type ScalewayMachineInitializationStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.conditions[?(@.type=="Ready")].status`,description="ScalewayMachine pass all readiness checks"
 
 // ScalewayMachine is the Schema for the scalewaymachines API
+<<<<<<< HEAD
+=======
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 63",message="name must be between 1 and 63 characters"
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')",message="name must be a valid DNS label"
+>>>>>>> tmp-original-13-02-26-16-17
 type ScalewayMachine struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// metadata is a standard object metadata
 	// +optional
+<<<<<<< HEAD
+	metav1.ObjectMeta `json:"metadata,omitzero"`
+
+	// spec defines the desired state of ScalewayMachine
+	// +required
+	Spec ScalewayMachineSpec `json:"spec"`
+
+	// status defines the observed state of ScalewayMachine
+	// +optional
+	Status ScalewayMachineStatus `json:"status,omitzero"`
+=======
 	metav1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// spec defines the desired state of ScalewayMachine
@@ -193,6 +242,7 @@ type ScalewayMachine struct {
 	// status defines the observed state of ScalewayMachine
 	// +optional
 	Status ScalewayMachineStatus `json:"status,omitempty,omitzero"`
+>>>>>>> tmp-original-13-02-26-16-17
 }
 
 // +kubebuilder:object:root=true
@@ -200,7 +250,7 @@ type ScalewayMachine struct {
 // ScalewayMachineList contains a list of ScalewayMachine
 type ScalewayMachineList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []ScalewayMachine `json:"items"`
 }
 

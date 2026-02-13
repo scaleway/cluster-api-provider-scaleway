@@ -21,6 +21,13 @@ var _ = Describe("ScalewayManagedControlPlane Webhook", func() {
 		Expect(defaulter).NotTo(BeNil(), "Expected defaulter to be initialized")
 		Expect(oldObj).NotTo(BeNil(), "Expected oldObj to be initialized")
 		Expect(obj).NotTo(BeNil(), "Expected obj to be initialized")
+<<<<<<< HEAD
+	})
+
+	AfterEach(func() {
+		// TODO (user): Add any teardown logic common to all tests
+=======
+>>>>>>> tmp-original-13-02-26-16-17
 	})
 
 	Context("When creating ScalewayManagedControlPlane under Defaulting Webhook", func() {

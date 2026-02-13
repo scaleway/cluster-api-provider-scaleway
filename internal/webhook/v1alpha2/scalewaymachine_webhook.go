@@ -13,6 +13,10 @@ var scalewaymachinelog = logf.Log.WithName("scalewaymachine-resource")
 
 // SetupScalewayMachineWebhookWithManager registers the webhook for ScalewayMachine in the manager.
 func SetupScalewayMachineWebhookWithManager(mgr ctrl.Manager) error {
+<<<<<<< HEAD
+	return ctrl.NewWebhookManagedBy(mgr, &infrastructurev1alpha2.ScalewayMachine{}).
+=======
 	return ctrl.NewWebhookManagedBy(mgr).For(&infrav1.ScalewayMachine{}).
+>>>>>>> tmp-original-13-02-26-16-17
 		Complete()
 }

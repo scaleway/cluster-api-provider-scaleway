@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -19,15 +18,25 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	ctrl "sigs.k8s.io/controller-runtime"
+<<<<<<< HEAD
+=======
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
+>>>>>>> tmp-original-13-02-26-16-17
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+<<<<<<< HEAD
+	infrastructurev1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1"
+	infrastructurev1alpha2 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/controller"
+	webhookv1alpha2 "github.com/scaleway/cluster-api-provider-scaleway/internal/webhook/v1alpha2"
+=======
+>>>>>>> tmp-original-13-02-26-16-17
 	// +kubebuilder:scaffold:imports
 	infrav1alpha1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1" //nolint:staticcheck
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -124,38 +133,26 @@ func main() {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
-	// Create watchers for metrics and webhooks certificates
-	var metricsCertWatcher, webhookCertWatcher *certwatcher.CertWatcher
-
 	// Initial webhook TLS options
 	webhookTLSOpts := tlsOpts
+	webhookServerOptions := webhook.Options{
+		TLSOpts: webhookTLSOpts,
+	}
 
 	if len(webhookCertPath) > 0 {
 		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
 			"webhook-cert-path", webhookCertPath, "webhook-cert-name", webhookCertName, "webhook-cert-key", webhookCertKey)
 
-		var err error
-		webhookCertWatcher, err = certwatcher.New(
-			filepath.Join(webhookCertPath, webhookCertName),
-			filepath.Join(webhookCertPath, webhookCertKey),
-		)
-		if err != nil {
-			setupLog.Error(err, "Failed to initialize webhook certificate watcher")
-			os.Exit(1)
-		}
-
-		webhookTLSOpts = append(webhookTLSOpts, func(config *tls.Config) {
-			config.GetCertificate = webhookCertWatcher.GetCertificate
-		})
+		webhookServerOptions.CertDir = webhookCertPath
+		webhookServerOptions.CertName = webhookCertName
+		webhookServerOptions.KeyName = webhookCertKey
 	}
 
-	webhookServer := webhook.NewServer(webhook.Options{
-		TLSOpts: webhookTLSOpts,
-	})
+	webhookServer := webhook.NewServer(webhookServerOptions)
 
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
 	// More info:
-	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/metrics/server
+	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.23.1/pkg/metrics/server
 	// - https://book.kubebuilder.io/reference/metrics.html
 	metricsServerOptions := metricsserver.Options{
 		BindAddress:   metricsAddr,
@@ -167,7 +164,7 @@ func main() {
 		// FilterProvider is used to protect the metrics endpoint with authn/authz.
 		// These configurations ensure that only authorized users and service accounts
 		// can access the metrics endpoint. The RBAC are configured in 'config/rbac/kustomization.yaml'. More info:
-		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/metrics/filters#WithAuthenticationAndAuthorization
+		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.23.1/pkg/metrics/filters#WithAuthenticationAndAuthorization
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 	}
 
@@ -183,19 +180,9 @@ func main() {
 		setupLog.Info("Initializing metrics certificate watcher using provided certificates",
 			"metrics-cert-path", metricsCertPath, "metrics-cert-name", metricsCertName, "metrics-cert-key", metricsCertKey)
 
-		var err error
-		metricsCertWatcher, err = certwatcher.New(
-			filepath.Join(metricsCertPath, metricsCertName),
-			filepath.Join(metricsCertPath, metricsCertKey),
-		)
-		if err != nil {
-			setupLog.Error(err, "to initialize metrics certificate watcher", "error", err)
-			os.Exit(1)
-		}
-
-		metricsServerOptions.TLSOpts = append(metricsServerOptions.TLSOpts, func(config *tls.Config) {
-			config.GetCertificate = metricsCertWatcher.GetCertificate
-		})
+		metricsServerOptions.CertDir = metricsCertPath
+		metricsServerOptions.CertName = metricsCertName
+		metricsServerOptions.KeyName = metricsCertKey
 	}
 
 	ctx := ctrl.SetupSignalHandler()
@@ -224,6 +211,40 @@ func main() {
 		os.Exit(1)
 	}
 
+<<<<<<< HEAD
+	if err := (&controller.ScalewayClusterReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ScalewayCluster")
+		os.Exit(1)
+	}
+	if err := (&controller.ScalewayMachineReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ScalewayMachine")
+		os.Exit(1)
+	}
+	if err := (&controller.ScalewayManagedClusterReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedCluster")
+		os.Exit(1)
+	}
+	if err := (&controller.ScalewayManagedControlPlaneReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedControlPlane")
+		os.Exit(1)
+	}
+	if err := (&controller.ScalewayManagedMachinePoolReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+=======
 	if err = controller.NewScalewayClusterReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayCluster")
 		os.Exit(1)
@@ -241,60 +262,91 @@ func main() {
 		os.Exit(1)
 	}
 	if err := controller.NewScalewayManagedMachinePoolReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
+>>>>>>> tmp-original-13-02-26-16-17
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedMachinePool")
 		os.Exit(1)
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+<<<<<<< HEAD
+		if err := webhookv1alpha2.SetupScalewayClusterWebhookWithManager(mgr); err != nil {
+=======
 		if err := webhookv1.SetupScalewayClusterWebhookWithManager(mgr); err != nil {
+>>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayCluster")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+<<<<<<< HEAD
+		if err := webhookv1alpha2.SetupScalewayMachineWebhookWithManager(mgr); err != nil {
+=======
 		if err := webhookv1.SetupScalewayMachineWebhookWithManager(mgr); err != nil {
+>>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayMachine")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+<<<<<<< HEAD
+		if err := webhookv1alpha2.SetupScalewayClusterTemplateWebhookWithManager(mgr); err != nil {
+=======
 		if err := webhookv1.SetupScalewayClusterTemplateWebhookWithManager(mgr); err != nil {
+>>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayClusterTemplate")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+<<<<<<< HEAD
+		if err := webhookv1alpha2.SetupScalewayMachineTemplateWebhookWithManager(mgr); err != nil {
+=======
 		if err := webhookv1.SetupScalewayMachineTemplateWebhookWithManager(mgr); err != nil {
+>>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayMachineTemplate")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+<<<<<<< HEAD
+		if err := webhookv1alpha2.SetupScalewayManagedClusterWebhookWithManager(mgr); err != nil {
+=======
 		if err := webhookv1.SetupScalewayManagedClusterWebhookWithManager(mgr); err != nil {
+>>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedCluster")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+<<<<<<< HEAD
+		if err := webhookv1alpha2.SetupScalewayManagedControlPlaneWebhookWithManager(mgr); err != nil {
+=======
 		if err := webhookv1.SetupScalewayManagedControlPlaneWebhookWithManager(mgr); err != nil {
+>>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedControlPlane")
 			os.Exit(1)
 		}
 	}
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+<<<<<<< HEAD
+		if err := webhookv1alpha2.SetupScalewayManagedMachinePoolWebhookWithManager(mgr); err != nil {
+=======
 		if err := webhookv1.SetupScalewayManagedMachinePoolWebhookWithManager(mgr); err != nil {
+>>>>>>> tmp-original-13-02-26-16-17
 			setupLog.Error(err, "unable to create webhook", "webhook", "ScalewayManagedMachinePool")
 			os.Exit(1)
 		}
 	}
 	// +kubebuilder:scaffold:builder
 
+<<<<<<< HEAD
+=======
 	crdMigratorSkipPhases := []crdmigrator.Phase{}
 	for _, p := range skipCRDMigrationPhases {
 		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
@@ -337,6 +389,7 @@ func main() {
 		}
 	}
 
+>>>>>>> tmp-original-13-02-26-16-17
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)

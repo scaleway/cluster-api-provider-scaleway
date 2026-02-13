@@ -13,6 +13,10 @@ var scalewaymanagedmachinepoollog = logf.Log.WithName("scalewaymanagedmachinepoo
 
 // SetupScalewayManagedMachinePoolWebhookWithManager registers the webhook for ScalewayManagedMachinePool in the manager.
 func SetupScalewayManagedMachinePoolWebhookWithManager(mgr ctrl.Manager) error {
+<<<<<<< HEAD
+	return ctrl.NewWebhookManagedBy(mgr, &infrastructurev1alpha2.ScalewayManagedMachinePool{}).
+=======
 	return ctrl.NewWebhookManagedBy(mgr).For(&infrav1.ScalewayManagedMachinePool{}).
+>>>>>>> tmp-original-13-02-26-16-17
 		Complete()
 }

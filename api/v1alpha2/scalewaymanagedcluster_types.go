@@ -11,6 +11,18 @@ const ScalewayManagedClusterFinalizer = "scalewaymanagedcluster.infrastructure.c
 // ScalewayManagedClusterReadyCondition reports if the ScalewayManagedCluster is ready.
 const ScalewayManagedClusterReadyCondition = clusterv1.ReadyCondition
 
+<<<<<<< HEAD
+// ScalewayManagedClusterSpec defines the desired state of ScalewayManagedCluster
+type ScalewayManagedClusterSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+	// The following markers will use OpenAPI v3 schema to validate the value
+	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
+
+	// foo is an example field of ScalewayManagedCluster. Edit scalewaymanagedcluster_types.go to remove/update
+	// +optional
+	Foo *string `json:"foo,omitempty"`
+=======
 // ScalewayManagedClusterSpec defines the desired state of ScalewayManagedCluster.
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.controlPlaneEndpoint) || has(self.controlPlaneEndpoint)", message="controlPlaneEndpoint is required once set"
 // +kubebuilder:validation:XValidation:rule="(has(self.network) && has(self.network.privateNetwork)) == (has(oldSelf.network) && has(oldSelf.network.privateNetwork))",message="privateNetwork cannot be added or removed"
@@ -57,11 +69,37 @@ type ScalewayManagedClusterNetwork struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=6
 	PublicGateways []PublicGateway `json:"publicGateways,omitempty"`
+>>>>>>> tmp-original-13-02-26-16-17
 }
 
 // ScalewayManagedClusterStatus defines the observed state of ScalewayManagedCluster.
 // +kubebuilder:validation:MinProperties=1
 type ScalewayManagedClusterStatus struct {
+<<<<<<< HEAD
+	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
+	// For Kubernetes API conventions, see:
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+
+	// conditions represent the current state of the ScalewayManagedCluster resource.
+	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
+	//
+	// Standard condition types include:
+	// - "Available": the resource is fully functional
+	// - "Progressing": the resource is being created or updated
+	// - "Degraded": the resource failed to reach or maintain its desired state
+	//
+	// The status of each condition is one of True, False, or Unknown.
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:storageversion
+=======
 	// conditions represent the current state of the ScalewayManagedCluster resource.
 	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
 	//
@@ -101,6 +139,7 @@ type ScalewayManagedClusterNetworkStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=scalewaymanagedclusters,scope=Namespaced,categories=cluster-api,shortName=smc
+>>>>>>> tmp-original-13-02-26-16-17
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this ScalewayManagedCluster belongs"
@@ -111,13 +150,27 @@ type ScalewayManagedClusterNetworkStatus struct {
 // +kubebuilder:printcolumn:name="Port",type="integer",JSONPath=".spec.controlPlaneEndpoint.port",description="Port of the control plane"
 
 // ScalewayManagedCluster is the Schema for the scalewaymanagedclusters API
+<<<<<<< HEAD
+=======
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.size() <= 63",message="name must be between 1 and 63 characters"
 // +kubebuilder:validation:XValidation:rule="self.metadata.name.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')",message="name must be a valid DNS label"
+>>>>>>> tmp-original-13-02-26-16-17
 type ScalewayManagedCluster struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// metadata is a standard object metadata
 	// +optional
+<<<<<<< HEAD
+	metav1.ObjectMeta `json:"metadata,omitzero"`
+
+	// spec defines the desired state of ScalewayManagedCluster
+	// +required
+	Spec ScalewayManagedClusterSpec `json:"spec"`
+
+	// status defines the observed state of ScalewayManagedCluster
+	// +optional
+	Status ScalewayManagedClusterStatus `json:"status,omitzero"`
+=======
 	metav1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// spec defines the desired state of ScalewayManagedCluster
@@ -127,6 +180,7 @@ type ScalewayManagedCluster struct {
 	// status defines the observed state of ScalewayManagedCluster
 	// +optional
 	Status ScalewayManagedClusterStatus `json:"status,omitempty,omitzero"`
+>>>>>>> tmp-original-13-02-26-16-17
 }
 
 // +kubebuilder:object:root=true
@@ -134,7 +188,7 @@ type ScalewayManagedCluster struct {
 // ScalewayManagedClusterList contains a list of ScalewayManagedCluster
 type ScalewayManagedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []ScalewayManagedCluster `json:"items"`
 }
 
