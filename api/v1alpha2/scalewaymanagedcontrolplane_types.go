@@ -368,15 +368,15 @@ type ScalewayManagedControlPlane struct {
 
 	// metadata is a standard object metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty,omitzero"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
 	// spec defines the desired state of ScalewayManagedControlPlane
 	// +required
-	Spec ScalewayManagedControlPlaneSpec `json:"spec,omitempty,omitzero"`
+	Spec ScalewayManagedControlPlaneSpec `json:"spec,omitzero"`
 
 	// status defines the observed state of ScalewayManagedControlPlane
 	// +optional
-	Status ScalewayManagedControlPlaneStatus `json:"status,omitempty,omitzero"`
+	Status ScalewayManagedControlPlaneStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -384,7 +384,7 @@ type ScalewayManagedControlPlane struct {
 // ScalewayManagedControlPlaneList contains a list of ScalewayManagedControlPlane
 type ScalewayManagedControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []ScalewayManagedControlPlane `json:"items"`
 }
 

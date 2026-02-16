@@ -21,7 +21,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           install-mode: goinstall
-          version: v2.7.0
+          version: v2.7.2
 
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master

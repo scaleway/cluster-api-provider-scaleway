@@ -204,15 +204,15 @@ type ScalewayManagedMachinePool struct {
 
 	// metadata is a standard object metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty,omitzero"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
 	// spec defines the desired state of ScalewayManagedMachinePool
 	// +required
-	Spec ScalewayManagedMachinePoolSpec `json:"spec,omitempty,omitzero"`
+	Spec ScalewayManagedMachinePoolSpec `json:"spec,omitzero"`
 
 	// status defines the observed state of ScalewayManagedMachinePool
 	// +optional
-	Status ScalewayManagedMachinePoolStatus `json:"status,omitempty,omitzero"`
+	Status ScalewayManagedMachinePoolStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -220,7 +220,7 @@ type ScalewayManagedMachinePool struct {
 // ScalewayManagedMachinePoolList contains a list of ScalewayManagedMachinePool
 type ScalewayManagedMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []ScalewayManagedMachinePool `json:"items"`
 }
 

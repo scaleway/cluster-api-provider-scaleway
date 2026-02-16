@@ -26,6 +26,9 @@ go.work
 *.swo
 *~
 
+# Kubeconfig might contain secrets
+*.kubeconfig
+
 # release directory
 out/*
 dist/*

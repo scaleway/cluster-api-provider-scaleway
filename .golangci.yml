@@ -14,6 +14,7 @@ linters:
     - importas
     - ineffassign
     - lll
+    - modernize
     - misspell
     - nakedret
     - prealloc
@@ -27,6 +28,9 @@ linters:
       rules:
         - name: comment-spacings
         - name: import-shadowing
+    modernize:
+      disable:
+        - omitzero
     importas:
       alias:
         - pkg: sigs.k8s.io/controller-runtime/pkg/log

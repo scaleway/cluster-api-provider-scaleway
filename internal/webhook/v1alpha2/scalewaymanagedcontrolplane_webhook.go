@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
@@ -33,8 +32,6 @@ func SetupScalewayManagedControlPlaneWebhookWithManager(mgr ctrl.Manager) error 
 // as it is used only for temporary operations and does not need to be deeply copied.
 type ScalewayManagedControlPlaneCustomDefaulter struct {
 }
-
-var _ webhook.CustomDefaulter = &ScalewayManagedControlPlaneCustomDefaulter{}
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind ScalewayManagedControlPlane.
 func (d *ScalewayManagedControlPlaneCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {

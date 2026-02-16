@@ -33,11 +33,11 @@ type ScalewayClusterTemplate struct {
 
 	// metadata is a standard object metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty,omitzero"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
 
 	// spec defines the desired state of ScalewayClusterTemplate
 	// +required
-	Spec ScalewayClusterTemplateSpec `json:"spec,omitempty,omitzero"`
+	Spec ScalewayClusterTemplateSpec `json:"spec,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -45,7 +45,7 @@ type ScalewayClusterTemplate struct {
 // ScalewayClusterTemplateList contains a list of ScalewayClusterTemplate
 type ScalewayClusterTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitzero"`
 	Items           []ScalewayClusterTemplate `json:"items"`
 }
 
