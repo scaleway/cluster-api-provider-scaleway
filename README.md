@@ -1,13 +1,5 @@
 # Kubernetes Cluster API Provider Scaleway
 
-> [!WARNING]
-> **This project is currently in its alpha stage**, which means it is still under active development.
-> As such, features are subject to change, and breaking changes may occur without notice.
-> We recommend using it with caution in production environments and keeping up to date
-> with the latest updates and documentation.
-
-------
-
 ## What is the Cluster API Provider Scaleway (CAPS)
 
 The [Cluster API](https://github.com/kubernetes-sigs/cluster-api) brings declarative, Kubernetes-style APIs to cluster creation, configuration and management.
