@@ -39,6 +39,8 @@ const (
 	machineACLIndex = int32(1)
 	// cloudInitUserDataKey is the key used to store the cloud-init user data in the server.
 	cloudInitUserDataKey = "cloud-init"
+	// additionalVolumeIndexTagKey is the tag key used to identify the index of an additional volume.
+	additionalVolumeIndexTagKey = "additional-volume-index"
 )
 
 // instanceVolumeTypeToMarketplaceType maps the instance volume type to the marketplace image type.
@@ -78,6 +80,11 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 	server, err := s.ensureServer(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to ensure server: %w", err)
+	}
+
+	// Ensure additional volumes are created and attached
+	if err := s.ensureAdditionalVolumes(ctx, server); err != nil {
+		return fmt.Errorf("failed to ensure additional volumes: %w", err)
 	}
 
 	// Ensure the server configuration when the node has never joined the cluster.
@@ -177,6 +184,10 @@ func (s *Service) Delete(ctx context.Context) error {
 	}
 
 	if err := s.ensureServerStopped(ctx, server); err != nil {
+		return err
+	}
+
+	if err := s.ensureAdditionalVolumesDeleted(ctx, server); err != nil {
 		return err
 	}
 
@@ -688,6 +699,200 @@ func (s *Service) ensureNoPublicIPs(ctx context.Context, server *instance.Server
 	return nil
 }
 
+// ensureAdditionalVolumes creates, attaches, and manages additional volumes for the server.
+// Safety: Only manages volumes tagged with both ResourceTags() and additionalVolumeIndexTagKey.
+// Manually attached volumes from the Scaleway console are never touched.
+func (s *Service) ensureAdditionalVolumes(ctx context.Context, server *instance.Server) error {
+	existingVolumes, err := s.findManagedVolumes(ctx, server.Zone)
+	if err != nil {
+		return err
+	}
+
+	if err := s.reconcileDesiredVolumes(ctx, server, existingVolumes); err != nil {
+		return err
+	}
+
+	return s.removeUnwantedVolumes(ctx, server, existingVolumes)
+}
+
+func (s *Service) findManagedVolumes(ctx context.Context, zone scw.Zone) (map[int]*instance.Volume, error) {
+	volumes := make(map[int]*instance.Volume)
+
+	for idx := range s.AdditionalVolumes() {
+		vol, err := s.ScalewayClient.FindInstanceVolume(ctx, zone, s.additionalVolumeTags(idx))
+		if err != nil {
+			if client.IsNotFoundError(err) {
+				continue
+			}
+			return nil, fmt.Errorf("failed to find additional volume %d: %w", idx, err)
+		}
+		volumes[idx] = vol
+	}
+
+	return volumes, nil
+}
+
+func (s *Service) reconcileDesiredVolumes(ctx context.Context, server *instance.Server, existingVolumes map[int]*instance.Volume) error {
+	for idx := range s.AdditionalVolumes() {
+		volume, exists := existingVolumes[idx]
+
+		if !exists {
+			createdVolume, err := s.createAdditionalVolume(ctx, server.Zone, idx)
+			if err != nil {
+				return err
+			}
+			volume = createdVolume
+			existingVolumes[idx] = volume
+		}
+
+		if err := s.attachVolumeIfNeeded(ctx, server, volume, idx); err != nil {
+			return err
+		}
+
+		if err := s.updateVolumeIOPSIfNeeded(ctx, server.Zone, volume, idx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) createAdditionalVolume(ctx context.Context, zone scw.Zone, idx int) (*instance.Volume, error) {
+	volumeType, err := s.AdditionalVolumeType(idx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get volume type for additional volume %d: %w", idx, err)
+	}
+
+	size := s.AdditionalVolumeSize(idx)
+	iops := s.AdditionalVolumeIOPS(idx)
+
+	logf.FromContext(ctx).Info("Creating additional volume", "index", idx, "size", size, "type", volumeType)
+
+	volume, err := s.ScalewayClient.CreateVolume(
+		ctx,
+		zone,
+		fmt.Sprintf("%s-vol-%d", s.ResourceName(), idx),
+		volumeType,
+		size,
+		iops,
+		s.additionalVolumeTags(idx),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create additional volume %d: %w", idx, err)
+	}
+
+	return volume, nil
+}
+
+func (s *Service) attachVolumeIfNeeded(ctx context.Context, server *instance.Server, volume *instance.Volume, idx int) error {
+	if isVolumeAttachedToServer(server, volume.ID) {
+		return nil
+	}
+
+	logf.FromContext(ctx).Info("Attaching additional volume to server", "volumeID", volume.ID, "serverID", server.ID)
+
+	if err := s.ScalewayClient.AttachServerVolume(ctx, server.Zone, server.ID, volume.ID); err != nil {
+		return fmt.Errorf("failed to attach additional volume %d: %w", idx, err)
+	}
+
+	return nil
+}
+
+func (s *Service) updateVolumeIOPSIfNeeded(ctx context.Context, zone scw.Zone, volume *instance.Volume, idx int) error {
+	iops := s.AdditionalVolumeIOPS(idx)
+	if volume.VolumeType != instance.VolumeVolumeTypeSbsVolume || iops == nil {
+		return nil
+	}
+
+	if err := s.ScalewayClient.UpdateVolumeIOPS(ctx, zone, volume.ID, *iops); err != nil {
+		return fmt.Errorf("failed to update IOPS for additional volume %d: %w", idx, err)
+	}
+
+	return nil
+}
+
+func (s *Service) removeUnwantedVolumes(ctx context.Context, server *instance.Server, existingVolumes map[int]*instance.Volume) error {
+	desiredIndices := make(map[int]bool)
+	for idx := range s.AdditionalVolumes() {
+		desiredIndices[idx] = true
+	}
+
+	for idx, vol := range existingVolumes {
+		if desiredIndices[idx] {
+			continue
+		}
+
+		if !hasAdditionalVolumeTag(vol, idx) {
+			logf.FromContext(ctx).Info("Skipping volume without our management tags", "volumeID", vol.ID, "index", idx)
+			continue
+		}
+
+		if err := s.detachAndDeleteVolume(ctx, server, vol, idx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) ensureAdditionalVolumesDeleted(ctx context.Context, server *instance.Server) error {
+	if !s.HasAdditionalVolumes() {
+		return nil
+	}
+
+	for idx := range s.AdditionalVolumes() {
+		if err := s.deleteVolumeIfNeeded(ctx, server, idx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) deleteVolumeIfNeeded(ctx context.Context, server *instance.Server, idx int) error {
+	if s.AdditionalVolumeDeletePolicy(idx) == infrav1.VolumeDeletePolicyRetain {
+		logf.FromContext(ctx).Info("Retaining additional volume due to delete policy", "index", idx)
+		return nil
+	}
+
+	volume, err := s.ScalewayClient.FindInstanceVolume(ctx, server.Zone, s.additionalVolumeTags(idx))
+	if err != nil {
+		if client.IsNotFoundError(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to find additional volume %d: %w", idx, err)
+	}
+
+	if !hasAdditionalVolumeTag(volume, idx) {
+		logf.FromContext(ctx).Info("Skipping volume without our management tags", "volumeID", volume.ID, "index", idx)
+		return nil
+	}
+
+	return s.detachAndDeleteVolume(ctx, server, volume, idx)
+}
+
+func (s *Service) detachAndDeleteVolume(ctx context.Context, server *instance.Server, volume *instance.Volume, idx int) error {
+	if isVolumeAttachedToServer(server, volume.ID) {
+		logf.FromContext(ctx).Info("Detaching additional volume from server", "volumeID", volume.ID, "serverID", server.ID)
+
+		if err := s.ScalewayClient.DetachServerVolume(ctx, server.Zone, server.ID, volume.ID); err != nil {
+			return fmt.Errorf("failed to detach additional volume %d: %w", idx, err)
+		}
+	}
+
+	if volume.State != instance.VolumeStateAvailable {
+		return scaleway.WithTransientError(fmt.Errorf("additional volume %d is not yet ready to be deleted (%s)", idx, volume.State), 2*time.Second)
+	}
+
+	logf.FromContext(ctx).Info("Deleting additional volume", "volumeID", volume.ID, "index", idx)
+
+	if err := s.ScalewayClient.DeleteInstanceVolume(ctx, server.Zone, volume.ID); err != nil {
+		return fmt.Errorf("failed to delete additional volume %d: %w", idx, err)
+	}
+
+	return nil
+}
+
 func (s *Service) ensureBootVolumeDeleted(ctx context.Context, server *instance.Server) error {
 	// First: detach the boot volume
 	for _, vol := range server.Volumes {
@@ -743,4 +948,31 @@ func (s *Service) ensureBootVolumeDeleted(ctx context.Context, server *instance.
 	}
 
 	return nil
+}
+
+// additionalVolumeTags returns tags for an additional volume at the given index.
+func (s *Service) additionalVolumeTags(index int) []string {
+	return append(s.ResourceTags(), fmt.Sprintf("%s=%d", additionalVolumeIndexTagKey, index))
+}
+
+// isVolumeAttachedToServer checks if a volume is attached to the given server.
+func isVolumeAttachedToServer(server *instance.Server, volumeID string) bool {
+	for _, vol := range server.Volumes {
+		if vol.ID == volumeID {
+			return true
+		}
+	}
+	return false
+}
+
+// hasAdditionalVolumeTag checks if a volume has the additional-volume-index tag for the given index.
+// This ensures we only manage volumes created by this controller.
+func hasAdditionalVolumeTag(vol *instance.Volume, index int) bool {
+	expectedTag := fmt.Sprintf("%s=%d", additionalVolumeIndexTagKey, index)
+	for _, tag := range vol.Tags {
+		if tag == expectedTag {
+			return true
+		}
+	}
+	return false
 }

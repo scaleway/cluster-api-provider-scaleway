@@ -352,6 +352,539 @@ func TestService_Reconcile(t *testing.T) {
 	}
 }
 
+func TestService_ensureAdditionalVolumes(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		Machine *scope.Machine
+	}
+	type args struct {
+		ctx    context.Context
+		server *instance.Server
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+		expect  func(i *mock_client.MockInterfaceMockRecorder)
+	}{
+		{
+			name: "create and attach new additional volumes",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							AdditionalVolumes: []infrav1.AdditionalVolume{
+								{
+									Size:         50,
+									Type:         "block",
+									IOPS:         10000,
+									DeletePolicy: infrav1.VolumeDeletePolicyDelete,
+								},
+								{
+									Size:         100,
+									Type:         "block",
+									DeletePolicy: infrav1.VolumeDeletePolicyRetain,
+								},
+							},
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				server: &instance.Server{
+					ID:      serverID,
+					Zone:    scw.ZoneFrPar1,
+					Volumes: map[string]*instance.VolumeServer{},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster", "caps-scalewaymachine=machine"}
+				tags0 := append(tags, "additional-volume-index=0")
+				tags1 := append(tags, "additional-volume-index=1")
+
+				// Try to find existing volumes (they don't exist)
+				i.FindInstanceVolume(gomock.Any(), scw.ZoneFrPar1, tags0).Return(nil, client.ErrNoItemFound)
+				i.FindInstanceVolume(gomock.Any(), scw.ZoneFrPar1, tags1).Return(nil, client.ErrNoItemFound)
+
+				// Create volume 0
+				iops0 := int64(10000)
+				i.CreateVolume(
+					gomock.Any(),
+					scw.ZoneFrPar1,
+					"machine-vol-0",
+					instance.VolumeVolumeTypeSbsVolume,
+					50*scw.GB,
+					&iops0,
+					tags0,
+				).Return(&instance.Volume{
+					ID:         "vol-0-id",
+					VolumeType: instance.VolumeVolumeTypeSbsVolume,
+					Tags:       tags0,
+				}, nil)
+
+				// Attach volume 0
+				i.AttachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, "vol-0-id").Return(nil)
+
+				// Update IOPS for volume 0
+				i.UpdateVolumeIOPS(gomock.Any(), scw.ZoneFrPar1, "vol-0-id", int64(10000)).Return(nil)
+
+				// Create volume 1
+				i.CreateVolume(
+					gomock.Any(),
+					scw.ZoneFrPar1,
+					"machine-vol-1",
+					instance.VolumeVolumeTypeSbsVolume,
+					100*scw.GB,
+					(*int64)(nil),
+					tags1,
+				).Return(&instance.Volume{
+					ID:         "vol-1-id",
+					VolumeType: instance.VolumeVolumeTypeSbsVolume,
+					Tags:       tags1,
+				}, nil)
+
+				// Attach volume 1
+				i.AttachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, "vol-1-id").Return(nil)
+			},
+		},
+		{
+			name: "attach existing volumes that are not attached",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							AdditionalVolumes: []infrav1.AdditionalVolume{
+								{
+									Size: 50,
+									Type: "block",
+								},
+							},
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				server: &instance.Server{
+					ID:      serverID,
+					Zone:    scw.ZoneFrPar1,
+					Volumes: map[string]*instance.VolumeServer{},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster", "caps-scalewaymachine=machine"}
+				tags0 := append(tags, "additional-volume-index=0")
+
+				// Find existing volume
+				i.FindInstanceVolume(gomock.Any(), scw.ZoneFrPar1, tags0).Return(&instance.Volume{
+					ID:         "vol-0-id",
+					VolumeType: instance.VolumeVolumeTypeSbsVolume,
+					Tags:       tags0,
+				}, nil)
+
+				// Attach volume (not attached in server.Volumes)
+				i.AttachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, "vol-0-id").Return(nil)
+			},
+		},
+		{
+			name: "remove volumes no longer in spec",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							AdditionalVolumes: []infrav1.AdditionalVolume{},
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				server: &instance.Server{
+					ID:   serverID,
+					Zone: scw.ZoneFrPar1,
+					Volumes: map[string]*instance.VolumeServer{
+						"1": {
+							ID:         "vol-0-id",
+							VolumeType: instance.VolumeServerVolumeTypeSbsVolume,
+						},
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				// No volumes in spec, so nothing to find/create
+			},
+		},
+		{
+			name: "skip manually attached volumes without management tags",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							AdditionalVolumes: []infrav1.AdditionalVolume{
+								{
+									Size: 50,
+									Type: "block",
+								},
+							},
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				server: &instance.Server{
+					ID:   serverID,
+					Zone: scw.ZoneFrPar1,
+					Volumes: map[string]*instance.VolumeServer{
+						"1": {
+							ID:         "manually-attached-vol",
+							VolumeType: instance.VolumeServerVolumeTypeSbsVolume,
+						},
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster", "caps-scalewaymachine=machine"}
+				tags0 := append(tags, "additional-volume-index=0")
+
+				// Try to find managed volume (doesn't exist)
+				i.FindInstanceVolume(gomock.Any(), scw.ZoneFrPar1, tags0).Return(nil, client.ErrNoItemFound)
+
+				// Create new managed volume
+				i.CreateVolume(
+					gomock.Any(),
+					scw.ZoneFrPar1,
+					"machine-vol-0",
+					instance.VolumeVolumeTypeSbsVolume,
+					50*scw.GB,
+					(*int64)(nil),
+					tags0,
+				).Return(&instance.Volume{
+					ID:         "vol-0-id",
+					VolumeType: instance.VolumeVolumeTypeSbsVolume,
+					Tags:       tags0,
+				}, nil)
+
+				// Attach the new managed volume
+				i.AttachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, "vol-0-id").Return(nil)
+				// Note: The manually attached volume is not touched
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			g := NewWithT(t)
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			scwMock := mock_client.NewMockInterface(mockCtrl)
+
+			tt.expect(scwMock.EXPECT())
+
+			s := &Service{
+				Machine: tt.fields.Machine,
+			}
+			s.ScalewayClient = scwMock
+			err := s.ensureAdditionalVolumes(tt.args.ctx, tt.args.server)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Service.ensureAdditionalVolumes() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			g.Expect(err == nil).To(Equal(!tt.wantErr))
+		})
+	}
+}
+
+func TestService_ensureAdditionalVolumesDeleted(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		Machine *scope.Machine
+	}
+	type args struct {
+		ctx    context.Context
+		server *instance.Server
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+		expect  func(i *mock_client.MockInterfaceMockRecorder)
+	}{
+		{
+			name: "delete volumes with delete policy",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							AdditionalVolumes: []infrav1.AdditionalVolume{
+								{
+									Size:         50,
+									Type:         "block",
+									DeletePolicy: infrav1.VolumeDeletePolicyDelete,
+								},
+							},
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				server: &instance.Server{
+					ID:   serverID,
+					Zone: scw.ZoneFrPar1,
+					Volumes: map[string]*instance.VolumeServer{
+						"1": {
+							ID:         "vol-0-id",
+							VolumeType: instance.VolumeServerVolumeTypeSbsVolume,
+						},
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster", "caps-scalewaymachine=machine"}
+				tags0 := append(tags, "additional-volume-index=0")
+
+				// Find the volume
+				i.FindInstanceVolume(gomock.Any(), scw.ZoneFrPar1, tags0).Return(&instance.Volume{
+					ID:         "vol-0-id",
+					State:      instance.VolumeStateAvailable,
+					VolumeType: instance.VolumeVolumeTypeSbsVolume,
+					Tags:       tags0,
+				}, nil)
+
+				// Detach volume
+				i.DetachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, "vol-0-id").Return(nil)
+
+				// Delete volume
+				i.DeleteInstanceVolume(gomock.Any(), scw.ZoneFrPar1, "vol-0-id").Return(nil)
+			},
+		},
+		{
+			name: "retain volumes with retain policy",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							AdditionalVolumes: []infrav1.AdditionalVolume{
+								{
+									Size:         50,
+									Type:         "block",
+									DeletePolicy: infrav1.VolumeDeletePolicyRetain,
+								},
+							},
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				server: &instance.Server{
+					ID:      serverID,
+					Zone:    scw.ZoneFrPar1,
+					Volumes: map[string]*instance.VolumeServer{},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				// Retain policy: no deletion expected
+			},
+		},
+		{
+			name: "skip manually attached volumes without management tags",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							AdditionalVolumes: []infrav1.AdditionalVolume{
+								{
+									Size:         50,
+									Type:         "block",
+									DeletePolicy: infrav1.VolumeDeletePolicyDelete,
+								},
+							},
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				server: &instance.Server{
+					ID:   serverID,
+					Zone: scw.ZoneFrPar1,
+					Volumes: map[string]*instance.VolumeServer{
+						"1": {
+							ID:         "manually-attached-vol",
+							VolumeType: instance.VolumeServerVolumeTypeSbsVolume,
+						},
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster", "caps-scalewaymachine=machine"}
+				tags0 := append(tags, "additional-volume-index=0")
+
+				// Try to find managed volume (doesn't exist)
+				i.FindInstanceVolume(gomock.Any(), scw.ZoneFrPar1, tags0).Return(nil, client.ErrNoItemFound)
+				// The manually attached volume is not touched
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			g := NewWithT(t)
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			scwMock := mock_client.NewMockInterface(mockCtrl)
+
+			tt.expect(scwMock.EXPECT())
+
+			s := &Service{
+				Machine: tt.fields.Machine,
+			}
+			s.ScalewayClient = scwMock
+			err := s.ensureAdditionalVolumesDeleted(tt.args.ctx, tt.args.server)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Service.ensureAdditionalVolumesDeleted() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			g.Expect(err == nil).To(Equal(!tt.wantErr))
+		})
+	}
+}
+
 func TestService_Delete(t *testing.T) {
 	t.Parallel()
 	type fields struct {

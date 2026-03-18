@@ -27,7 +27,10 @@ type InstanceAPI interface {
 	SetServerUserData(req *instance.SetServerUserDataRequest, opts ...scw.RequestOption) error
 	DeleteServerUserData(req *instance.DeleteServerUserDataRequest, opts ...scw.RequestOption) error
 	ServerAction(req *instance.ServerActionRequest, opts ...scw.RequestOption) (*instance.ServerActionResponse, error)
+	CreateVolume(req *instance.CreateVolumeRequest, opts ...scw.RequestOption) (*instance.CreateVolumeResponse, error)
+	AttachServerVolume(req *instance.AttachServerVolumeRequest, opts ...scw.RequestOption) (*instance.AttachServerVolumeResponse, error)
 	DetachVolume(req *instance.DetachVolumeRequest, opts ...scw.RequestOption) (*instance.DetachVolumeResponse, error)
+	DetachServerVolume(req *instance.DetachServerVolumeRequest, opts ...scw.RequestOption) (*instance.DetachServerVolumeResponse, error)
 	UpdateVolume(req *instance.UpdateVolumeRequest, opts ...scw.RequestOption) (*instance.UpdateVolumeResponse, error)
 	ListVolumes(req *instance.ListVolumesRequest, opts ...scw.RequestOption) (*instance.ListVolumesResponse, error)
 	DeleteVolume(req *instance.DeleteVolumeRequest, opts ...scw.RequestOption) error
@@ -57,9 +60,13 @@ type Instance interface {
 	SetServerUserData(ctx context.Context, zone scw.Zone, serverID, key, content string) error
 	DeleteServerUserData(ctx context.Context, zone scw.Zone, serverID, key string) error
 	ServerAction(ctx context.Context, zone scw.Zone, serverID string, action instance.ServerAction) error
+	CreateVolume(ctx context.Context, zone scw.Zone, name string, volumeType instance.VolumeVolumeType, size scw.Size, iops *int64, tags []string) (*instance.Volume, error)
+	AttachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string) error
 	DetachVolume(ctx context.Context, zone scw.Zone, volumeID string) error
+	DetachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string) error
 	UpdateInstanceVolumeTags(ctx context.Context, zone scw.Zone, volumeID string, tags []string) error
 	FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []string) (*instance.Volume, error)
+	FindInstanceVolumes(ctx context.Context, zone scw.Zone, tags []string) ([]*instance.Volume, error)
 	DeleteInstanceVolume(ctx context.Context, zone scw.Zone, volumeID string) error
 	DeleteServer(ctx context.Context, zone scw.Zone, serverID string) error
 	FindPlacementGroup(ctx context.Context, zone scw.Zone, name string) (*instance.PlacementGroup, error)
@@ -331,6 +338,43 @@ func (c *Client) ServerAction(ctx context.Context, zone scw.Zone, serverID strin
 	return nil
 }
 
+func (c *Client) CreateVolume(ctx context.Context, zone scw.Zone, name string, volumeType instance.VolumeVolumeType, size scw.Size, iops *int64, tags []string) (*instance.Volume, error) {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return nil, err
+	}
+
+	req := &instance.CreateVolumeRequest{
+		Zone:       zone,
+		Name:       name,
+		VolumeType: volumeType,
+		Size:       &size,
+		Tags:       append(tags, createdByTag),
+	}
+
+	resp, err := c.instance.CreateVolume(req, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("CreateVolume", err)
+	}
+
+	return resp.Volume, nil
+}
+
+func (c *Client) AttachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string) error {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return err
+	}
+
+	if _, err := c.instance.AttachServerVolume(&instance.AttachServerVolumeRequest{
+		Zone:     zone,
+		ServerID: serverID,
+		VolumeID: volumeID,
+	}, scw.WithContext(ctx)); err != nil {
+		return newCallError("AttachServerVolume", err)
+	}
+
+	return nil
+}
+
 func (c *Client) DetachVolume(ctx context.Context, zone scw.Zone, volumeID string) error {
 	if err := c.validateZone(c.instance, zone); err != nil {
 		return err
@@ -341,6 +385,22 @@ func (c *Client) DetachVolume(ctx context.Context, zone scw.Zone, volumeID strin
 		VolumeID: volumeID,
 	}, scw.WithContext(ctx)); err != nil {
 		return newCallError("DetachVolume", err)
+	}
+
+	return nil
+}
+
+func (c *Client) DetachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string) error {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return err
+	}
+
+	if _, err := c.instance.DetachServerVolume(&instance.DetachServerVolumeRequest{
+		Zone:     zone,
+		ServerID: serverID,
+		VolumeID: volumeID,
+	}, scw.WithContext(ctx)); err != nil {
+		return newCallError("DetachServerVolume", err)
 	}
 
 	return nil
@@ -392,6 +452,31 @@ func (c *Client) FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []s
 	default:
 		return nil, fmt.Errorf("%w: found %d volumes with tags %s", ErrTooManyItemsFound, len(volumes), tags)
 	}
+}
+
+func (c *Client) FindInstanceVolumes(ctx context.Context, zone scw.Zone, tags []string) ([]*instance.Volume, error) {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return nil, err
+	}
+
+	if err := validateTags(tags); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.instance.ListVolumes(&instance.ListVolumesRequest{
+		Zone: zone,
+		Tags: tags,
+	}, scw.WithContext(ctx), scw.WithAllPages())
+	if err != nil {
+		return nil, newCallError("ListVolumes", err)
+	}
+
+	// Filter out all volumes that have the wrong tags.
+	volumes := slices.DeleteFunc(resp.Volumes, func(volume *instance.Volume) bool {
+		return !matchTags(volume.Tags, tags)
+	})
+
+	return volumes, nil
 }
 
 func (c *Client) DeleteInstanceVolume(ctx context.Context, zone scw.Zone, volumeID string) error {

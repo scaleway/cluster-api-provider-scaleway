@@ -695,6 +695,7 @@ func autoConvert_v1alpha2_ScalewayMachineSpec_To_v1alpha1_ScalewayMachineSpec(in
 		return err
 	}
 	// WARNING: in.RootVolume requires manual conversion: inconvertible types (github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2.RootVolume vs *github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1.RootVolumeSpec)
+	// WARNING: in.AdditionalVolumes requires manual conversion: does not exist in peer-type
 	// WARNING: in.PublicNetwork requires manual conversion: inconvertible types (github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2.PublicNetwork vs *github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1.PublicNetworkSpec)
 	// WARNING: in.PlacementGroup requires manual conversion: inconvertible types (github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2.IDOrName vs *github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1.PlacementGroupSpec)
 	// WARNING: in.SecurityGroup requires manual conversion: inconvertible types (github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2.IDOrName vs *github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1.SecurityGroupSpec)

@@ -23,6 +23,16 @@ const (
 	ScalewayMachineInstanceReconciliationFailedReason = ReconciliationFailedReason
 )
 
+// VolumeDeletePolicy defines the policy to apply to a volume when the instance is deleted.
+type VolumeDeletePolicy string
+
+const (
+	// VolumeDeletePolicyDelete deletes the volume when the instance is deleted (similar to kubectl --cascade=foreground/background).
+	VolumeDeletePolicyDelete VolumeDeletePolicy = "delete"
+	// VolumeDeletePolicyRetain retains the volume when the instance is deleted (similar to kubectl --cascade=orphan).
+	VolumeDeletePolicyRetain VolumeDeletePolicy = "retain"
+)
+
 // ScalewayMachineSpec defines the desired state of ScalewayMachine.
 // +kubebuilder:validation:XValidation:rule="has(self.rootVolume) == has(oldSelf.rootVolume)",message="rootVolume cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.publicNetwork) == has(oldSelf.publicNetwork)",message="publicNetwork cannot be added or removed"
@@ -52,6 +62,10 @@ type ScalewayMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	RootVolume RootVolume `json:"rootVolume,omitempty,omitzero"`
+
+	// additionalVolumes defines the characteristics of additional volumes.
+	// +optional
+	AdditionalVolumes []AdditionalVolume `json:"additionalVolumes,omitempty"`
 
 	// publicNetwork allows attaching public IPs to the instance.
 	// +optional
@@ -119,6 +133,36 @@ type RootVolume struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=5000
 	IOPS int64 `json:"iops,omitempty"`
+}
+
+// AdditionalVolume defines the characteristics of an additional volume.
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:XValidation:rule="!has(self.iops) || has(self.type) && self.type == 'block'",message="iops can only be set for block volumes"
+type AdditionalVolume struct {
+	// size of the volume in GB. Defaults to 20 GB.
+	// +optional
+	// +kubebuilder:default=20
+	// +kubebuilder:validation:Minimum=8
+	// +kubebuilder:validation:Maximum=10000
+	Size int64 `json:"size,omitempty"`
+
+	// type of the volume. Can be local or block. Note that not all types
+	// of instances support local volumes.
+	// +optional
+	// +kubebuilder:default="block"
+	// +kubebuilder:validation:Enum=local;block
+	Type string `json:"type,omitempty"`
+
+	// iops is the number of IOPS requested for the disk. This is only applicable for block volumes.
+	// +optional
+	// +kubebuilder:validation:Minimum=5000
+	IOPS int64 `json:"iops,omitempty"`
+
+	// deletePolicy defines the policy to apply to the volume when the instance is deleted.
+	// +optional
+	// +kubebuilder:validation:Enum=delete;retain
+	// +kubebuilder:default="delete"
+	DeletePolicy VolumeDeletePolicy `json:"deletePolicy,omitempty"`
 }
 
 // PublicNetwork allows enabling the attachment of public IPs to the instance.

@@ -387,3 +387,336 @@ func TestMachine_HasJoinedCluster(t *testing.T) {
 		})
 	}
 }
+func TestMachine_AdditionalVolumeSize(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		ScalewayMachine *infrav1.ScalewayMachine
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		idx    int
+		want   scw.Size
+	}{
+		{
+			name: "empty spec",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{},
+			},
+			idx:  0,
+			want: defaultRootVolumeSize,
+		},
+		{
+			name: "index out of range",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{Size: 30},
+						},
+					},
+				},
+			},
+			idx:  5,
+			want: defaultRootVolumeSize,
+		},
+		{
+			name: "30GB at index 0",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{Size: 30},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: 30 * scw.GB,
+		},
+		{
+			name: "default size (0 specified)",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{Size: 0},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: defaultRootVolumeSize,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := &Machine{
+				ScalewayMachine: tt.fields.ScalewayMachine,
+			}
+			if got := m.AdditionalVolumeSize(tt.idx); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Machine.AdditionalVolumeSize() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMachine_AdditionalVolumeType(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		ScalewayMachine *infrav1.ScalewayMachine
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		idx     int
+		want    instance.VolumeVolumeType
+		wantErr bool
+	}{
+		{
+			name: "empty spec",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{},
+			},
+			idx:  0,
+			want: defaultRootVolumeType,
+		},
+		{
+			name: "index out of range",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{Type: "local"},
+						},
+					},
+				},
+			},
+			idx:  5,
+			want: defaultRootVolumeType,
+		},
+		{
+			name: "local volume",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{Type: "local"},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: instance.VolumeVolumeTypeLSSD,
+		},
+		{
+			name: "block volume",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{Type: "block"},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: instance.VolumeVolumeTypeSbsVolume,
+		},
+		{
+			name: "unknown type",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{Type: "unknown"},
+						},
+					},
+				},
+			},
+			idx:     0,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := &Machine{
+				ScalewayMachine: tt.fields.ScalewayMachine,
+			}
+			got, err := m.AdditionalVolumeType(tt.idx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Machine.AdditionalVolumeType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Machine.AdditionalVolumeType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMachine_AdditionalVolumeIOPS(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		ScalewayMachine *infrav1.ScalewayMachine
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		idx    int
+		want   *int64
+	}{
+		{
+			name: "empty spec",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{},
+			},
+			idx:  0,
+			want: nil,
+		},
+		{
+			name: "index out of range",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{IOPS: 10000},
+						},
+					},
+				},
+			},
+			idx:  5,
+			want: nil,
+		},
+		{
+			name: "10000 IOPS",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{IOPS: 10000},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: scw.Int64Ptr(10000),
+		},
+		{
+			name: "no IOPS specified",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{IOPS: 0},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := &Machine{
+				ScalewayMachine: tt.fields.ScalewayMachine,
+			}
+			if got := m.AdditionalVolumeIOPS(tt.idx); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Machine.AdditionalVolumeIOPS() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMachine_AdditionalVolumeDeletePolicy(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		ScalewayMachine *infrav1.ScalewayMachine
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		idx    int
+		want   infrav1.VolumeDeletePolicy
+	}{
+		{
+			name: "empty spec defaults to delete",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{},
+			},
+			idx:  0,
+			want: infrav1.VolumeDeletePolicyDelete,
+		},
+		{
+			name: "index out of range defaults to delete",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{DeletePolicy: infrav1.VolumeDeletePolicyRetain},
+						},
+					},
+				},
+			},
+			idx:  5,
+			want: infrav1.VolumeDeletePolicyDelete,
+		},
+		{
+			name: "retain policy",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{DeletePolicy: infrav1.VolumeDeletePolicyRetain},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: infrav1.VolumeDeletePolicyRetain,
+		},
+		{
+			name: "delete policy",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{DeletePolicy: infrav1.VolumeDeletePolicyDelete},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: infrav1.VolumeDeletePolicyDelete,
+		},
+		{
+			name: "empty delete policy defaults to delete",
+			fields: fields{
+				ScalewayMachine: &infrav1.ScalewayMachine{
+					Spec: infrav1.ScalewayMachineSpec{
+						AdditionalVolumes: []infrav1.AdditionalVolume{
+							{DeletePolicy: ""},
+						},
+					},
+				},
+			},
+			idx:  0,
+			want: infrav1.VolumeDeletePolicyDelete,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := &Machine{
+				ScalewayMachine: tt.fields.ScalewayMachine,
+			}
+			if got := m.AdditionalVolumeDeletePolicy(tt.idx); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Machine.AdditionalVolumeDeletePolicy() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

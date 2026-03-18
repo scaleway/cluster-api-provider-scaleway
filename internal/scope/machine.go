@@ -134,6 +134,79 @@ func (m *Machine) RootVolumeIOPS() *int64 {
 	return nil
 }
 
+// HasAdditionalVolumes returns true if the machine has additional volumes configured.
+func (m *Machine) HasAdditionalVolumes() bool {
+	return len(m.ScalewayMachine.Spec.AdditionalVolumes) > 0
+}
+
+// AdditionalVolumes returns the additional volumes configuration for the machine.
+func (m *Machine) AdditionalVolumes() []infrav1.AdditionalVolume {
+	return m.ScalewayMachine.Spec.AdditionalVolumes
+}
+
+// AdditionalVolumeSize returns the size of an additional volume at the given index.
+func (m *Machine) AdditionalVolumeSize(idx int) scw.Size {
+	if idx >= len(m.ScalewayMachine.Spec.AdditionalVolumes) {
+		return defaultRootVolumeSize
+	}
+
+	size := defaultRootVolumeSize
+	if m.ScalewayMachine.Spec.AdditionalVolumes[idx].Size != 0 {
+		size = scw.Size(m.ScalewayMachine.Spec.AdditionalVolumes[idx].Size) * scw.GB
+	}
+
+	return size
+}
+
+// AdditionalVolumeType returns the type of an additional volume at the given index.
+func (m *Machine) AdditionalVolumeType(idx int) (instance.VolumeVolumeType, error) {
+	if idx >= len(m.ScalewayMachine.Spec.AdditionalVolumes) {
+		return defaultRootVolumeType, nil
+	}
+
+	volumeType := defaultRootVolumeType
+	volSpec := m.ScalewayMachine.Spec.AdditionalVolumes[idx]
+
+	if volSpec.Type != "" {
+		volumeType = volumeTypeToInstanceVolumeType[volSpec.Type]
+		if volumeType == "" {
+			return "", fmt.Errorf("unknown volume type %s for additional volume %d", volSpec.Type, idx)
+		}
+	}
+
+	return volumeType, nil
+}
+
+// AdditionalVolumeIOPS returns the IOPS of an additional volume at the given index.
+// If not specified, it returns nil.
+// Note: IOPS is only applicable for block volumes.
+func (m *Machine) AdditionalVolumeIOPS(idx int) *int64 {
+	if idx >= len(m.ScalewayMachine.Spec.AdditionalVolumes) {
+		return nil
+	}
+
+	if m.ScalewayMachine.Spec.AdditionalVolumes[idx].IOPS != 0 {
+		return &m.ScalewayMachine.Spec.AdditionalVolumes[idx].IOPS
+	}
+
+	return nil
+}
+
+// AdditionalVolumeDeletePolicy returns the delete policy of an additional volume at the given index.
+// Returns VolumeDeletePolicyDelete by default.
+func (m *Machine) AdditionalVolumeDeletePolicy(idx int) infrav1.VolumeDeletePolicy {
+	if idx >= len(m.ScalewayMachine.Spec.AdditionalVolumes) {
+		return infrav1.VolumeDeletePolicyDelete
+	}
+
+	deletePolicy := m.ScalewayMachine.Spec.AdditionalVolumes[idx].DeletePolicy
+	if deletePolicy == "" {
+		return infrav1.VolumeDeletePolicyDelete
+	}
+
+	return deletePolicy
+}
+
 // HasPublicIPv4 returns true if the machine should have a Public IPv4 address.
 func (m *Machine) HasPublicIPv4() bool {
 	// If the cluster has no Private Network, we must enable a Public IPv4 so that
