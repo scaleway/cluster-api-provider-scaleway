@@ -35,10 +35,14 @@ const (
 	backendID2 = "11111111-1111-1111-1111-111111111111"
 	backendID3 = "11111111-1111-1111-1111-111111111111"
 
-	frontendID  = "55555555-5555-5555-5555-555555555555"
-	frontendID1 = "66666666-6666-6666-6666-666666666666"
-	frontendID2 = "77777777-7777-7777-7777-777777777777"
-	frontendID3 = "88888888-8888-8888-8888-888888888888"
+	frontendLB0ID  = "05555555-5555-5555-5555-555555555555"
+	frontendLB0ID2 = "02555555-5555-5555-5555-555555555555"
+	frontendLB1ID  = "16666666-6666-6666-6666-666666666666"
+	frontendLB1ID2 = "12666666-6666-6666-6666-666666666666"
+	frontendLB2ID  = "27777777-7777-7777-7777-777777777777"
+	frontendLB2ID2 = "22777777-7777-7777-7777-777777777777"
+	frontendLB3ID  = "38888888-8888-8888-8888-888888888888"
+	frontendLB3ID2 = "32888888-8888-8888-8888-888888888888"
 
 	lbIP  = "1.1.1.1"
 	lbIP1 = "2.2.2.2"
@@ -100,20 +104,20 @@ func TestService_Reconcile(t *testing.T) {
 				// Extra LBs
 				i.FindLBs(gomock.Any(), append(tags, CAPSExtraLBTag)).Return([]*lb.LB{}, nil)
 
-				// Backend
-				i.FindBackend(gomock.Any(), scw.ZoneFrPar1, lbID, BackendName).Return(nil, client.ErrNoItemFound)
-				i.CreateBackend(gomock.Any(), scw.ZoneFrPar1, lbID, BackendName, nil, backendControlPlanePort).Return(&lb.Backend{
-					ID: backendID,
+				// Ports (backend + frontend)
+				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID).Return(nil, nil)
+				i.ListBackends(gomock.Any(), scw.ZoneFrPar1, lbID).Return(nil, nil)
+				i.CreateBackend(gomock.Any(), scw.ZoneFrPar1, lbID, APIServerPortName, nil, backendControlPlanePort).Return(&lb.Backend{
+					ID:   backendID,
+					Name: APIServerPortName,
 					LB: &lb.LB{
 						ID:   lbID,
 						Zone: scw.ZoneFrPar1,
 					},
 				}, nil)
-
-				// Frontend
-				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, FrontendName).Return(nil, client.ErrNoItemFound)
-				i.CreateFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, FrontendName, backendID, int32(6443)).Return(&lb.Frontend{
-					ID: frontendID,
+				i.CreateFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, APIServerPortName, backendID, int32(6443)).Return(&lb.Frontend{
+					ID:   frontendLB0ID,
+					Name: APIServerPortName,
 					LB: &lb.LB{
 						ID:   lbID,
 						Zone: scw.ZoneFrPar1,
@@ -121,9 +125,9 @@ func TestService_Reconcile(t *testing.T) {
 				}, nil)
 
 				// ACL
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, allowedRangesACLName).Return(nil, client.ErrNoItemFound)
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, publicGatewayACLName).Return(nil, client.ErrNoItemFound)
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, denyAllACLName).Return(nil, client.ErrNoItemFound)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, allowedRangesACLName).Return(nil, client.ErrNoItemFound)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, publicGatewayACLName).Return(nil, client.ErrNoItemFound)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, denyAllACLName).Return(nil, client.ErrNoItemFound)
 			},
 			asserts: func(g *WithT, c *scope.Cluster) {
 				g.Expect(c.ScalewayCluster.Status.Network).ToNot(BeNil())
@@ -173,20 +177,18 @@ func TestService_Reconcile(t *testing.T) {
 				// Extra LBs
 				i.FindLBs(gomock.Any(), append(tags, CAPSExtraLBTag)).Return([]*lb.LB{}, nil)
 
-				// Backend
-				i.FindBackend(gomock.Any(), scw.ZoneFrPar1, lbID, BackendName).Return(nil, client.ErrNoItemFound)
-				i.CreateBackend(gomock.Any(), scw.ZoneFrPar1, lbID, BackendName, nil, backendControlPlanePort).Return(&lb.Backend{
+				// Ports (backend + frontend)
+				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID).Return(nil, nil)
+				i.ListBackends(gomock.Any(), scw.ZoneFrPar1, lbID).Return(nil, nil)
+				i.CreateBackend(gomock.Any(), scw.ZoneFrPar1, lbID, APIServerPortName, nil, backendControlPlanePort).Return(&lb.Backend{
 					ID: backendID,
 					LB: &lb.LB{
 						ID:   lbID,
 						Zone: scw.ZoneFrPar1,
 					},
 				}, nil)
-
-				// Frontend
-				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, FrontendName).Return(nil, client.ErrNoItemFound)
-				i.CreateFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, FrontendName, backendID, int32(4242)).Return(&lb.Frontend{
-					ID: frontendID,
+				i.CreateFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, APIServerPortName, backendID, int32(4242)).Return(&lb.Frontend{
+					ID: frontendLB0ID,
 					LB: &lb.LB{
 						ID:   lbID,
 						Zone: scw.ZoneFrPar1,
@@ -194,9 +196,9 @@ func TestService_Reconcile(t *testing.T) {
 				}, nil)
 
 				// ACL
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, allowedRangesACLName).Return(nil, client.ErrNoItemFound)
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, publicGatewayACLName).Return(nil, client.ErrNoItemFound)
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, denyAllACLName).Return(nil, client.ErrNoItemFound)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, allowedRangesACLName).Return(nil, client.ErrNoItemFound)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, publicGatewayACLName).Return(nil, client.ErrNoItemFound)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, denyAllACLName).Return(nil, client.ErrNoItemFound)
 			},
 			asserts: func(g *WithT, c *scope.Cluster) {
 				g.Expect(c.ScalewayCluster.Status.Network).ToNot(BeNil())
@@ -204,7 +206,7 @@ func TestService_Reconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "public LB, extra LBs, Private Network, ACL: up-to-date",
+			name: "public LB, extra LBs, additional ports, Private Network, ACL: up-to-date",
 			fields: fields{
 				Cluster: &scope.Cluster{
 					ScalewayCluster: &infrav1.ScalewayCluster{
@@ -218,6 +220,10 @@ func TestService_Reconcile(t *testing.T) {
 									Enabled: ptr.To(true),
 								},
 								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
+									AdditionalPorts: []infrav1.LoadBalancerPort{{
+										Port:       9345,
+										TargetPort: 9345,
+									}},
 									AllowedRanges: []infrav1.CIDR{"10.10.0.0/16"},
 								},
 								ControlPlaneExtraLoadBalancers: []infrav1.LoadBalancer{
@@ -311,63 +317,215 @@ func TestService_Reconcile(t *testing.T) {
 					},
 				}, nil)
 
-				// // Backends
-				i.FindBackend(gomock.Any(), scw.ZoneFrPar1, lbID, BackendName).Return(&lb.Backend{
-					ID: backendID,
-					LB: &lb.LB{
-						ID:   lbID,
-						Zone: scw.ZoneFrPar1,
+				// Frontends
+				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Frontend{
+					{
+						ID:   frontendLB0ID,
+						Name: APIServerPortName,
+						LB: &lb.LB{
+							ID:   lbID,
+							Zone: scw.ZoneFrPar1,
+						},
+						Backend: &lb.Backend{
+							ID:   backendID,
+							Name: APIServerPortName,
+						},
+					},
+					{
+						ID:   frontendLB0ID2,
+						Name: "port-9345",
+						LB: &lb.LB{
+							ID:   lbID,
+							Zone: scw.ZoneFrPar1,
+						},
+						Backend: &lb.Backend{
+							ID:   backendID,
+							Name: "port-9345",
+						},
 					},
 				}, nil)
-				i.FindBackend(gomock.Any(), scw.ZoneFrPar1, lbID1, BackendName).Return(&lb.Backend{
-					ID: backendID1,
-					LB: &lb.LB{
-						ID:   lbID1,
-						Zone: scw.ZoneFrPar1,
+				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID1).Return([]*lb.Frontend{
+					{
+						ID:   frontendLB1ID,
+						Name: APIServerPortName,
+						LB: &lb.LB{
+							ID:   lbID1,
+							Zone: scw.ZoneFrPar1,
+						},
+						Backend: &lb.Backend{
+							ID:   backendID1,
+							Name: APIServerPortName,
+						},
+					},
+					{
+						ID:   frontendLB1ID2,
+						Name: "port-9345",
+						LB: &lb.LB{
+							ID:   lbID1,
+							Zone: scw.ZoneFrPar1,
+						},
+						Backend: &lb.Backend{
+							ID:   backendID1,
+							Name: "port-9345",
+						},
 					},
 				}, nil)
-				i.FindBackend(gomock.Any(), scw.ZoneFrPar1, lbID2, BackendName).Return(&lb.Backend{
-					ID: backendID2,
-					LB: &lb.LB{
-						ID:   lbID2,
-						Zone: scw.ZoneFrPar1,
+				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID2).Return([]*lb.Frontend{
+					{
+						ID:   frontendLB2ID,
+						Name: APIServerPortName,
+						LB: &lb.LB{
+							ID:   lbID2,
+							Zone: scw.ZoneFrPar1,
+						},
+						Backend: &lb.Backend{
+							ID:   backendID2,
+							Name: APIServerPortName,
+						},
+					},
+					{
+						ID:   frontendLB2ID2,
+						Name: "port-9345",
+						LB: &lb.LB{
+							ID:   lbID2,
+							Zone: scw.ZoneFrPar1,
+						},
+						Backend: &lb.Backend{
+							ID:   backendID2,
+							Name: "port-9345",
+						},
 					},
 				}, nil)
-				i.FindBackend(gomock.Any(), scw.ZoneFrPar2, lbID3, BackendName).Return(&lb.Backend{
-					ID: backendID3,
-					LB: &lb.LB{
-						ID:   lbID3,
-						Zone: scw.ZoneFrPar2,
+				i.ListFrontends(gomock.Any(), scw.ZoneFrPar2, lbID3).Return([]*lb.Frontend{
+					{
+						ID:   frontendLB3ID,
+						Name: APIServerPortName,
+						LB: &lb.LB{
+							ID:   lbID3,
+							Zone: scw.ZoneFrPar2,
+						},
+						Backend: &lb.Backend{
+							ID:   backendID3,
+							Name: APIServerPortName,
+						},
+					},
+					{
+						ID:   frontendLB3ID2,
+						Name: "port-9345",
+						LB: &lb.LB{
+							ID:   lbID3,
+							Zone: scw.ZoneFrPar2,
+						},
+						Backend: &lb.Backend{
+							ID:   backendID3,
+							Name: "port-9345",
+						},
 					},
 				}, nil)
 
-				// Frontends
-				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, FrontendName).Return(&lb.Frontend{
-					ID: frontendID,
-					LB: &lb.LB{
-						ID:   lbID,
-						Zone: scw.ZoneFrPar1,
+				// Backends
+				i.ListBackends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Backend{
+					{
+						ID:   backendID,
+						Name: APIServerPortName,
+						LB: &lb.LB{
+							ID:   lbID,
+							Zone: scw.ZoneFrPar1,
+						},
+						ForwardPort: backendControlPlanePort,
+						HealthCheck: &lb.HealthCheck{
+							Port: backendControlPlanePort,
+						},
+					},
+					{
+						ID:   backendID,
+						Name: "port-9345",
+						LB: &lb.LB{
+							ID:   lbID,
+							Zone: scw.ZoneFrPar1,
+						},
+						ForwardPort: 9345,
+						HealthCheck: &lb.HealthCheck{
+							Port: 9345,
+						},
 					},
 				}, nil)
-				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID1, FrontendName).Return(&lb.Frontend{
-					ID: frontendID1,
-					LB: &lb.LB{
-						ID:   lbID1,
-						Zone: scw.ZoneFrPar1,
+				i.ListBackends(gomock.Any(), scw.ZoneFrPar1, lbID1).Return([]*lb.Backend{
+					{
+						ID:   backendID1,
+						Name: APIServerPortName,
+						LB: &lb.LB{
+							ID:   lbID1,
+							Zone: scw.ZoneFrPar1,
+						},
+						ForwardPort: backendControlPlanePort,
+						HealthCheck: &lb.HealthCheck{
+							Port: backendControlPlanePort,
+						},
+					},
+					{
+						ID:   backendID1,
+						Name: "port-9345",
+						LB: &lb.LB{
+							ID:   lbID1,
+							Zone: scw.ZoneFrPar1,
+						},
+						ForwardPort: 9345,
+						HealthCheck: &lb.HealthCheck{
+							Port: 9345,
+						},
 					},
 				}, nil)
-				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID2, FrontendName).Return(&lb.Frontend{
-					ID: frontendID2,
-					LB: &lb.LB{
-						ID:   lbID2,
-						Zone: scw.ZoneFrPar1,
+				i.ListBackends(gomock.Any(), scw.ZoneFrPar1, lbID2).Return([]*lb.Backend{
+					{
+						ID:   backendID2,
+						Name: APIServerPortName,
+						LB: &lb.LB{
+							ID:   lbID2,
+							Zone: scw.ZoneFrPar1,
+						},
+						ForwardPort: backendControlPlanePort,
+						HealthCheck: &lb.HealthCheck{
+							Port: backendControlPlanePort,
+						},
+					},
+					{
+						ID:   backendID2,
+						Name: "port-9345",
+						LB: &lb.LB{
+							ID:   lbID1,
+							Zone: scw.ZoneFrPar1,
+						},
+						ForwardPort: 9345,
+						HealthCheck: &lb.HealthCheck{
+							Port: 9345,
+						},
 					},
 				}, nil)
-				i.FindFrontend(gomock.Any(), scw.ZoneFrPar2, lbID3, FrontendName).Return(&lb.Frontend{
-					ID: frontendID3,
-					LB: &lb.LB{
-						ID:   lbID3,
-						Zone: scw.ZoneFrPar2,
+				i.ListBackends(gomock.Any(), scw.ZoneFrPar2, lbID3).Return([]*lb.Backend{
+					{
+						ID:   backendID3,
+						Name: APIServerPortName,
+						LB: &lb.LB{
+							ID:   lbID3,
+							Zone: scw.ZoneFrPar2,
+						},
+						ForwardPort: backendControlPlanePort,
+						HealthCheck: &lb.HealthCheck{
+							Port: backendControlPlanePort,
+						},
+					},
+					{
+						ID:   backendID3,
+						Name: "port-9345",
+						LB: &lb.LB{
+							ID:   lbID3,
+							Zone: scw.ZoneFrPar2,
+						},
+						ForwardPort: 9345,
+						HealthCheck: &lb.HealthCheck{
+							Port: 9345,
+						},
 					},
 				}, nil)
 
@@ -379,21 +537,21 @@ func TestService_Reconcile(t *testing.T) {
 						},
 					},
 				}, nil)
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, allowedRangesACLName).Return(&lb.ACL{
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, allowedRangesACLName).Return(&lb.ACL{
 					Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
 					Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"10.10.0.0/16"})},
 				}, nil)
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, publicGatewayACLName).Return(&lb.ACL{
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, publicGatewayACLName).Return(&lb.ACL{
 					Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
 					Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"42.42.42.42"})},
 				}, nil)
-				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, denyAllACLName).Return(&lb.ACL{
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID, denyAllACLName).Return(&lb.ACL{
 					Action: &lb.ACLAction{Type: lb.ACLActionTypeDeny},
 					Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"0.0.0.0/0", "::/0"})},
 				}, nil)
 
 				// Duplicate ACLs from main LB to extra LBs
-				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendID).Return([]*lb.ACL{
+				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID).Return([]*lb.ACL{
 					{
 						Name:   allowedRangesACLName,
 						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
@@ -413,7 +571,7 @@ func TestService_Reconcile(t *testing.T) {
 						Index:  denyAllACLIndex,
 					},
 				}, nil)
-				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendID1).Return([]*lb.ACL{
+				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendLB0ID2).Return([]*lb.ACL{
 					{
 						Name:   allowedRangesACLName,
 						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
@@ -433,7 +591,7 @@ func TestService_Reconcile(t *testing.T) {
 						Index:  denyAllACLIndex,
 					},
 				}, nil)
-				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendID2).Return([]*lb.ACL{
+				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendLB1ID).Return([]*lb.ACL{
 					{
 						Name:   allowedRangesACLName,
 						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
@@ -453,7 +611,87 @@ func TestService_Reconcile(t *testing.T) {
 						Index:  denyAllACLIndex,
 					},
 				}, nil)
-				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar2, frontendID3).Return([]*lb.ACL{
+				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendLB1ID2).Return([]*lb.ACL{
+					{
+						Name:   allowedRangesACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"10.10.0.0/16"})},
+						Index:  aclIndex,
+					},
+					{
+						Name:   publicGatewayACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"42.42.42.42"})},
+						Index:  aclIndex,
+					},
+					{
+						Name:   denyAllACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeDeny},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"0.0.0.0/0", "::/0"})},
+						Index:  denyAllACLIndex,
+					},
+				}, nil)
+				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendLB2ID).Return([]*lb.ACL{
+					{
+						Name:   allowedRangesACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"10.10.0.0/16"})},
+						Index:  aclIndex,
+					},
+					{
+						Name:   publicGatewayACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"42.42.42.42"})},
+						Index:  aclIndex,
+					},
+					{
+						Name:   denyAllACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeDeny},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"0.0.0.0/0", "::/0"})},
+						Index:  denyAllACLIndex,
+					},
+				}, nil)
+				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar1, frontendLB2ID2).Return([]*lb.ACL{
+					{
+						Name:   allowedRangesACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"10.10.0.0/16"})},
+						Index:  aclIndex,
+					},
+					{
+						Name:   publicGatewayACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"42.42.42.42"})},
+						Index:  aclIndex,
+					},
+					{
+						Name:   denyAllACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeDeny},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"0.0.0.0/0", "::/0"})},
+						Index:  denyAllACLIndex,
+					},
+				}, nil)
+				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar2, frontendLB3ID).Return([]*lb.ACL{
+					{
+						Name:   allowedRangesACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"10.10.0.0/16"})},
+						Index:  aclIndex,
+					},
+					{
+						Name:   publicGatewayACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"42.42.42.42"})},
+						Index:  aclIndex,
+					},
+					{
+						Name:   denyAllACLName,
+						Action: &lb.ACLAction{Type: lb.ACLActionTypeDeny},
+						Match:  &lb.ACLMatch{IPSubnet: scw.StringSlicePtr([]string{"0.0.0.0/0", "::/0"})},
+						Index:  denyAllACLIndex,
+					},
+				}, nil)
+				i.ListLBACLs(gomock.Any(), scw.ZoneFrPar2, frontendLB3ID2).Return([]*lb.ACL{
 					{
 						Name:   allowedRangesACLName,
 						Action: &lb.ACLAction{Type: lb.ACLActionTypeAllow},

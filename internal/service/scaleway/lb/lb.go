@@ -36,8 +36,7 @@ const (
 	// Backend port, must match port of apiservers.
 	backendControlPlanePort = int32(6443)
 
-	BackendName  = "kube-apiserver"
-	FrontendName = "kube-apiserver"
+	APIServerPortName = "kube-apiserver"
 
 	// ACL indexes.
 	aclIndex        = 0
@@ -111,19 +110,13 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 		return err
 	}
 
-	backendByLB, err := s.ensureBackend(ctx, mainLB, extraLBs)
+	portsByLB, err := s.reconcilePorts(ctx, mainLB, extraLBs)
 	if err != nil {
-		condition.Reason = infrav1.ScalewayClusterBackendReconciliationFailedReason
-		return fmt.Errorf("failed to ensure lb backend: %w", err)
+		condition.Reason = infrav1.ScalewayClusterLoadBalancerPortsReconciliationFailedReason
+		return err
 	}
 
-	frontendByLB, err := s.ensureFrontend(ctx, backendByLB)
-	if err != nil {
-		condition.Reason = infrav1.ScalewayClusterFrontendReconciliationFailedReason
-		return fmt.Errorf("failed to ensure lb frontend: %w", err)
-	}
-
-	if err := s.ensureACLs(ctx, mainLB, frontendByLB, pnID); err != nil {
+	if err := s.ensureACLs(ctx, mainLB, portsByLB, pnID); err != nil {
 		condition.Reason = infrav1.ScalewayClusterLoadBalancerACLReconciliationFailedReason
 		return fmt.Errorf("failed to ensure ACLs: %w", err)
 	}
@@ -463,96 +456,6 @@ func (d *desiredResourceListManager) UpdateResource(
 	return resource, nil
 }
 
-func (s *Service) getOrCreateBackend(
-	ctx context.Context,
-	lbWithPrivateIP *lbWithPrivateIP,
-	servers []string,
-	updateServers bool,
-) (*lb.Backend, error) {
-	servers = slices.Sorted(slices.Values(servers))
-
-	backend, err := s.ScalewayClient.FindBackend(ctx, lbWithPrivateIP.Zone, lbWithPrivateIP.ID, BackendName)
-	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
-		return nil, err
-	}
-
-	if backend == nil {
-		backend, err = s.ScalewayClient.CreateBackend(
-			ctx,
-			lbWithPrivateIP.Zone,
-			lbWithPrivateIP.ID,
-			BackendName,
-			servers,
-			backendControlPlanePort,
-		)
-		if err != nil {
-			return nil, err
-		}
-	} else if updateServers && !slices.Equal(servers, slices.Sorted(slices.Values(backend.Pool))) {
-		backend, err = s.ScalewayClient.SetBackendServers(ctx, lbWithPrivateIP.Zone, backend.ID, servers)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return backend, nil
-}
-
-func (s *Service) ensureBackend(ctx context.Context, mainLB *lbWithPrivateIP, extraLBs []*lbWithPrivateIP) ([]*lb.Backend, error) {
-	backends := make([]*lb.Backend, 0, len(extraLBs)+1)
-
-	mainLBBackend, err := s.getOrCreateBackend(ctx, mainLB, nil, false)
-	if err != nil {
-		return nil, err
-	}
-
-	backends = append(backends, mainLBBackend)
-
-	for _, extraLB := range extraLBs {
-		backend, err := s.getOrCreateBackend(ctx, extraLB, mainLBBackend.Pool, true)
-		if err != nil {
-			return nil, err
-		}
-
-		backends = append(backends, backend)
-	}
-
-	return backends, nil
-}
-
-func (s *Service) ensureFrontend(ctx context.Context, backends []*lb.Backend) (map[string]*lb.Frontend, error) {
-	frontendByLB := make(map[string]*lb.Frontend)
-
-	for _, backend := range backends {
-		frontend, err := s.ScalewayClient.FindFrontend(
-			ctx, backend.LB.Zone,
-			backend.LB.ID,
-			FrontendName,
-		)
-		if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
-			return nil, err
-		}
-
-		if frontend == nil {
-			frontend, err = s.ScalewayClient.CreateFrontend(
-				ctx,
-				backend.LB.Zone,
-				backend.LB.ID,
-				FrontendName,
-				backend.ID,
-				s.ControlPlaneLoadBalancerPort(),
-			)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		frontendByLB[backend.LB.ID] = frontend
-	}
-
-	return frontendByLB, nil
-}
-
 func (s *Service) ensurePrivateNetwork(ctx context.Context, lbs []*lbWithPrivateIP, pnID *string) error {
 	if pnID == nil {
 		return nil
@@ -618,10 +521,181 @@ func (s *Service) ensurePrivateNetwork(ctx context.Context, lbs []*lbWithPrivate
 	return nil
 }
 
+type lbPort struct {
+	*infrav1.LoadBalancerPort
+
+	Name     string
+	Backend  *lb.Backend
+	Frontend *lb.Frontend
+}
+
+func (s *Service) reconcilePorts(ctx context.Context, mainLB *lbWithPrivateIP, extraLBs []*lbWithPrivateIP) (map[string]map[string]*lbPort, error) {
+	portsByLB := make(map[string]map[string]*lbPort) // Map LB ID -> port name -> lbPort.
+
+	var servers []string // Will be populated after ensuring the APIServer backend of the main LB.
+
+	// mainLB must be reconciled first as it's the source of truth for the backends (servers) configuration.
+	for i, l := range append([]*lbWithPrivateIP{mainLB}, extraLBs...) {
+		lbPorts := make(map[string]*lbPort)
+
+		lbPorts[APIServerPortName] = &lbPort{
+			Name: APIServerPortName,
+			LoadBalancerPort: &infrav1.LoadBalancerPort{
+				Port:       s.ControlPlaneLoadBalancerPort(),
+				TargetPort: backendControlPlanePort,
+			},
+		}
+
+		for _, additionalPort := range s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.AdditionalPorts {
+			lbPorts[additionalPort.Name()] = &lbPort{
+				Name:             additionalPort.Name(),
+				LoadBalancerPort: &additionalPort,
+			}
+		}
+
+		frontends, err := s.ScalewayClient.ListFrontends(ctx, l.Zone, l.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list frontends: %w", err)
+		}
+
+		for _, f := range frontends {
+			port, ok := lbPorts[f.Name]
+			if !ok || f.Backend == nil || f.Backend.Name != f.Name {
+				if err := s.ScalewayClient.DeleteFrontend(ctx, l.Zone, f.ID); err != nil {
+					return nil, fmt.Errorf("failed to delete frontend: %w", err)
+				}
+
+				continue
+			}
+
+			if port.Frontend != nil {
+				return nil, fmt.Errorf("found multiple frontends with name %s for lb %s", f.Name, l.ID)
+			}
+
+			port.Frontend = f
+		}
+
+		backends, err := s.ScalewayClient.ListBackends(ctx, l.Zone, l.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list backends: %w", err)
+		}
+
+		for _, b := range backends {
+			port, ok := lbPorts[b.Name]
+			if !ok {
+				if err := s.ScalewayClient.DeleteBackend(ctx, l.Zone, b.ID); err != nil {
+					return nil, fmt.Errorf("failed to delete backend %s: %w", b.Name, err)
+				}
+
+				continue
+			}
+
+			if port.Backend != nil {
+				return nil, fmt.Errorf("found multiple backends with name %s for lb %s", b.Name, l.ID)
+			}
+
+			port.Backend = b
+		}
+
+		// Reconcile the APIServer backend first to get the correct list of servers for the additional ports.
+		if i == 0 {
+			backend, err := s.ensureBackend(ctx, l, lbPorts[APIServerPortName], nil, false)
+			if err != nil {
+				return nil, fmt.Errorf("failed to ensure backend %s: %w", APIServerPortName, err)
+			}
+
+			servers = slices.Sorted(slices.Values(backend.Pool))
+
+			lbPorts[APIServerPortName].Backend = backend
+		}
+
+		// Reconcile backends and frontends for each port.
+		for portName, port := range lbPorts {
+			if i != 0 || portName != APIServerPortName {
+				backend, err := s.ensureBackend(ctx, l, port, servers, true)
+				if err != nil {
+					return nil, fmt.Errorf("failed to ensure backend %s: %w", portName, err)
+				}
+
+				port.Backend = backend
+			}
+
+			if port.Frontend == nil {
+				frontend, err := s.ScalewayClient.CreateFrontend(
+					ctx,
+					l.Zone,
+					l.ID,
+					port.Name,
+					port.Backend.ID,
+					port.Port,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("failed to create frontend %s: %w", portName, err)
+				}
+
+				port.Frontend = frontend
+			}
+		}
+
+		portsByLB[l.ID] = lbPorts
+	}
+
+	return portsByLB, nil
+}
+
+func (s *Service) ensureBackend(
+	ctx context.Context,
+	lbWithPrivateIP *lbWithPrivateIP,
+	lbPort *lbPort,
+	servers []string,
+	updateServers bool,
+) (*lb.Backend, error) {
+	servers = slices.Sorted(slices.Values(servers))
+
+	backend := lbPort.Backend
+	if backend == nil {
+		return s.ScalewayClient.CreateBackend(
+			ctx,
+			lbWithPrivateIP.Zone,
+			lbWithPrivateIP.ID,
+			lbPort.Name,
+			servers,
+			lbPort.TargetPort,
+		)
+	}
+
+	var err error
+
+	if updateServers && !slices.Equal(servers, slices.Sorted(slices.Values(backend.Pool))) {
+		backend, err = s.ScalewayClient.SetBackendServers(ctx, lbWithPrivateIP.Zone, backend.ID, servers)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if backend.ForwardPort != lbPort.TargetPort {
+		backend, err = s.ScalewayClient.UpdateBackend(ctx, lbWithPrivateIP.Zone, backend.ID, backend.Name, lbPort.TargetPort)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if backend.HealthCheck != nil && backend.HealthCheck.Port != lbPort.TargetPort {
+		healthcheck, err := s.ScalewayClient.UpdateHealthCheck(ctx, lbWithPrivateIP.Zone, backend.ID, lbPort.TargetPort)
+		if err != nil {
+			return nil, err
+		}
+
+		backend.HealthCheck = healthcheck
+	}
+
+	return backend, nil
+}
+
 func (s *Service) ensureACLs(
 	ctx context.Context,
 	mainLB *lbWithPrivateIP,
-	frontendByLB map[string]*lb.Frontend,
+	portsByLB map[string]map[string]*lbPort,
 	pnID *string,
 ) error {
 	allowedRanges := s.ControlPlaneLoadBalancerAllowedRanges()
@@ -645,10 +719,8 @@ func (s *Service) ensureACLs(
 		}
 	}
 
-	mainLBFrontend := frontendByLB[mainLB.ID]
-	if mainLBFrontend == nil {
-		panic("did not expect mainLBFrontend to be nil")
-	}
+	// We must never arrive here with a nil frontend.
+	mainLBFrontend := portsByLB[mainLB.ID][APIServerPortName].Frontend
 
 	// Set the Allowed Ranges ACL.
 	if err := s.ensureACL(ctx, mainLBFrontend, allowedRangesACLName, allowedRanges, false, aclIndex); err != nil {
@@ -666,29 +738,31 @@ func (s *Service) ensureACLs(
 		return fmt.Errorf("failed to ensure %s ACL: %w", denyAllACLName, err)
 	}
 
-	if len(frontendByLB) > 1 {
+	if len(portsByLB) > 1 || len(portsByLB[mainLB.ID]) > 1 {
 		mainLBACLs, err := s.ScalewayClient.ListLBACLs(ctx, mainLB.Zone, mainLBFrontend.ID)
 		if err != nil {
 			return fmt.Errorf("failed to list ACLs: %w", err)
 		}
 
-		for id, frontend := range frontendByLB {
-			if id == mainLB.ID {
-				continue
-			}
+		for _, lbPorts := range portsByLB {
+			for _, port := range lbPorts {
+				if port.Frontend.ID == mainLBFrontend.ID {
+					continue
+				}
 
-			extraLBACLs, err := s.ScalewayClient.ListLBACLs(ctx, frontend.LB.Zone, frontend.ID)
-			if err != nil {
-				return fmt.Errorf("failed to list ACLs for extra LB: %w", err)
-			}
+				extraLBACLs, err := s.ScalewayClient.ListLBACLs(ctx, port.Frontend.LB.Zone, port.Frontend.ID)
+				if err != nil {
+					return fmt.Errorf("failed to list ACLs for extra LB: %w", err)
+				}
 
-			if lbutil.ACLEqual(mainLBACLs, extraLBACLs) {
-				continue
-			}
+				if lbutil.ACLEqual(mainLBACLs, extraLBACLs) {
+					continue
+				}
 
-			// Mismatch, let's correct it.
-			if err := s.ScalewayClient.SetLBACLs(ctx, frontend.LB.Zone, frontend.ID, aclsToACLSpecs(mainLBACLs)); err != nil {
-				return fmt.Errorf("failed to set acls: %w", err)
+				// Mismatch, let's correct it.
+				if err := s.ScalewayClient.SetLBACLs(ctx, port.Frontend.LB.Zone, port.Frontend.ID, aclsToACLSpecs(mainLBACLs)); err != nil {
+					return fmt.Errorf("failed to set acls: %w", err)
+				}
 			}
 		}
 	}

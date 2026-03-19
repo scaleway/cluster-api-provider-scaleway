@@ -272,6 +272,34 @@ spec:
 > The public IPs of the nodes and Public Gateways will automatically be allowed.
 > No additional configuration is required.
 
+#### Additional ports
+
+The `additionalPorts` field allows exposing additional ports on all the control plane Load Balancers (main and extra).
+This is useful when a service running on the control-plane nodes needs to be reachable through the Load Balancer
+on a port other than the kube-apiserver port.
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: ScalewayCluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  network:
+    controlPlaneLoadBalancer:
+      additionalPorts:
+        - port: 8443
+          targetPort: 8443
+        - port: 9443
+          targetPort: 9443
+  # some fields were omitted...
+```
+
+- The `port` field is the port exposed on the Load Balancer frontend.
+- The `targetPort` field is the port on the control-plane nodes to which the traffic will be forwarded.
+- A maximum of 10 additional ports can be configured.
+- The same ACLs as the kube-apiserver frontend will be applied to each additional port's frontend.
+
 ### VPC
 
 #### Private Network

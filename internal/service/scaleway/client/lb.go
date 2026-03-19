@@ -22,8 +22,12 @@ type LBAPI interface {
 	ListBackends(req *lb.ZonedAPIListBackendsRequest, opts ...scw.RequestOption) (*lb.ListBackendsResponse, error)
 	CreateBackend(req *lb.ZonedAPICreateBackendRequest, opts ...scw.RequestOption) (*lb.Backend, error)
 	SetBackendServers(req *lb.ZonedAPISetBackendServersRequest, opts ...scw.RequestOption) (*lb.Backend, error)
+	UpdateBackend(req *lb.ZonedAPIUpdateBackendRequest, opts ...scw.RequestOption) (*lb.Backend, error)
+	UpdateHealthCheck(req *lb.ZonedAPIUpdateHealthCheckRequest, opts ...scw.RequestOption) (*lb.HealthCheck, error)
+	DeleteBackend(req *lb.ZonedAPIDeleteBackendRequest, opts ...scw.RequestOption) error
 	ListFrontends(req *lb.ZonedAPIListFrontendsRequest, opts ...scw.RequestOption) (*lb.ListFrontendsResponse, error)
 	CreateFrontend(req *lb.ZonedAPICreateFrontendRequest, opts ...scw.RequestOption) (*lb.Frontend, error)
+	DeleteFrontend(req *lb.ZonedAPIDeleteFrontendRequest, opts ...scw.RequestOption) error
 	ListLBPrivateNetworks(req *lb.ZonedAPIListLBPrivateNetworksRequest, opts ...scw.RequestOption) (*lb.ListLBPrivateNetworksResponse, error)
 	AttachPrivateNetwork(req *lb.ZonedAPIAttachPrivateNetworkRequest, opts ...scw.RequestOption) (*lb.PrivateNetwork, error)
 	ListACLs(req *lb.ZonedAPIListACLsRequest, opts ...scw.RequestOption) (*lb.ListACLResponse, error)
@@ -49,7 +53,10 @@ type LB interface {
 	) (*lb.LB, error)
 	DeleteLB(ctx context.Context, zone scw.Zone, id string, releaseIP bool) error
 	FindLBs(ctx context.Context, tags []string) ([]*lb.LB, error)
-	FindBackend(ctx context.Context, zone scw.Zone, lbID, name string) (*lb.Backend, error)
+	ListBackends(ctx context.Context, zone scw.Zone, lbID string) ([]*lb.Backend, error)
+	DeleteBackend(ctx context.Context, zone scw.Zone, backendID string) error
+	UpdateBackend(ctx context.Context, zone scw.Zone, backendID, name string, port int32) (*lb.Backend, error)
+	UpdateHealthCheck(ctx context.Context, zone scw.Zone, backendID string, port int32) (*lb.HealthCheck, error)
 	CreateBackend(
 		ctx context.Context,
 		zone scw.Zone,
@@ -64,13 +71,14 @@ type LB interface {
 		backendID string,
 		servers []string,
 	) (*lb.Backend, error)
-	FindFrontend(ctx context.Context, zone scw.Zone, lbID, name string) (*lb.Frontend, error)
+	ListFrontends(ctx context.Context, zone scw.Zone, lbID string) ([]*lb.Frontend, error)
 	CreateFrontend(
 		ctx context.Context,
 		zone scw.Zone,
 		lbID, name, backendID string,
 		port int32,
 	) (*lb.Frontend, error)
+	DeleteFrontend(ctx context.Context, zone scw.Zone, frontendID string) error
 	FindLBPrivateNetwork(
 		ctx context.Context,
 		zone scw.Zone,
@@ -250,7 +258,7 @@ func (c *Client) FindLBs(ctx context.Context, tags []string) ([]*lb.LB, error) {
 	return lbs, nil
 }
 
-func (c *Client) FindBackend(ctx context.Context, zone scw.Zone, lbID, name string) (*lb.Backend, error) {
+func (c *Client) ListBackends(ctx context.Context, zone scw.Zone, lbID string) ([]*lb.Backend, error) {
 	if err := c.validateZone(c.lb, zone); err != nil {
 		return nil, err
 	}
@@ -258,25 +266,27 @@ func (c *Client) FindBackend(ctx context.Context, zone scw.Zone, lbID, name stri
 	resp, err := c.lb.ListBackends(&lb.ZonedAPIListBackendsRequest{
 		Zone: zone,
 		LBID: lbID,
-		Name: &name,
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListBackends", err)
 	}
 
-	// Filter out all Backends that have the wrong name.
-	backends := slices.DeleteFunc(resp.Backends, func(backend *lb.Backend) bool {
-		return backend.Name != name
-	})
+	return resp.Backends, nil
+}
 
-	switch len(backends) {
-	case 0:
-		return nil, ErrNoItemFound
-	case 1:
-		return backends[0], nil
-	default:
-		return nil, fmt.Errorf("%w: found %d Backends with name %s", ErrTooManyItemsFound, len(backends), name)
+func (c *Client) DeleteBackend(ctx context.Context, zone scw.Zone, backendID string) error {
+	if err := c.validateZone(c.lb, zone); err != nil {
+		return err
 	}
+
+	if err := c.lb.DeleteBackend(&lb.ZonedAPIDeleteBackendRequest{
+		Zone:      zone,
+		BackendID: backendID,
+	}, scw.WithContext(ctx)); err != nil {
+		return newCallError("DeleteBackend", err)
+	}
+
+	return nil
 }
 
 func (c *Client) CreateBackend(
@@ -333,7 +343,56 @@ func (c *Client) SetBackendServers(
 	return backend, nil
 }
 
-func (c *Client) FindFrontend(ctx context.Context, zone scw.Zone, lbID, name string) (*lb.Frontend, error) {
+func (c *Client) UpdateBackend(
+	ctx context.Context,
+	zone scw.Zone,
+	backendID string,
+	name string,
+	port int32,
+) (*lb.Backend, error) {
+	if err := c.validateZone(c.lb, zone); err != nil {
+		return nil, err
+	}
+
+	backend, err := c.lb.UpdateBackend(&lb.ZonedAPIUpdateBackendRequest{
+		Name:            name,
+		ForwardProtocol: lb.ProtocolTCP,
+		Zone:            zone,
+		BackendID:       backendID,
+		ForwardPort:     port,
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("UpdateBackend", err)
+	}
+
+	return backend, nil
+}
+
+func (c *Client) UpdateHealthCheck(
+	ctx context.Context,
+	zone scw.Zone,
+	backendID string,
+	port int32,
+) (*lb.HealthCheck, error) {
+	if err := c.validateZone(c.lb, zone); err != nil {
+		return nil, err
+	}
+
+	healthcheck, err := c.lb.UpdateHealthCheck(&lb.ZonedAPIUpdateHealthCheckRequest{
+		Zone:            zone,
+		BackendID:       backendID,
+		Port:            port,
+		CheckMaxRetries: 5,
+		TCPConfig:       &lb.HealthCheckTCPConfig{},
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("UpdateHealthCheck", err)
+	}
+
+	return healthcheck, nil
+}
+
+func (c *Client) ListFrontends(ctx context.Context, zone scw.Zone, lbID string) ([]*lb.Frontend, error) {
 	if err := c.validateZone(c.lb, zone); err != nil {
 		return nil, err
 	}
@@ -341,25 +400,12 @@ func (c *Client) FindFrontend(ctx context.Context, zone scw.Zone, lbID, name str
 	resp, err := c.lb.ListFrontends(&lb.ZonedAPIListFrontendsRequest{
 		Zone: zone,
 		LBID: lbID,
-		Name: &name,
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListFrontends", err)
 	}
 
-	// Filter out all Frontends that have the wrong name.
-	frontends := slices.DeleteFunc(resp.Frontends, func(frontend *lb.Frontend) bool {
-		return frontend.Name != name
-	})
-
-	switch len(frontends) {
-	case 0:
-		return nil, ErrNoItemFound
-	case 1:
-		return frontends[0], nil
-	default:
-		return nil, fmt.Errorf("%w: found %d Frontends with name %s", ErrTooManyItemsFound, len(frontends), name)
-	}
+	return resp.Frontends, nil
 }
 
 func (c *Client) CreateFrontend(
@@ -384,6 +430,21 @@ func (c *Client) CreateFrontend(
 	}
 
 	return frontend, nil
+}
+
+func (c *Client) DeleteFrontend(ctx context.Context, zone scw.Zone, frontendID string) error {
+	if err := c.validateZone(c.lb, zone); err != nil {
+		return err
+	}
+
+	if err := c.lb.DeleteFrontend(&lb.ZonedAPIDeleteFrontendRequest{
+		Zone:       zone,
+		FrontendID: frontendID,
+	}, scw.WithContext(ctx)); err != nil {
+		return newCallError("DeleteFrontend", err)
+	}
+
+	return nil
 }
 
 func (c *Client) FindLBPrivateNetwork(

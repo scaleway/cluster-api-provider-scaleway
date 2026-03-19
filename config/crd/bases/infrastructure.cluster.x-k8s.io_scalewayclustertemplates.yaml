@@ -556,6 +556,38 @@ spec:
                             description: controlPlaneLoadBalancer defines settings
                               for the load balancer of the control plane.
                             properties:
+                              additionalPorts:
+                                description: additionalPorts to expose on the control
+                                  plane load balancer.
+                                items:
+                                  description: LoadBalancerPort defines a port to
+                                    expose on the control plane load balancer.
+                                  properties:
+                                    port:
+                                      description: port is the port number that will
+                                        be exposed on the load balancer.
+                                      format: int32
+                                      maximum: 65535
+                                      minimum: 1
+                                      type: integer
+                                    targetPort:
+                                      description: targetPort is the port number on
+                                        the control plane nodes to which the traffic
+                                        will be forwarded.
+                                      format: int32
+                                      maximum: 65535
+                                      minimum: 1
+                                      type: integer
+                                  required:
+                                  - port
+                                  - targetPort
+                                  type: object
+                                maxItems: 10
+                                minItems: 1
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - port
+                                x-kubernetes-list-type: map
                               allowedRanges:
                                 description: |-
                                   allowedRanges allows to set a list of allowed IP ranges that can access

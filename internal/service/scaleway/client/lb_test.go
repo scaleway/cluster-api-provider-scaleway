@@ -640,138 +640,6 @@ func TestClient_FindLBs(t *testing.T) {
 	}
 }
 
-func TestClient_FindBackend(t *testing.T) {
-	t.Parallel()
-	type fields struct {
-		projectID string
-		region    scw.Region
-	}
-	type args struct {
-		ctx  context.Context
-		zone scw.Zone
-		lbID string
-		name string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *lb.Backend
-		wantErr bool
-		expect  func(l *mock_client.MockLBAPIMockRecorder)
-	}{
-		{
-			name: "no backend found",
-			fields: fields{
-				projectID: projectID,
-				region:    scw.RegionFrPar,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				lbID: lbID,
-				name: "backend-name",
-			},
-			wantErr: true,
-			expect: func(l *mock_client.MockLBAPIMockRecorder) {
-				l.ListBackends(&lb.ZonedAPIListBackendsRequest{
-					Zone: scw.ZoneFrPar1,
-					LBID: lbID,
-					Name: ptr.To("backend-name"),
-				}, gomock.Any(), gomock.Any()).Return(&lb.ListBackendsResponse{
-					Backends: []*lb.Backend{},
-				}, nil)
-			},
-		},
-		{
-			name: "backend found",
-			fields: fields{
-				projectID: projectID,
-				region:    scw.RegionFrPar,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				lbID: lbID,
-				name: "backend-name",
-			},
-			expect: func(l *mock_client.MockLBAPIMockRecorder) {
-				l.ListBackends(&lb.ZonedAPIListBackendsRequest{
-					Zone: scw.ZoneFrPar1,
-					LBID: lbID,
-					Name: ptr.To("backend-name"),
-				}, gomock.Any(), gomock.Any()).Return(&lb.ListBackendsResponse{
-					Backends: []*lb.Backend{
-						{
-							ID:   backendID,
-							Name: "backend-name",
-						},
-					},
-				}, nil)
-			},
-			want: &lb.Backend{
-				ID:   backendID,
-				Name: "backend-name",
-			},
-		},
-		{
-			name: "duplicate backend found",
-			fields: fields{
-				projectID: projectID,
-				region:    scw.RegionFrPar,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				lbID: lbID,
-				name: "backend-name",
-			},
-			expect: func(l *mock_client.MockLBAPIMockRecorder) {
-				l.ListBackends(&lb.ZonedAPIListBackendsRequest{
-					Zone: scw.ZoneFrPar1,
-					LBID: lbID,
-					Name: ptr.To("backend-name"),
-				}, gomock.Any(), gomock.Any()).Return(&lb.ListBackendsResponse{
-					Backends: []*lb.Backend{
-						{Name: "backend-name"},
-						{Name: "backend-name"},
-					},
-				}, nil)
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
-
-			lbMock := mock_client.NewMockLBAPI(mockCtrl)
-
-			// Every API call must be preceded by a zone check.
-			lbMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
-
-			tt.expect(lbMock.EXPECT())
-
-			c := &Client{
-				projectID: tt.fields.projectID,
-				region:    tt.fields.region,
-				lb:        lbMock,
-			}
-			got, err := c.FindBackend(tt.args.ctx, tt.args.zone, tt.args.lbID, tt.args.name)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.FindBackend() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.FindBackend() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestClient_CreateBackend(t *testing.T) {
 	t.Parallel()
 	type fields struct {
@@ -946,7 +814,7 @@ func TestClient_SetBackendServers(t *testing.T) {
 	}
 }
 
-func TestClient_FindFrontend(t *testing.T) {
+func TestClient_ListFrontends(t *testing.T) {
 	t.Parallel()
 	type fields struct {
 		projectID string
@@ -956,18 +824,17 @@ func TestClient_FindFrontend(t *testing.T) {
 		ctx  context.Context
 		zone scw.Zone
 		lbID string
-		name string
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		want    *lb.Frontend
+		want    []*lb.Frontend
 		wantErr bool
 		expect  func(l *mock_client.MockLBAPIMockRecorder)
 	}{
 		{
-			name: "no frontend found",
+			name: "list frontends",
 			fields: fields{
 				projectID: projectID,
 				region:    scw.RegionFrPar,
@@ -976,73 +843,19 @@ func TestClient_FindFrontend(t *testing.T) {
 				ctx:  context.TODO(),
 				zone: scw.ZoneFrPar1,
 				lbID: lbID,
-				name: "frontend-name",
 			},
-			wantErr: true,
+			want: []*lb.Frontend{{
+				ID: frontendID,
+			}},
+			wantErr: false,
 			expect: func(l *mock_client.MockLBAPIMockRecorder) {
 				l.ListFrontends(&lb.ZonedAPIListFrontendsRequest{
 					Zone: scw.ZoneFrPar1,
 					LBID: lbID,
-					Name: ptr.To("frontend-name"),
-				}, gomock.Any(), gomock.Any()).Return(&lb.ListFrontendsResponse{
-					Frontends: []*lb.Frontend{},
-				}, nil)
-			},
-		},
-		{
-			name: "frontend found",
-			fields: fields{
-				projectID: projectID,
-				region:    scw.RegionFrPar,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				lbID: lbID,
-				name: "frontend-name",
-			},
-			want: &lb.Frontend{
-				ID:   frontendID,
-				Name: "frontend-name",
-			},
-			expect: func(l *mock_client.MockLBAPIMockRecorder) {
-				l.ListFrontends(&lb.ZonedAPIListFrontendsRequest{
-					Zone: scw.ZoneFrPar1,
-					LBID: lbID,
-					Name: ptr.To("frontend-name"),
-				}, gomock.Any(), gomock.Any()).Return(&lb.ListFrontendsResponse{
-					Frontends: []*lb.Frontend{
-						{
-							ID:   frontendID,
-							Name: "frontend-name",
-						},
-					},
-				}, nil)
-			},
-		},
-		{
-			name: "duplicate frontend found",
-			fields: fields{
-				projectID: projectID,
-				region:    scw.RegionFrPar,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				lbID: lbID,
-				name: "frontend-name",
-			},
-			wantErr: true,
-			expect: func(l *mock_client.MockLBAPIMockRecorder) {
-				l.ListFrontends(&lb.ZonedAPIListFrontendsRequest{
-					Zone: scw.ZoneFrPar1,
-					LBID: lbID,
-					Name: ptr.To("frontend-name"),
-				}, gomock.Any(), gomock.Any()).Return(&lb.ListFrontendsResponse{
-					Frontends: []*lb.Frontend{
-						{Name: "frontend-name"},
-						{Name: "frontend-name"},
-					},
+				}, gomock.Any()).Return(&lb.ListFrontendsResponse{
+					Frontends: []*lb.Frontend{{
+						ID: frontendID,
+					}},
 				}, nil)
 			},
 		},
@@ -1066,13 +879,13 @@ func TestClient_FindFrontend(t *testing.T) {
 				region:    tt.fields.region,
 				lb:        lbMock,
 			}
-			got, err := c.FindFrontend(tt.args.ctx, tt.args.zone, tt.args.lbID, tt.args.name)
+			got, err := c.ListFrontends(tt.args.ctx, tt.args.zone, tt.args.lbID)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.FindFrontend() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Client.ListFrontends() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.FindFrontend() = %v, want %v", got, tt.want)
+				t.Errorf("Client.ListFrontends() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1160,6 +973,70 @@ func TestClient_CreateFrontend(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Client.CreateFrontend() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_DeleteFrontend(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx        context.Context
+		zone       scw.Zone
+		frontendID string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+		expect  func(l *mock_client.MockLBAPIMockRecorder)
+	}{
+		{
+			name: "delete frontend",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:        context.TODO(),
+				zone:       scw.ZoneFrPar1,
+				frontendID: frontendID,
+			},
+			wantErr: false,
+			expect: func(l *mock_client.MockLBAPIMockRecorder) {
+				l.DeleteFrontend(&lb.ZonedAPIDeleteFrontendRequest{
+					Zone:       scw.ZoneFrPar1,
+					FrontendID: frontendID,
+				}, gomock.Any())
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			lbMock := mock_client.NewMockLBAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			lbMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(lbMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				lb:        lbMock,
+			}
+			if err := c.DeleteFrontend(tt.args.ctx, tt.args.zone, tt.args.frontendID); (err != nil) != tt.wantErr {
+				t.Errorf("Client.DeleteFrontend() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -1965,6 +1842,318 @@ func TestClient_AddBackendServer(t *testing.T) {
 			}
 			if err := c.AddBackendServer(tt.args.ctx, tt.args.zone, tt.args.backendID, tt.args.ip); (err != nil) != tt.wantErr {
 				t.Errorf("Client.AddBackendServer() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_ListBackends(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx  context.Context
+		zone scw.Zone
+		lbID string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []*lb.Backend
+		wantErr bool
+		expect  func(l *mock_client.MockLBAPIMockRecorder)
+	}{
+		{
+			name: "list backends",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:  context.TODO(),
+				zone: scw.ZoneFrPar1,
+				lbID: lbID,
+			},
+			want: []*lb.Backend{{
+				ID: backendID,
+			}},
+			wantErr: false,
+			expect: func(l *mock_client.MockLBAPIMockRecorder) {
+				l.ListBackends(&lb.ZonedAPIListBackendsRequest{
+					Zone: scw.ZoneFrPar1,
+					LBID: lbID,
+				}, gomock.Any()).Return(&lb.ListBackendsResponse{
+					Backends: []*lb.Backend{{
+						ID: backendID,
+					}},
+				}, nil)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			lbMock := mock_client.NewMockLBAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			lbMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(lbMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				lb:        lbMock,
+			}
+			got, err := c.ListBackends(tt.args.ctx, tt.args.zone, tt.args.lbID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.ListBackends() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.ListBackends() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_DeleteBackend(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx       context.Context
+		zone      scw.Zone
+		backendID string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+		expect  func(l *mock_client.MockLBAPIMockRecorder)
+	}{
+		{
+			name: "delete backend",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:       context.TODO(),
+				zone:      scw.ZoneFrPar1,
+				backendID: backendID,
+			},
+			wantErr: false,
+			expect: func(l *mock_client.MockLBAPIMockRecorder) {
+				l.DeleteBackend(&lb.ZonedAPIDeleteBackendRequest{
+					Zone:      scw.ZoneFrPar1,
+					BackendID: backendID,
+				}, gomock.Any())
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			lbMock := mock_client.NewMockLBAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			lbMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(lbMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				lb:        lbMock,
+			}
+			if err := c.DeleteBackend(tt.args.ctx, tt.args.zone, tt.args.backendID); (err != nil) != tt.wantErr {
+				t.Errorf("Client.DeleteBackend() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_UpdateBackend(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx       context.Context
+		zone      scw.Zone
+		backendID string
+		name      string
+		port      int32
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *lb.Backend
+		wantErr bool
+		expect  func(l *mock_client.MockLBAPIMockRecorder)
+	}{
+		{
+			name: "update backend",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:       context.TODO(),
+				zone:      scw.ZoneFrPar1,
+				backendID: backendID,
+				name:      "backend-name",
+				port:      4242,
+			},
+			want: &lb.Backend{
+				ID:              backendID,
+				Name:            "backend-name",
+				ForwardPort:     4242,
+				ForwardProtocol: lb.ProtocolTCP,
+			},
+			wantErr: false,
+			expect: func(l *mock_client.MockLBAPIMockRecorder) {
+				l.UpdateBackend(&lb.ZonedAPIUpdateBackendRequest{
+					Zone:            scw.ZoneFrPar1,
+					BackendID:       backendID,
+					Name:            "backend-name",
+					ForwardPort:     4242,
+					ForwardProtocol: lb.ProtocolTCP,
+				}, gomock.Any()).Return(&lb.Backend{
+					ID:              backendID,
+					Name:            "backend-name",
+					ForwardPort:     4242,
+					ForwardProtocol: lb.ProtocolTCP,
+				}, nil)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			lbMock := mock_client.NewMockLBAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			lbMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(lbMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				lb:        lbMock,
+			}
+			got, err := c.UpdateBackend(tt.args.ctx, tt.args.zone, tt.args.backendID, tt.args.name, tt.args.port)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.UpdateBackend() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.UpdateBackend() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_UpdateHealthCheck(t *testing.T) {
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx       context.Context
+		zone      scw.Zone
+		backendID string
+		port      int32
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *lb.HealthCheck
+		wantErr bool
+		expect  func(l *mock_client.MockLBAPIMockRecorder)
+	}{
+		{
+			name: "update health check",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:       context.TODO(),
+				zone:      scw.ZoneFrPar1,
+				backendID: backendID,
+				port:      4242,
+			},
+			want: &lb.HealthCheck{
+				Port:            4242,
+				CheckMaxRetries: 5,
+				TCPConfig:       &lb.HealthCheckTCPConfig{},
+			},
+			wantErr: false,
+			expect: func(l *mock_client.MockLBAPIMockRecorder) {
+				l.UpdateHealthCheck(&lb.ZonedAPIUpdateHealthCheckRequest{
+					Zone:            scw.ZoneFrPar1,
+					BackendID:       backendID,
+					Port:            4242,
+					CheckMaxRetries: 5,
+					TCPConfig:       &lb.HealthCheckTCPConfig{},
+				}, gomock.Any()).Return(&lb.HealthCheck{
+					Port:            4242,
+					CheckMaxRetries: 5,
+					TCPConfig:       &lb.HealthCheckTCPConfig{},
+				}, nil)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			lbMock := mock_client.NewMockLBAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			lbMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(lbMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				lb:        lbMock,
+			}
+			got, err := c.UpdateHealthCheck(tt.args.ctx, tt.args.zone, tt.args.backendID, tt.args.port)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.UpdateHealthCheck() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.UpdateHealthCheck() = %v, want %v", got, tt.want)
 			}
 		})
 	}

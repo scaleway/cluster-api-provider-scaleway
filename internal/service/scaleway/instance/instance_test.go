@@ -36,7 +36,9 @@ const (
 	privateNetworkID = "11111111-1111-1111-1111-111111111111"
 	privateNICID     = "11111111-1111-1111-1111-111111111111"
 	frontendID       = "11111111-1111-1111-1111-111111111111"
+	frontendID2      = "22222222-2222-2222-2222-222222222222"
 	backendID        = "11111111-1111-1111-1111-111111111111"
+	backendID2       = "22222222-2222-2222-2222-222222222222"
 	serverID         = "11111111-1111-1111-1111-111111111111"
 	imageID          = "11111111-1111-1111-1111-111111111111"
 	ipv4ID           = "11111111-1111-1111-1111-111111111111"
@@ -122,6 +124,12 @@ func TestService_Reconcile(t *testing.T) {
 									PrivateNetwork: infrav1.PrivateNetworkSpec{
 										Enabled: ptr.To(true),
 									},
+									ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
+										AdditionalPorts: []infrav1.LoadBalancerPort{{
+											Port:       9345,
+											TargetPort: 9345,
+										}},
+									},
 								},
 							},
 							Status: infrav1.ScalewayClusterStatus{
@@ -205,15 +213,32 @@ func TestService_Reconcile(t *testing.T) {
 					Zone: scw.ZoneFrPar1,
 				}, nil)
 				i.FindLBs(gomock.Any(), append(clusterTags, servicelb.CAPSExtraLBTag)).Return(nil, nil)
-				i.FindBackend(gomock.Any(), scw.ZoneFrPar1, lbID, servicelb.BackendName).Return(&lb.Backend{
-					ID: backendID,
+				i.ListBackends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Backend{
+					{
+						ID:   backendID,
+						Name: servicelb.APIServerPortName,
+					},
+					{
+						ID:   backendID2,
+						Name: "port-9345",
+					},
 				}, nil)
 				i.AddBackendServer(gomock.Any(), scw.ZoneFrPar1, backendID, "10.0.0.1")
-				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, servicelb.FrontendName).Return(&lb.Frontend{
-					ID: frontendID,
+				i.AddBackendServer(gomock.Any(), scw.ZoneFrPar1, backendID2, "10.0.0.1")
+				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Frontend{
+					{
+						ID:   frontendID,
+						Name: servicelb.APIServerPortName,
+					},
+					{
+						ID:   frontendID2,
+						Name: "port-9345",
+					},
 				}, nil)
 				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, "machine").Return(nil, client.ErrNoItemFound)
 				i.CreateLBACL(gomock.Any(), scw.ZoneFrPar1, frontendID, "machine", machineACLIndex, lb.ACLActionTypeAllow, []string{"42.42.42.42", "2a00::2a"})
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID2, "machine").Return(nil, client.ErrNoItemFound)
+				i.CreateLBACL(gomock.Any(), scw.ZoneFrPar1, frontendID2, "machine", machineACLIndex, lb.ACLActionTypeAllow, []string{"42.42.42.42", "2a00::2a"})
 
 				// Cloud Init
 				i.GetAllServerUserData(gomock.Any(), scw.ZoneFrPar1, serverID).Return(map[string]io.Reader{}, nil)
@@ -493,10 +518,10 @@ func TestService_Delete(t *testing.T) {
 					Zone: scw.ZoneFrPar1,
 				}, nil)
 				i.FindLBs(gomock.Any(), append(clusterTags, servicelb.CAPSExtraLBTag)).Return(nil, nil)
-				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, servicelb.FrontendName).Return(&lb.Frontend{
+				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Frontend{{
 					ID:   frontendID,
-					Name: servicelb.FrontendName,
-				}, nil)
+					Name: servicelb.APIServerPortName,
+				}}, nil)
 				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, "machine").Return(&lb.ACL{
 					ID:   lbACLID,
 					Name: "machine",
@@ -505,10 +530,10 @@ func TestService_Delete(t *testing.T) {
 				i.FindPrivateNICIPs(gomock.Any(), privateNICID).Return([]*ipam.IP{
 					{Address: scw.IPNet{IPNet: net.IPNet{IP: net.IPv4(10, 0, 0, 1), Mask: net.CIDRMask(24, 32)}}},
 				}, nil)
-				i.FindBackend(gomock.Any(), scw.ZoneFrPar1, lbID, servicelb.BackendName).Return(&lb.Backend{
+				i.ListBackends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Backend{{
 					ID:   backendID,
 					Pool: []string{"10.0.0.1"},
-				}, nil)
+				}}, nil)
 				i.RemoveBackendServer(gomock.Any(), scw.ZoneFrPar1, backendID, "10.0.0.1")
 
 				// Cleanup public IPs

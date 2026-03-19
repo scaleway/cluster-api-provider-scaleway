@@ -500,19 +500,35 @@ func (s *Service) ensureControlPlaneLBs(ctx context.Context, lbs []*lb.LB, nodeI
 			continue
 		}
 
-		backend, err := s.ScalewayClient.FindBackend(ctx, loadbalancer.Zone, loadbalancer.ID, servicelb.BackendName)
+		backends, err := s.ScalewayClient.ListBackends(ctx, loadbalancer.Zone, loadbalancer.ID)
 		if err != nil {
 			return err
 		}
 
-		switch {
-		case deletion && slices.Contains(backend.Pool, nodeIP):
-			if err := s.ScalewayClient.RemoveBackendServer(ctx, loadbalancer.Zone, backend.ID, nodeIP); err != nil {
-				return err
-			}
-		case !deletion && !slices.Contains(backend.Pool, nodeIP):
-			if err := s.ScalewayClient.AddBackendServer(ctx, loadbalancer.Zone, backend.ID, nodeIP); err != nil {
-				return err
+		// Make sure we have the expected number of backends: 1 per additional port + 1 for the API server port.
+		if len(backends) != len(s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.AdditionalPorts)+1 {
+			return fmt.Errorf("unexpected number of backends found on loadbalancer %s: expected %d, got %d",
+				loadbalancer.ID,
+				len(s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.AdditionalPorts)+1,
+				len(backends),
+			)
+		}
+
+		// Sort backends by name.
+		slices.SortFunc(backends, func(a, b *lb.Backend) int {
+			return strings.Compare(a.Name, b.Name)
+		})
+
+		for _, backend := range backends {
+			switch {
+			case deletion && slices.Contains(backend.Pool, nodeIP):
+				if err := s.ScalewayClient.RemoveBackendServer(ctx, loadbalancer.Zone, backend.ID, nodeIP); err != nil {
+					return err
+				}
+			case !deletion && !slices.Contains(backend.Pool, nodeIP):
+				if err := s.ScalewayClient.AddBackendServer(ctx, loadbalancer.Zone, backend.ID, nodeIP); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -526,9 +542,9 @@ func (s *Service) ensureControlPlaneLBsACL(ctx context.Context, lbs []*lb.LB, pu
 			continue
 		}
 
-		frontend, err := s.ScalewayClient.FindFrontend(ctx, loadbalancer.Zone, loadbalancer.ID, servicelb.FrontendName)
+		frontends, err := s.ScalewayClient.ListFrontends(ctx, loadbalancer.Zone, loadbalancer.ID)
 		if err != nil {
-			// If the frontend is not found, we can skip it when reconciling a deletion.
+			// If the LB is not found, we can skip it when reconciling a deletion.
 			if delete && client.IsNotFoundError(err) {
 				continue
 			}
@@ -536,48 +552,64 @@ func (s *Service) ensureControlPlaneLBsACL(ctx context.Context, lbs []*lb.LB, pu
 			return err
 		}
 
-		acl, err := s.ScalewayClient.FindLBACLByName(ctx, loadbalancer.Zone, frontend.ID, s.ResourceName())
-		if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
-			return err
+		// Make sure we have the expected number of frontends: 1 per additional port + 1 for the API server port.
+		if len(frontends) != len(s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.AdditionalPorts)+1 {
+			return fmt.Errorf("unexpected number of frontends found on loadbalancer %s: expected %d, got %d",
+				loadbalancer.ID,
+				len(s.ScalewayCluster.Spec.Network.ControlPlaneLoadBalancer.AdditionalPorts)+1,
+				len(frontends),
+			)
 		}
 
-		// If no publicIP is set, we either delete the existing ACL or do nothing.
-		if len(publicIPs) == 0 {
-			if acl != nil {
-				if err := s.ScalewayClient.DeleteLBACL(ctx, loadbalancer.Zone, acl.ID); err != nil {
+		// Sort frontends by name.
+		slices.SortFunc(frontends, func(a, b *lb.Frontend) int {
+			return strings.Compare(a.Name, b.Name)
+		})
+
+		for _, frontend := range frontends {
+			acl, err := s.ScalewayClient.FindLBACLByName(ctx, loadbalancer.Zone, frontend.ID, s.ResourceName())
+			if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
+				return err
+			}
+
+			// If no publicIP is set, we either delete the existing ACL or do nothing.
+			if len(publicIPs) == 0 {
+				if acl != nil {
+					if err := s.ScalewayClient.DeleteLBACL(ctx, loadbalancer.Zone, acl.ID); err != nil {
+						return err
+					}
+				}
+
+				continue
+			}
+
+			if acl == nil {
+				if err := s.ScalewayClient.CreateLBACL(ctx,
+					loadbalancer.Zone,
+					frontend.ID,
+					s.ResourceName(),
+					machineACLIndex,
+					lb.ACLActionTypeAllow,
+					publicIPs,
+				); err != nil {
 					return err
 				}
+
+				continue
 			}
 
-			continue
-		}
-
-		if acl == nil {
-			if err := s.ScalewayClient.CreateLBACL(ctx,
-				loadbalancer.Zone,
-				frontend.ID,
-				s.ResourceName(),
-				machineACLIndex,
-				lb.ACLActionTypeAllow,
-				publicIPs,
-			); err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		if acl.Match == nil || !lbutil.IPsEqual(acl.Match.IPSubnet, scw.StringSlicePtr(publicIPs)) {
-			if err := s.ScalewayClient.UpdateLBACL(
-				ctx,
-				loadbalancer.Zone,
-				acl.ID,
-				s.ResourceName(),
-				machineACLIndex,
-				lb.ACLActionTypeAllow,
-				publicIPs,
-			); err != nil {
-				return err
+			if acl.Match == nil || !lbutil.IPsEqual(acl.Match.IPSubnet, scw.StringSlicePtr(publicIPs)) {
+				if err := s.ScalewayClient.UpdateLBACL(
+					ctx,
+					loadbalancer.Zone,
+					acl.ID,
+					s.ResourceName(),
+					machineACLIndex,
+					lb.ACLActionTypeAllow,
+					publicIPs,
+				); err != nil {
+					return err
+				}
 			}
 		}
 	}
