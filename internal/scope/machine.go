@@ -192,21 +192,6 @@ func (m *Machine) AdditionalVolumeIOPS(idx int) *int64 {
 	return nil
 }
 
-// AdditionalVolumeDeletePolicy returns the delete policy of an additional volume at the given index.
-// Returns VolumeDeletePolicyDelete by default.
-func (m *Machine) AdditionalVolumeDeletePolicy(idx int) infrav1.VolumeDeletePolicy {
-	if idx >= len(m.ScalewayMachine.Spec.AdditionalVolumes) {
-		return infrav1.VolumeDeletePolicyDelete
-	}
-
-	deletePolicy := m.ScalewayMachine.Spec.AdditionalVolumes[idx].DeletePolicy
-	if deletePolicy == "" {
-		return infrav1.VolumeDeletePolicyDelete
-	}
-
-	return deletePolicy
-}
-
 // HasPublicIPv4 returns true if the machine should have a Public IPv4 address.
 func (m *Machine) HasPublicIPv4() bool {
 	// If the cluster has no Private Network, we must enable a Public IPv4 so that

@@ -386,15 +386,13 @@ func TestService_ensureAdditionalVolumes(t *testing.T) {
 						Spec: infrav1.ScalewayMachineSpec{
 							AdditionalVolumes: []infrav1.AdditionalVolume{
 								{
-									Size:         50,
-									Type:         "block",
-									IOPS:         10000,
-									DeletePolicy: infrav1.VolumeDeletePolicyDelete,
+									Size: 50,
+									Type: "block",
+									IOPS: 10000,
 								},
 								{
-									Size:         100,
-									Type:         "block",
-									DeletePolicy: infrav1.VolumeDeletePolicyRetain,
+									Size: 100,
+									Type: "block",
 								},
 							},
 						},
@@ -688,7 +686,7 @@ func TestService_ensureAdditionalVolumesDeleted(t *testing.T) {
 		expect  func(i *mock_client.MockInterfaceMockRecorder)
 	}{
 		{
-			name: "delete volumes with delete policy",
+			name: "delete volumes",
 			fields: fields{
 				Machine: &scope.Machine{
 					Machine: &clusterv1.Machine{
@@ -705,9 +703,8 @@ func TestService_ensureAdditionalVolumesDeleted(t *testing.T) {
 						Spec: infrav1.ScalewayMachineSpec{
 							AdditionalVolumes: []infrav1.AdditionalVolume{
 								{
-									Size:         50,
-									Type:         "block",
-									DeletePolicy: infrav1.VolumeDeletePolicyDelete,
+									Size: 50,
+									Type: "block",
 								},
 							},
 						},
@@ -755,53 +752,6 @@ func TestService_ensureAdditionalVolumesDeleted(t *testing.T) {
 			},
 		},
 		{
-			name: "retain volumes with retain policy",
-			fields: fields{
-				Machine: &scope.Machine{
-					Machine: &clusterv1.Machine{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "machine",
-							Namespace: "default",
-						},
-					},
-					ScalewayMachine: &infrav1.ScalewayMachine{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "machine",
-							Namespace: "default",
-						},
-						Spec: infrav1.ScalewayMachineSpec{
-							AdditionalVolumes: []infrav1.AdditionalVolume{
-								{
-									Size:         50,
-									Type:         "block",
-									DeletePolicy: infrav1.VolumeDeletePolicyRetain,
-								},
-							},
-						},
-					},
-					Cluster: &scope.Cluster{
-						ScalewayCluster: &infrav1.ScalewayCluster{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "cluster",
-								Namespace: "default",
-							},
-						},
-					},
-				},
-			},
-			args: args{
-				ctx: context.TODO(),
-				server: &instance.Server{
-					ID:      serverID,
-					Zone:    scw.ZoneFrPar1,
-					Volumes: map[string]*instance.VolumeServer{},
-				},
-			},
-			expect: func(i *mock_client.MockInterfaceMockRecorder) {
-				// Retain policy: no deletion expected
-			},
-		},
-		{
 			name: "skip manually attached volumes without management tags",
 			fields: fields{
 				Machine: &scope.Machine{
@@ -819,9 +769,8 @@ func TestService_ensureAdditionalVolumesDeleted(t *testing.T) {
 						Spec: infrav1.ScalewayMachineSpec{
 							AdditionalVolumes: []infrav1.AdditionalVolume{
 								{
-									Size:         50,
-									Type:         "block",
-									DeletePolicy: infrav1.VolumeDeletePolicyDelete,
+									Size: 50,
+									Type: "block",
 								},
 							},
 						},

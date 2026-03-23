@@ -23,16 +23,6 @@ const (
 	ScalewayMachineInstanceReconciliationFailedReason = ReconciliationFailedReason
 )
 
-// VolumeDeletePolicy defines the policy to apply to a volume when the instance is deleted.
-type VolumeDeletePolicy string
-
-const (
-	// VolumeDeletePolicyDelete deletes the volume when the instance is deleted (similar to kubectl --cascade=foreground/background).
-	VolumeDeletePolicyDelete VolumeDeletePolicy = "delete"
-	// VolumeDeletePolicyRetain retains the volume when the instance is deleted (similar to kubectl --cascade=orphan).
-	VolumeDeletePolicyRetain VolumeDeletePolicy = "retain"
-)
-
 // ScalewayMachineSpec defines the desired state of ScalewayMachine.
 // +kubebuilder:validation:XValidation:rule="has(self.rootVolume) == has(oldSelf.rootVolume)",message="rootVolume cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.publicNetwork) == has(oldSelf.publicNetwork)",message="publicNetwork cannot be added or removed"
@@ -64,7 +54,9 @@ type ScalewayMachineSpec struct {
 	RootVolume RootVolume `json:"rootVolume,omitempty,omitzero"`
 
 	// additionalVolumes defines the characteristics of additional volumes.
+	// Additional volumes can only be added during machine creation and cannot be modified or removed afterwards.
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.size() == 0 || oldSelf.size() == 0 || self.size() >= oldSelf.size()",message="additionalVolumes can only be added, not removed or modified"
 	AdditionalVolumes []AdditionalVolume `json:"additionalVolumes,omitempty"`
 
 	// publicNetwork allows attaching public IPs to the instance.
@@ -157,12 +149,6 @@ type AdditionalVolume struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=5000
 	IOPS int64 `json:"iops,omitempty"`
-
-	// deletePolicy defines the policy to apply to the volume when the instance is deleted.
-	// +optional
-	// +kubebuilder:validation:Enum=delete;retain
-	// +kubebuilder:default="delete"
-	DeletePolicy VolumeDeletePolicy `json:"deletePolicy,omitempty"`
 }
 
 // PublicNetwork allows enabling the attachment of public IPs to the instance.

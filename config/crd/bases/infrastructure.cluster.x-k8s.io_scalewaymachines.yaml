@@ -269,6 +269,46 @@ spec:
           spec:
             description: spec defines the desired state of ScalewayMachine
             properties:
+              additionalVolumes:
+                description: |-
+                  additionalVolumes defines the characteristics of additional volumes.
+                  Additional volumes can only be added during machine creation and cannot be modified or removed afterwards.
+                items:
+                  description: AdditionalVolume defines the characteristics of an
+                    additional volume.
+                  minProperties: 1
+                  properties:
+                    iops:
+                      description: iops is the number of IOPS requested for the disk.
+                        This is only applicable for block volumes.
+                      format: int64
+                      minimum: 5000
+                      type: integer
+                    size:
+                      default: 20
+                      description: size of the volume in GB. Defaults to 20 GB.
+                      format: int64
+                      maximum: 10000
+                      minimum: 8
+                      type: integer
+                    type:
+                      default: block
+                      description: |-
+                        type of the volume. Can be local or block. Note that not all types
+                        of instances support local volumes.
+                      enum:
+                      - local
+                      - block
+                      type: string
+                  type: object
+                  x-kubernetes-validations:
+                  - message: iops can only be set for block volumes
+                    rule: '!has(self.iops) || has(self.type) && self.type == ''block'''
+                type: array
+                x-kubernetes-validations:
+                - message: additionalVolumes can only be added, not removed or modified
+                  rule: self.size() == 0 || oldSelf.size() == 0 || self.size() >=
+                    oldSelf.size()
               commercialType:
                 description: commercialType of instance (e.g. PRO2-S).
                 maxLength: 20

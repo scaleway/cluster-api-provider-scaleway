@@ -850,11 +850,6 @@ func (s *Service) ensureAdditionalVolumesDeleted(ctx context.Context, server *in
 }
 
 func (s *Service) deleteVolumeIfNeeded(ctx context.Context, server *instance.Server, idx int) error {
-	if s.AdditionalVolumeDeletePolicy(idx) == infrav1.VolumeDeletePolicyRetain {
-		logf.FromContext(ctx).Info("Retaining additional volume due to delete policy", "index", idx)
-		return nil
-	}
-
 	volume, err := s.ScalewayClient.FindInstanceVolume(ctx, server.Zone, s.additionalVolumeTags(idx))
 	if err != nil {
 		if client.IsNotFoundError(err) {
