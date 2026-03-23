@@ -9,14 +9,13 @@ import (
 
 type Zones interface {
 	GetZoneOrDefault(zone string) (scw.Zone, error)
-	DefaultZone() scw.Zone
 	GetControlPlaneZones() []scw.Zone
 }
 
 // GetZoneOrDefault parses the provided zone, or returns the default zone if empty.
 func (c *Client) GetZoneOrDefault(zone string) (scw.Zone, error) {
 	if zone == "" {
-		return c.DefaultZone(), nil
+		return c.defaultZone(), nil
 	}
 
 	providedZone, err := scw.ParseZone(zone)
@@ -27,8 +26,8 @@ func (c *Client) GetZoneOrDefault(zone string) (scw.Zone, error) {
 	return providedZone, nil
 }
 
-// DefaultZone returns the first zone of the region.
-func (c *Client) DefaultZone() scw.Zone {
+// defaultZone returns the first zone of the region.
+func (c *Client) defaultZone() scw.Zone {
 	return scw.Zone(fmt.Sprintf("%s-1", c.region))
 }
 
@@ -51,7 +50,7 @@ func (c *Client) productZones(productAPI zonesGetter) []scw.Zone {
 	}
 
 	if len(zones) == 0 {
-		zones = append(zones, c.DefaultZone())
+		zones = append(zones, c.defaultZone())
 	}
 
 	return zones
