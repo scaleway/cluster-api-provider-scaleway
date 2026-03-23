@@ -631,44 +631,6 @@ func (c *MockInterfaceCreateServerCall) DoAndReturn(f func(context.Context, scw.
 	return c
 }
 
-// DefaultZone mocks base method.
-func (m *MockInterface) DefaultZone() scw.Zone {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DefaultZone")
-	ret0, _ := ret[0].(scw.Zone)
-	return ret0
-}
-
-// DefaultZone indicates an expected call of DefaultZone.
-func (mr *MockInterfaceMockRecorder) DefaultZone() *MockInterfaceDefaultZoneCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultZone", reflect.TypeOf((*MockInterface)(nil).DefaultZone))
-	return &MockInterfaceDefaultZoneCall{Call: call}
-}
-
-// MockInterfaceDefaultZoneCall wrap *gomock.Call
-type MockInterfaceDefaultZoneCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockInterfaceDefaultZoneCall) Return(arg0 scw.Zone) *MockInterfaceDefaultZoneCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockInterfaceDefaultZoneCall) Do(f func() scw.Zone) *MockInterfaceDefaultZoneCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInterfaceDefaultZoneCall) DoAndReturn(f func() scw.Zone) *MockInterfaceDefaultZoneCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // DeleteCluster mocks base method.
 func (m *MockInterface) DeleteCluster(ctx context.Context, id string, withAdditionalResources bool) error {
 	m.ctrl.T.Helper()
