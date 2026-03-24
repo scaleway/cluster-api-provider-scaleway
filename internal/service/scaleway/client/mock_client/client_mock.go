@@ -127,6 +127,44 @@ func (c *MockInterfaceAttachLBPrivateNetworkCall) DoAndReturn(f func(context.Con
 	return c
 }
 
+// AttachServerVolume mocks base method.
+func (m *MockInterface) AttachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string, local bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AttachServerVolume", ctx, zone, serverID, volumeID, local)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AttachServerVolume indicates an expected call of AttachServerVolume.
+func (mr *MockInterfaceMockRecorder) AttachServerVolume(ctx, zone, serverID, volumeID, local any) *MockInterfaceAttachServerVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachServerVolume", reflect.TypeOf((*MockInterface)(nil).AttachServerVolume), ctx, zone, serverID, volumeID, local)
+	return &MockInterfaceAttachServerVolumeCall{Call: call}
+}
+
+// MockInterfaceAttachServerVolumeCall wrap *gomock.Call
+type MockInterfaceAttachServerVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceAttachServerVolumeCall) Return(arg0 error) *MockInterfaceAttachServerVolumeCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceAttachServerVolumeCall) Do(f func(context.Context, scw.Zone, string, string, bool) error) *MockInterfaceAttachServerVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceAttachServerVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, bool) error) *MockInterfaceAttachServerVolumeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CleanAvailableIPs mocks base method.
 func (m *MockInterface) CleanAvailableIPs(ctx context.Context, privateNetworkID string) error {
 	m.ctrl.T.Helper()
@@ -398,6 +436,45 @@ func (c *MockInterfaceCreateIPCall) DoAndReturn(f func(context.Context, scw.Zone
 	return c
 }
 
+// CreateInstanceVolume mocks base method.
+func (m *MockInterface) CreateInstanceVolume(ctx context.Context, zone scw.Zone, name string, size scw.Size, tags []string) (*instance.Volume, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateInstanceVolume", ctx, zone, name, size, tags)
+	ret0, _ := ret[0].(*instance.Volume)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateInstanceVolume indicates an expected call of CreateInstanceVolume.
+func (mr *MockInterfaceMockRecorder) CreateInstanceVolume(ctx, zone, name, size, tags any) *MockInterfaceCreateInstanceVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstanceVolume", reflect.TypeOf((*MockInterface)(nil).CreateInstanceVolume), ctx, zone, name, size, tags)
+	return &MockInterfaceCreateInstanceVolumeCall{Call: call}
+}
+
+// MockInterfaceCreateInstanceVolumeCall wrap *gomock.Call
+type MockInterfaceCreateInstanceVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceCreateInstanceVolumeCall) Return(arg0 *instance.Volume, arg1 error) *MockInterfaceCreateInstanceVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceCreateInstanceVolumeCall) Do(f func(context.Context, scw.Zone, string, scw.Size, []string) (*instance.Volume, error)) *MockInterfaceCreateInstanceVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceCreateInstanceVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string, scw.Size, []string) (*instance.Volume, error)) *MockInterfaceCreateInstanceVolumeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CreateLB mocks base method.
 func (m *MockInterface) CreateLB(ctx context.Context, zone scw.Zone, name, lbType string, ipID *string, private bool, tags []string) (*lb.LB, error) {
 	m.ctrl.T.Helper()
@@ -593,18 +670,18 @@ func (c *MockInterfaceCreatePrivateNetworkCall) DoAndReturn(f func(context.Conte
 }
 
 // CreateServer mocks base method.
-func (m *MockInterface) CreateServer(ctx context.Context, zone scw.Zone, name, commercialType, imageID string, placementGroupID, securityGroupID *string, rootVolumeSize scw.Size, rootVolumeType instance.VolumeVolumeType, tags []string) (*instance.Server, error) {
+func (m *MockInterface) CreateServer(ctx context.Context, zone scw.Zone, name, commercialType, imageID string, placementGroupID, securityGroupID *string, rootVolumeSize scw.Size, rootVolumeType instance.VolumeVolumeType, scratchVolumeSizes []scw.Size, tags []string) (*instance.Server, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateServer", ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags)
+	ret := m.ctrl.Call(m, "CreateServer", ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, scratchVolumeSizes, tags)
 	ret0, _ := ret[0].(*instance.Server)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateServer indicates an expected call of CreateServer.
-func (mr *MockInterfaceMockRecorder) CreateServer(ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags any) *MockInterfaceCreateServerCall {
+func (mr *MockInterfaceMockRecorder) CreateServer(ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, scratchVolumeSizes, tags any) *MockInterfaceCreateServerCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServer", reflect.TypeOf((*MockInterface)(nil).CreateServer), ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServer", reflect.TypeOf((*MockInterface)(nil).CreateServer), ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, scratchVolumeSizes, tags)
 	return &MockInterfaceCreateServerCall{Call: call}
 }
 
@@ -620,13 +697,52 @@ func (c *MockInterfaceCreateServerCall) Return(arg0 *instance.Server, arg1 error
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInterfaceCreateServerCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string) (*instance.Server, error)) *MockInterfaceCreateServerCall {
+func (c *MockInterfaceCreateServerCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []scw.Size, []string) (*instance.Server, error)) *MockInterfaceCreateServerCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInterfaceCreateServerCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string) (*instance.Server, error)) *MockInterfaceCreateServerCall {
+func (c *MockInterfaceCreateServerCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []scw.Size, []string) (*instance.Server, error)) *MockInterfaceCreateServerCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateVolume mocks base method.
+func (m *MockInterface) CreateVolume(ctx context.Context, zone scw.Zone, name string, size scw.Size, iops int64, tags []string) (*block.Volume, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateVolume", ctx, zone, name, size, iops, tags)
+	ret0, _ := ret[0].(*block.Volume)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateVolume indicates an expected call of CreateVolume.
+func (mr *MockInterfaceMockRecorder) CreateVolume(ctx, zone, name, size, iops, tags any) *MockInterfaceCreateVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVolume", reflect.TypeOf((*MockInterface)(nil).CreateVolume), ctx, zone, name, size, iops, tags)
+	return &MockInterfaceCreateVolumeCall{Call: call}
+}
+
+// MockInterfaceCreateVolumeCall wrap *gomock.Call
+type MockInterfaceCreateVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceCreateVolumeCall) Return(arg0 *block.Volume, arg1 error) *MockInterfaceCreateVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceCreateVolumeCall) Do(f func(context.Context, scw.Zone, string, scw.Size, int64, []string) (*block.Volume, error)) *MockInterfaceCreateVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceCreateVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string, scw.Size, int64, []string) (*block.Volume, error)) *MockInterfaceCreateVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1163,40 +1279,40 @@ func (c *MockInterfaceDeleteVolumeCall) DoAndReturn(f func(context.Context, scw.
 	return c
 }
 
-// DetachVolume mocks base method.
-func (m *MockInterface) DetachVolume(ctx context.Context, zone scw.Zone, volumeID string) error {
+// DetachServerVolume mocks base method.
+func (m *MockInterface) DetachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DetachVolume", ctx, zone, volumeID)
+	ret := m.ctrl.Call(m, "DetachServerVolume", ctx, zone, serverID, volumeID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DetachVolume indicates an expected call of DetachVolume.
-func (mr *MockInterfaceMockRecorder) DetachVolume(ctx, zone, volumeID any) *MockInterfaceDetachVolumeCall {
+// DetachServerVolume indicates an expected call of DetachServerVolume.
+func (mr *MockInterfaceMockRecorder) DetachServerVolume(ctx, zone, serverID, volumeID any) *MockInterfaceDetachServerVolumeCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachVolume", reflect.TypeOf((*MockInterface)(nil).DetachVolume), ctx, zone, volumeID)
-	return &MockInterfaceDetachVolumeCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachServerVolume", reflect.TypeOf((*MockInterface)(nil).DetachServerVolume), ctx, zone, serverID, volumeID)
+	return &MockInterfaceDetachServerVolumeCall{Call: call}
 }
 
-// MockInterfaceDetachVolumeCall wrap *gomock.Call
-type MockInterfaceDetachVolumeCall struct {
+// MockInterfaceDetachServerVolumeCall wrap *gomock.Call
+type MockInterfaceDetachServerVolumeCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInterfaceDetachVolumeCall) Return(arg0 error) *MockInterfaceDetachVolumeCall {
+func (c *MockInterfaceDetachServerVolumeCall) Return(arg0 error) *MockInterfaceDetachServerVolumeCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInterfaceDetachVolumeCall) Do(f func(context.Context, scw.Zone, string) error) *MockInterfaceDetachVolumeCall {
+func (c *MockInterfaceDetachServerVolumeCall) Do(f func(context.Context, scw.Zone, string, string) error) *MockInterfaceDetachServerVolumeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInterfaceDetachVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string) error) *MockInterfaceDetachVolumeCall {
+func (c *MockInterfaceDetachServerVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string, string) error) *MockInterfaceDetachServerVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1435,41 +1551,41 @@ func (c *MockInterfaceFindImageCall) DoAndReturn(f func(context.Context, scw.Zon
 	return c
 }
 
-// FindInstanceVolume mocks base method.
-func (m *MockInterface) FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []string) (*instance.Volume, error) {
+// FindInstanceVolumes mocks base method.
+func (m *MockInterface) FindInstanceVolumes(ctx context.Context, zone scw.Zone, tags []string) ([]*instance.Volume, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindInstanceVolume", ctx, zone, tags)
-	ret0, _ := ret[0].(*instance.Volume)
+	ret := m.ctrl.Call(m, "FindInstanceVolumes", ctx, zone, tags)
+	ret0, _ := ret[0].([]*instance.Volume)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindInstanceVolume indicates an expected call of FindInstanceVolume.
-func (mr *MockInterfaceMockRecorder) FindInstanceVolume(ctx, zone, tags any) *MockInterfaceFindInstanceVolumeCall {
+// FindInstanceVolumes indicates an expected call of FindInstanceVolumes.
+func (mr *MockInterfaceMockRecorder) FindInstanceVolumes(ctx, zone, tags any) *MockInterfaceFindInstanceVolumesCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindInstanceVolume", reflect.TypeOf((*MockInterface)(nil).FindInstanceVolume), ctx, zone, tags)
-	return &MockInterfaceFindInstanceVolumeCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindInstanceVolumes", reflect.TypeOf((*MockInterface)(nil).FindInstanceVolumes), ctx, zone, tags)
+	return &MockInterfaceFindInstanceVolumesCall{Call: call}
 }
 
-// MockInterfaceFindInstanceVolumeCall wrap *gomock.Call
-type MockInterfaceFindInstanceVolumeCall struct {
+// MockInterfaceFindInstanceVolumesCall wrap *gomock.Call
+type MockInterfaceFindInstanceVolumesCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInterfaceFindInstanceVolumeCall) Return(arg0 *instance.Volume, arg1 error) *MockInterfaceFindInstanceVolumeCall {
+func (c *MockInterfaceFindInstanceVolumesCall) Return(arg0 []*instance.Volume, arg1 error) *MockInterfaceFindInstanceVolumesCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInterfaceFindInstanceVolumeCall) Do(f func(context.Context, scw.Zone, []string) (*instance.Volume, error)) *MockInterfaceFindInstanceVolumeCall {
+func (c *MockInterfaceFindInstanceVolumesCall) Do(f func(context.Context, scw.Zone, []string) ([]*instance.Volume, error)) *MockInterfaceFindInstanceVolumesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInterfaceFindInstanceVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, []string) (*instance.Volume, error)) *MockInterfaceFindInstanceVolumeCall {
+func (c *MockInterfaceFindInstanceVolumesCall) DoAndReturn(f func(context.Context, scw.Zone, []string) ([]*instance.Volume, error)) *MockInterfaceFindInstanceVolumesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1942,41 +2058,41 @@ func (c *MockInterfaceFindServerCall) DoAndReturn(f func(context.Context, scw.Zo
 	return c
 }
 
-// FindVolume mocks base method.
-func (m *MockInterface) FindVolume(ctx context.Context, zone scw.Zone, tags []string) (*block.Volume, error) {
+// FindVolumes mocks base method.
+func (m *MockInterface) FindVolumes(ctx context.Context, zone scw.Zone, tags []string) ([]*block.Volume, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindVolume", ctx, zone, tags)
-	ret0, _ := ret[0].(*block.Volume)
+	ret := m.ctrl.Call(m, "FindVolumes", ctx, zone, tags)
+	ret0, _ := ret[0].([]*block.Volume)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindVolume indicates an expected call of FindVolume.
-func (mr *MockInterfaceMockRecorder) FindVolume(ctx, zone, tags any) *MockInterfaceFindVolumeCall {
+// FindVolumes indicates an expected call of FindVolumes.
+func (mr *MockInterfaceMockRecorder) FindVolumes(ctx, zone, tags any) *MockInterfaceFindVolumesCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVolume", reflect.TypeOf((*MockInterface)(nil).FindVolume), ctx, zone, tags)
-	return &MockInterfaceFindVolumeCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVolumes", reflect.TypeOf((*MockInterface)(nil).FindVolumes), ctx, zone, tags)
+	return &MockInterfaceFindVolumesCall{Call: call}
 }
 
-// MockInterfaceFindVolumeCall wrap *gomock.Call
-type MockInterfaceFindVolumeCall struct {
+// MockInterfaceFindVolumesCall wrap *gomock.Call
+type MockInterfaceFindVolumesCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInterfaceFindVolumeCall) Return(arg0 *block.Volume, arg1 error) *MockInterfaceFindVolumeCall {
+func (c *MockInterfaceFindVolumesCall) Return(arg0 []*block.Volume, arg1 error) *MockInterfaceFindVolumesCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInterfaceFindVolumeCall) Do(f func(context.Context, scw.Zone, []string) (*block.Volume, error)) *MockInterfaceFindVolumeCall {
+func (c *MockInterfaceFindVolumesCall) Do(f func(context.Context, scw.Zone, []string) ([]*block.Volume, error)) *MockInterfaceFindVolumesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInterfaceFindVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, []string) (*block.Volume, error)) *MockInterfaceFindVolumeCall {
+func (c *MockInterfaceFindVolumesCall) DoAndReturn(f func(context.Context, scw.Zone, []string) ([]*block.Volume, error)) *MockInterfaceFindVolumesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

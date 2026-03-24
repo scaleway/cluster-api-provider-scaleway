@@ -28,6 +28,7 @@ const (
 // +kubebuilder:validation:XValidation:rule="has(self.publicNetwork) == has(oldSelf.publicNetwork)",message="publicNetwork cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.placementGroup) == has(oldSelf.placementGroup)",message="placementGroup cannot be added or removed"
 // +kubebuilder:validation:XValidation:rule="has(self.securityGroup) == has(oldSelf.securityGroup)",message="securityGroup cannot be added or removed"
+// +kubebuilder:validation:XValidation:rule="has(self.additionalVolumes) == has(oldSelf.additionalVolumes)",message="additionalVolumes cannot be added or removed"
 type ScalewayMachineSpec struct {
 	// providerID must match the provider ID as seen on the node object corresponding to this machine.
 	// +optional
@@ -52,6 +53,15 @@ type ScalewayMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	RootVolume RootVolume `json:"rootVolume,omitempty,omitzero"`
+
+	// additionalVolumes to be created and attached to the instance before it's first started.
+	// These volumes are deleted during instance deletion.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=15
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
+	AdditionalVolumes []AdditionalVolume `json:"additionalVolumes,omitempty"`
 
 	// publicNetwork allows attaching public IPs to the instance.
 	// +optional
@@ -113,6 +123,30 @@ type RootVolume struct {
 	// +optional
 	// +kubebuilder:default="block"
 	// +kubebuilder:validation:Enum=local;block
+	Type string `json:"type,omitempty"`
+
+	// iops is the number of IOPS requested for the disk. This is only applicable for block volumes.
+	// +optional
+	// +kubebuilder:validation:Minimum=5000
+	IOPS int64 `json:"iops,omitempty"`
+}
+
+// AdditionalVolume defines the characteristics of an additional volume.
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:XValidation:rule="!has(self.iops) || has(self.type) && self.type == 'block'",message="iops can only be set for block volumes"
+type AdditionalVolume struct {
+	// size of the volume in GB.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=10000
+	Size int64 `json:"size,omitempty"`
+
+	// type of the volume. Note that not all types of instances support local or
+	// scratch volumes. Please refer to the Scaleway documentation for more details
+	// on supported volume types per instance type.
+	// +optional
+	// +kubebuilder:default="block"
+	// +kubebuilder:validation:Enum=local;block;scratch
 	Type string `json:"type,omitempty"`
 
 	// iops is the number of IOPS requested for the disk. This is only applicable for block volumes.

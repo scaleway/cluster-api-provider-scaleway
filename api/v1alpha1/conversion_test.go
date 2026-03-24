@@ -414,6 +414,11 @@ var (
 				Type: ptr.To("block"),
 				IOPS: ptr.To(int64(15000)),
 			},
+			AdditionalVolumes: []AdditionalVolume{{
+				Size: ptr.To(int64(20)),
+				Type: ptr.To("block"),
+				IOPS: ptr.To(int64(15000)),
+			}},
 			PublicNetwork: &PublicNetworkSpec{
 				EnableIPv4: ptr.To(true),
 				EnableIPv6: ptr.To(false),
@@ -443,6 +448,11 @@ var (
 				Type: "block",
 				IOPS: 15000,
 			},
+			AdditionalVolumes: []infrav1.AdditionalVolume{{
+				Size: 20,
+				Type: "block",
+				IOPS: 15000,
+			}},
 			PublicNetwork: infrav1.PublicNetwork{
 				EnableIPv4: ptr.To(true),
 				EnableIPv6: ptr.To(false),

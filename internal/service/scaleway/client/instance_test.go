@@ -169,16 +169,17 @@ func TestClient_CreateServer(t *testing.T) {
 		region    scw.Region
 	}
 	type args struct {
-		ctx              context.Context
-		zone             scw.Zone
-		name             string
-		commercialType   string
-		imageID          string
-		placementGroupID *string
-		securityGroupID  *string
-		rootVolumeSize   scw.Size
-		rootVolumeType   instance.VolumeVolumeType
-		tags             []string
+		ctx                context.Context
+		zone               scw.Zone
+		name               string
+		commercialType     string
+		imageID            string
+		placementGroupID   *string
+		securityGroupID    *string
+		rootVolumeSize     scw.Size
+		rootVolumeType     instance.VolumeVolumeType
+		scratchVolumeSizes []scw.Size
+		tags               []string
 	}
 	tests := []struct {
 		name    string
@@ -207,11 +208,6 @@ func TestClient_CreateServer(t *testing.T) {
 				tags:             []string{"tag1", "tag2", "tag3"},
 			},
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
-				d.GetServerType(&instance.GetServerTypeRequest{
-					Zone: scw.ZoneFrPar1,
-					Name: "DEV1-S",
-				}).Return(&instance.ServerType{}, nil)
-
 				d.CreateServer(&instance.CreateServerRequest{
 					Zone:              scw.ZoneFrPar1,
 					Name:              "server",
@@ -239,22 +235,23 @@ func TestClient_CreateServer(t *testing.T) {
 			},
 		},
 		{
-			name: "create server with scratch storage",
+			name: "create server with max scratch storage",
 			fields: fields{
 				projectID: projectID,
 				region:    scw.RegionFrPar,
 			},
 			args: args{
-				ctx:              context.TODO(),
-				zone:             scw.ZoneFrPar2,
-				name:             "server",
-				commercialType:   "H100-1-80G",
-				imageID:          imageID,
-				placementGroupID: ptr.To(placementGroupID),
-				securityGroupID:  ptr.To(securityGroupID),
-				rootVolumeSize:   rootVolumeSize,
-				rootVolumeType:   instance.VolumeVolumeTypeBSSD,
-				tags:             []string{"tag1", "tag2", "tag3"},
+				ctx:                context.TODO(),
+				zone:               scw.ZoneFrPar2,
+				name:               "server",
+				commercialType:     "H100-1-80G",
+				imageID:            imageID,
+				placementGroupID:   ptr.To(placementGroupID),
+				securityGroupID:    ptr.To(securityGroupID),
+				rootVolumeSize:     rootVolumeSize,
+				rootVolumeType:     instance.VolumeVolumeTypeBSSD,
+				scratchVolumeSizes: []scw.Size{0},
+				tags:               []string{"tag1", "tag2", "tag3"},
 			},
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.GetServerType(&instance.GetServerTypeRequest{
@@ -279,7 +276,7 @@ func TestClient_CreateServer(t *testing.T) {
 							Boot:       ptr.To(true),
 						},
 						"1": {
-							Name:       ptr.To("server-scratch"),
+							Name:       ptr.To("server-scratch-0"),
 							Size:       ptr.To(scratchVolumeSize),
 							VolumeType: instance.VolumeVolumeTypeScratch,
 						},
@@ -294,6 +291,35 @@ func TestClient_CreateServer(t *testing.T) {
 			want: &instance.Server{
 				Name: "server",
 			},
+		},
+		{
+			name: "create server with too much scratch storage",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:                context.TODO(),
+				zone:               scw.ZoneFrPar2,
+				name:               "server",
+				commercialType:     "H100-1-80G",
+				imageID:            imageID,
+				placementGroupID:   ptr.To(placementGroupID),
+				securityGroupID:    ptr.To(securityGroupID),
+				rootVolumeSize:     rootVolumeSize,
+				rootVolumeType:     instance.VolumeVolumeTypeBSSD,
+				scratchVolumeSizes: []scw.Size{scratchVolumeSize + 1},
+				tags:               []string{"tag1", "tag2", "tag3"},
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
+				d.GetServerType(&instance.GetServerTypeRequest{
+					Zone: scw.ZoneFrPar2,
+					Name: "H100-1-80G",
+				}).Return(&instance.ServerType{
+					ScratchStorageMaxSize: ptr.To(scratchVolumeSize),
+				}, nil)
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -315,7 +341,7 @@ func TestClient_CreateServer(t *testing.T) {
 				region:    tt.fields.region,
 				instance:  instanceMock,
 			}
-			got, err := c.CreateServer(tt.args.ctx, tt.args.zone, tt.args.name, tt.args.commercialType, tt.args.imageID, tt.args.placementGroupID, tt.args.securityGroupID, tt.args.rootVolumeSize, tt.args.rootVolumeType, tt.args.tags)
+			got, err := c.CreateServer(tt.args.ctx, tt.args.zone, tt.args.name, tt.args.commercialType, tt.args.imageID, tt.args.placementGroupID, tt.args.securityGroupID, tt.args.rootVolumeSize, tt.args.rootVolumeType, tt.args.scratchVolumeSizes, tt.args.tags)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.CreateServer() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1080,7 +1106,7 @@ func TestClient_ServerAction(t *testing.T) {
 	}
 }
 
-func TestClient_DetachVolume(t *testing.T) {
+func TestClient_DetachServerVolume(t *testing.T) {
 	t.Parallel()
 	type fields struct {
 		projectID string
@@ -1089,6 +1115,7 @@ func TestClient_DetachVolume(t *testing.T) {
 	type args struct {
 		ctx      context.Context
 		zone     scw.Zone
+		serverID string
 		volumeID string
 	}
 	tests := []struct {
@@ -1110,7 +1137,7 @@ func TestClient_DetachVolume(t *testing.T) {
 				volumeID: volumeID,
 			},
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
-				d.DetachVolume(&instance.DetachVolumeRequest{
+				d.DetachServerVolume(&instance.DetachServerVolumeRequest{
 					Zone:     scw.ZoneFrPar1,
 					VolumeID: volumeID,
 				}, gomock.Any())
@@ -1136,8 +1163,251 @@ func TestClient_DetachVolume(t *testing.T) {
 				region:    tt.fields.region,
 				instance:  instanceMock,
 			}
-			if err := c.DetachVolume(tt.args.ctx, tt.args.zone, tt.args.volumeID); (err != nil) != tt.wantErr {
-				t.Errorf("Client.DetachVolume() error = %v, wantErr %v", err, tt.wantErr)
+			if err := c.DetachServerVolume(tt.args.ctx, tt.args.zone, tt.args.serverID, tt.args.volumeID); (err != nil) != tt.wantErr {
+				t.Errorf("Client.DetachServerVolume() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_AttachServerVolume(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx      context.Context
+		zone     scw.Zone
+		serverID string
+		volumeID string
+		local    bool
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+		expect  func(d *mock_client.MockInstanceAPIMockRecorder)
+	}{
+		{
+			name: "unknown zone",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {},
+			args: args{
+				zone: "fr-par-999",
+			},
+			wantErr: true,
+		},
+		{
+			name: "attach local volume",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:      context.TODO(),
+				zone:     scw.ZoneFrPar1,
+				serverID: serverID,
+				volumeID: volumeID,
+				local:    true,
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
+				d.AttachServerVolume(&instance.AttachServerVolumeRequest{
+					Zone:       scw.ZoneFrPar1,
+					ServerID:   serverID,
+					VolumeID:   volumeID,
+					VolumeType: instance.AttachServerVolumeRequestVolumeTypeLSSD,
+				}, gomock.Any())
+			},
+		},
+		{
+			name: "attach sbs volume",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:      context.TODO(),
+				zone:     scw.ZoneFrPar1,
+				serverID: serverID,
+				volumeID: volumeID,
+				local:    false,
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
+				d.AttachServerVolume(&instance.AttachServerVolumeRequest{
+					Zone:       scw.ZoneFrPar1,
+					ServerID:   serverID,
+					VolumeID:   volumeID,
+					VolumeType: instance.AttachServerVolumeRequestVolumeTypeSbsVolume,
+				}, gomock.Any())
+			},
+		},
+		{
+			name: "API error",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:      context.TODO(),
+				zone:     scw.ZoneFrPar1,
+				serverID: serverID,
+				volumeID: volumeID,
+				local:    true,
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
+				d.AttachServerVolume(&instance.AttachServerVolumeRequest{
+					Zone:       scw.ZoneFrPar1,
+					ServerID:   serverID,
+					VolumeID:   volumeID,
+					VolumeType: instance.AttachServerVolumeRequestVolumeTypeLSSD,
+				}, gomock.Any()).Return(nil, errAPI)
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			instanceMock := mock_client.NewMockInstanceAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			instanceMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(instanceMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				instance:  instanceMock,
+			}
+			if err := c.AttachServerVolume(tt.args.ctx, tt.args.zone, tt.args.serverID, tt.args.volumeID, tt.args.local); (err != nil) != tt.wantErr {
+				t.Errorf("Client.AttachServerVolume() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_CreateInstanceVolume(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx  context.Context
+		zone scw.Zone
+		name string
+		size scw.Size
+		tags []string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *instance.Volume
+		wantErr bool
+		expect  func(d *mock_client.MockInstanceAPIMockRecorder)
+	}{
+		{
+			name: "unknown zone",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {},
+			args: args{
+				zone: "fr-par-999",
+			},
+			wantErr: true,
+		},
+		{
+			name: "create instance volume",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:  context.TODO(),
+				zone: scw.ZoneFrPar1,
+				name: "my-volume",
+				size: 20 * scw.GB,
+				tags: []string{"tag1", "tag2"},
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
+				size := 20 * scw.GB
+				d.CreateVolume(&instance.CreateVolumeRequest{
+					Zone:       scw.ZoneFrPar1,
+					Name:       "my-volume",
+					Size:       &size,
+					VolumeType: instance.VolumeVolumeTypeLSSD,
+					Tags:       []string{"tag1", "tag2", createdByTag},
+				}, gomock.Any()).Return(&instance.CreateVolumeResponse{
+					Volume: &instance.Volume{Name: "my-volume"},
+				}, nil)
+			},
+			want: &instance.Volume{Name: "my-volume"},
+		},
+		{
+			name: "API error",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:  context.TODO(),
+				zone: scw.ZoneFrPar1,
+				name: "my-volume",
+				size: 20 * scw.GB,
+				tags: []string{"tag1", "tag2"},
+			},
+			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
+				size := 20 * scw.GB
+				d.CreateVolume(&instance.CreateVolumeRequest{
+					Zone:       scw.ZoneFrPar1,
+					Name:       "my-volume",
+					Size:       &size,
+					VolumeType: instance.VolumeVolumeTypeLSSD,
+					Tags:       []string{"tag1", "tag2", createdByTag},
+				}, gomock.Any()).Return(nil, errAPI)
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			instanceMock := mock_client.NewMockInstanceAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			instanceMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(instanceMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				instance:  instanceMock,
+			}
+			got, err := c.CreateInstanceVolume(tt.args.ctx, tt.args.zone, tt.args.name, tt.args.size, tt.args.tags)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.CreateInstanceVolume() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.CreateInstanceVolume() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1209,7 +1479,7 @@ func TestClient_UpdateInstanceVolumeTags(t *testing.T) {
 	}
 }
 
-func TestClient_FindInstanceVolume(t *testing.T) {
+func TestClient_FindInstanceVolumes(t *testing.T) {
 	type fields struct {
 		projectID string
 		region    scw.Region
@@ -1223,29 +1493,11 @@ func TestClient_FindInstanceVolume(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *instance.Volume
+		want    []*instance.Volume
 		wantErr bool
 		expect  func(d *mock_client.MockInstanceAPIMockRecorder)
 	}{
-		{
-			name: "no volume found",
-			fields: fields{
-				projectID: projectID,
-				region:    scw.RegionFrPar,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				tags: []string{"tag1", "tag2", "tag3"},
-			},
-			wantErr: true,
-			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
-				d.ListVolumes(&instance.ListVolumesRequest{
-					Zone: scw.ZoneFrPar1,
-					Tags: []string{"tag1", "tag2", "tag3"},
-				}, gomock.Any(), gomock.Any()).Return(&instance.ListVolumesResponse{}, nil)
-			},
-		},
+
 		{
 			name: "volume found",
 			fields: fields{
@@ -1257,11 +1509,11 @@ func TestClient_FindInstanceVolume(t *testing.T) {
 				zone: scw.ZoneFrPar1,
 				tags: []string{"tag1", "tag2", "tag3"},
 			},
-			want: &instance.Volume{
+			want: []*instance.Volume{{
 				ID:   volumeID,
 				Name: "volume",
 				Tags: []string{"tag1", "tag2", "tag3", "tag4"},
-			},
+			}},
 			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
 				d.ListVolumes(&instance.ListVolumesRequest{
 					Zone: scw.ZoneFrPar1,
@@ -1273,37 +1525,6 @@ func TestClient_FindInstanceVolume(t *testing.T) {
 							ID:   volumeID,
 							Name: "volume",
 							Tags: []string{"tag1", "tag2", "tag3", "tag4"},
-						},
-					},
-				}, nil)
-			},
-		},
-		{
-			name: "duplicate volumes found",
-			fields: fields{
-				projectID: projectID,
-				region:    scw.RegionFrPar,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				tags: []string{"tag1", "tag2", "tag3"},
-			},
-			wantErr: true,
-			expect: func(d *mock_client.MockInstanceAPIMockRecorder) {
-				d.ListVolumes(&instance.ListVolumesRequest{
-					Zone: scw.ZoneFrPar1,
-					Tags: []string{"tag1", "tag2", "tag3"},
-				}, gomock.Any(), gomock.Any()).Return(&instance.ListVolumesResponse{
-					TotalCount: 2,
-					Volumes: []*instance.Volume{
-						{
-							Name: "volume",
-							Tags: []string{"tag1", "tag2", "tag3", "tag4"},
-						},
-						{
-							Name: "volume-duplicate",
-							Tags: []string{"tag1", "tag2", "tag3", "tag5"},
 						},
 					},
 				}, nil)
@@ -1329,13 +1550,13 @@ func TestClient_FindInstanceVolume(t *testing.T) {
 				region:    tt.fields.region,
 				instance:  instanceMock,
 			}
-			got, err := c.FindInstanceVolume(tt.args.ctx, tt.args.zone, tt.args.tags)
+			got, err := c.FindInstanceVolumes(tt.args.ctx, tt.args.zone, tt.args.tags)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.FindInstanceVolume() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Client.FindInstanceVolumes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.FindInstanceVolume() = %v, want %v", got, tt.want)
+				t.Errorf("Client.FindInstanceVolumes() = %v, want %v", got, tt.want)
 			}
 		})
 	}

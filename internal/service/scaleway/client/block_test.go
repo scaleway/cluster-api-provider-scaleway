@@ -212,6 +212,150 @@ func TestClient_UpdateVolumeTags(t *testing.T) {
 	}
 }
 
+func TestClient_CreateVolume(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx  context.Context
+		zone scw.Zone
+		name string
+		size scw.Size
+		iops int64
+		tags []string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *block.Volume
+		wantErr bool
+		expect  func(b *mock_client.MockBlockAPIMockRecorder)
+	}{
+		{
+			name: "unknown zone",
+			fields: fields{
+				region:    scw.RegionFrPar,
+				projectID: projectID,
+			},
+			expect: func(b *mock_client.MockBlockAPIMockRecorder) {},
+			args: args{
+				zone: "fr-par-999",
+			},
+			wantErr: true,
+		},
+		{
+			name: "create volume without iops",
+			fields: fields{
+				region:    scw.RegionFrPar,
+				projectID: projectID,
+			},
+			args: args{
+				ctx:  context.TODO(),
+				zone: scw.ZoneFrPar1,
+				name: "my-volume",
+				size: 20 * scw.GB,
+				iops: 0,
+				tags: []string{"tag1", "tag2"},
+			},
+			expect: func(b *mock_client.MockBlockAPIMockRecorder) {
+				b.CreateVolume(&block.CreateVolumeRequest{
+					Zone: scw.ZoneFrPar1,
+					Name: "my-volume",
+					FromEmpty: &block.CreateVolumeRequestFromEmpty{
+						Size: 20 * scw.GB,
+					},
+					Tags: []string{"tag1", "tag2", createdByTag},
+				}, gomock.Any()).Return(&block.Volume{Name: "my-volume"}, nil)
+			},
+			want: &block.Volume{Name: "my-volume"},
+		},
+		{
+			name: "create volume with iops",
+			fields: fields{
+				region:    scw.RegionFrPar,
+				projectID: projectID,
+			},
+			args: args{
+				ctx:  context.TODO(),
+				zone: scw.ZoneFrPar1,
+				name: "my-volume",
+				size: 20 * scw.GB,
+				iops: 5000,
+				tags: []string{"tag1", "tag2"},
+			},
+			expect: func(b *mock_client.MockBlockAPIMockRecorder) {
+				b.CreateVolume(&block.CreateVolumeRequest{
+					Zone: scw.ZoneFrPar1,
+					Name: "my-volume",
+					FromEmpty: &block.CreateVolumeRequestFromEmpty{
+						Size: 20 * scw.GB,
+					},
+					Tags:     []string{"tag1", "tag2", createdByTag},
+					PerfIops: scw.Uint32Ptr(5000),
+				}, gomock.Any()).Return(&block.Volume{Name: "my-volume"}, nil)
+			},
+			want: &block.Volume{Name: "my-volume"},
+		},
+		{
+			name: "API error",
+			fields: fields{
+				region:    scw.RegionFrPar,
+				projectID: projectID,
+			},
+			args: args{
+				ctx:  context.TODO(),
+				zone: scw.ZoneFrPar1,
+				name: "my-volume",
+				size: 20 * scw.GB,
+				tags: []string{"tag1", "tag2"},
+			},
+			expect: func(b *mock_client.MockBlockAPIMockRecorder) {
+				b.CreateVolume(&block.CreateVolumeRequest{
+					Zone: scw.ZoneFrPar1,
+					Name: "my-volume",
+					FromEmpty: &block.CreateVolumeRequestFromEmpty{
+						Size: 20 * scw.GB,
+					},
+					Tags: []string{"tag1", "tag2", createdByTag},
+				}, gomock.Any()).Return(nil, errAPI)
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			blockMock := mock_client.NewMockBlockAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			blockMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(blockMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				block:     blockMock,
+			}
+			got, err := c.CreateVolume(tt.args.ctx, tt.args.zone, tt.args.name, tt.args.size, tt.args.iops, tt.args.tags)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.CreateVolume() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.CreateVolume() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClient_DeleteVolume(t *testing.T) {
 	t.Parallel()
 	type fields struct {
@@ -306,7 +450,7 @@ func TestClient_DeleteVolume(t *testing.T) {
 	}
 }
 
-func TestClient_FindVolume(t *testing.T) {
+func TestClient_FindVolumes(t *testing.T) {
 	t.Parallel()
 	type fields struct {
 		projectID string
@@ -321,7 +465,7 @@ func TestClient_FindVolume(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *block.Volume
+		want    []*block.Volume
 		wantErr bool
 		expect  func(b *mock_client.MockBlockAPIMockRecorder)
 	}{
@@ -338,25 +482,6 @@ func TestClient_FindVolume(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "no volume found",
-			fields: fields{
-				region:    scw.RegionFrPar,
-				projectID: projectID,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				tags: []string{"tag1", "tag2", "tag3"},
-			},
-			wantErr: true,
-			expect: func(b *mock_client.MockBlockAPIMockRecorder) {
-				b.ListVolumes(&block.ListVolumesRequest{
-					Zone: scw.ZoneFrPar1,
-					Tags: []string{"tag1", "tag2", "tag3"},
-				}, gomock.Any(), gomock.Any()).Return(&block.ListVolumesResponse{}, nil)
-			},
-		},
-		{
 			name: "fail with empty tags",
 			fields: fields{
 				region:    scw.RegionFrPar,
@@ -371,32 +496,7 @@ func TestClient_FindVolume(t *testing.T) {
 			expect:  func(b *mock_client.MockBlockAPIMockRecorder) {},
 		},
 		{
-			name: "too many volumes found",
-			fields: fields{
-				region:    scw.RegionFrPar,
-				projectID: projectID,
-			},
-			args: args{
-				ctx:  context.TODO(),
-				zone: scw.ZoneFrPar1,
-				tags: []string{"tag1", "tag2", "tag3"},
-			},
-			wantErr: true,
-			expect: func(b *mock_client.MockBlockAPIMockRecorder) {
-				b.ListVolumes(&block.ListVolumesRequest{
-					Zone: scw.ZoneFrPar1,
-					Tags: []string{"tag1", "tag2", "tag3"},
-				}, gomock.Any(), gomock.Any()).Return(&block.ListVolumesResponse{
-					Volumes: []*block.Volume{
-						{Tags: []string{"tag1", "tag2", "tag3", "tag4"}},
-						{Tags: []string{"tag1", "tag2", "tag3", "tag4"}},
-					},
-					TotalCount: 2,
-				}, nil)
-			},
-		},
-		{
-			name: "one volume found",
+			name: "multiple volumes found",
 			fields: fields{
 				region:    scw.RegionFrPar,
 				projectID: projectID,
@@ -413,17 +513,15 @@ func TestClient_FindVolume(t *testing.T) {
 					Tags: []string{"tag1", "tag2", "tag3"},
 				}, gomock.Any(), gomock.Any()).Return(&block.ListVolumesResponse{
 					Volumes: []*block.Volume{
-						{
-							Name: "my-volume",
-							Tags: []string{"tag1", "tag2", "tag3", "tag4"},
-						},
+						{Tags: []string{"tag1", "tag2", "tag3", "tag4"}},
+						{Tags: []string{"tag1", "tag2", "tag3", "tag4"}},
 					},
-					TotalCount: 1,
+					TotalCount: 2,
 				}, nil)
 			},
-			want: &block.Volume{
-				Name: "my-volume",
-				Tags: []string{"tag1", "tag2", "tag3", "tag4"},
+			want: []*block.Volume{
+				{Tags: []string{"tag1", "tag2", "tag3", "tag4"}},
+				{Tags: []string{"tag1", "tag2", "tag3", "tag4"}},
 			},
 		},
 	}
@@ -446,13 +544,13 @@ func TestClient_FindVolume(t *testing.T) {
 				region:    tt.fields.region,
 				block:     blockMock,
 			}
-			got, err := c.FindVolume(tt.args.ctx, tt.args.zone, tt.args.tags)
+			got, err := c.FindVolumes(tt.args.ctx, tt.args.zone, tt.args.tags)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.FindVolume() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Client.FindVolumes() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.FindVolume() = %v, want %v", got, tt.want)
+				t.Errorf("Client.FindVolumes() = %v, want %v", got, tt.want)
 			}
 		})
 	}

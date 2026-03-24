@@ -39,6 +39,9 @@ const (
 	machineACLIndex = int32(1)
 	// cloudInitUserDataKey is the key used to store the cloud-init user data in the server.
 	cloudInitUserDataKey = "cloud-init"
+	// scratchVolumeType is the type of additional volume that is a scratch volume.
+	// Scratch volumes are automatically created with the instance and have a maximum size defined by the server type.
+	scratchVolumeType = "scratch"
 )
 
 // instanceVolumeTypeToMarketplaceType maps the instance volume type to the marketplace image type.
@@ -82,6 +85,10 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 
 	// Ensure the server configuration when the node has never joined the cluster.
 	if !s.HasJoinedCluster() {
+		if err := s.ensureAdditionalVolumes(ctx, server); err != nil {
+			return fmt.Errorf("failed to ensure additional volumes: %w", err)
+		}
+
 		server, err = s.ensurePublicIPs(ctx, server)
 		if err != nil {
 			return err
@@ -180,7 +187,7 @@ func (s *Service) Delete(ctx context.Context) error {
 		return err
 	}
 
-	if err := s.ensureBootVolumeDeleted(ctx, server); err != nil {
+	if err := s.ensureSystemVolumesDeleted(ctx, server); err != nil {
 		return err
 	}
 
@@ -256,6 +263,13 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 		return nil, err
 	}
 
+	var scratchVolumeSizes []scw.Size
+	for _, vol := range s.ScalewayMachine.Spec.AdditionalVolumes {
+		if vol.Type == scratchVolumeType {
+			scratchVolumeSizes = append(scratchVolumeSizes, scw.Size(vol.Size)*scw.GB)
+		}
+	}
+
 	// Finally, create the server.
 	server, err := s.ScalewayClient.CreateServer(
 		ctx,
@@ -267,6 +281,7 @@ func (s *Service) ensureServer(ctx context.Context) (*instance.Server, error) {
 		securityGroupID,
 		s.RootVolumeSize(),
 		volumeType,
+		scratchVolumeSizes,
 		s.ResourceTags(),
 	)
 	if err != nil {
@@ -320,6 +335,89 @@ func (s *Service) securityGroupID(ctx context.Context, zone scw.Zone) (*string, 
 	}
 
 	return nil, nil
+}
+
+func (s *Service) ensureAdditionalVolumes(ctx context.Context, server *instance.Server) error {
+	var (
+		instanceVolumesByName map[string]*instance.Volume
+		blockVolumesByName    map[string]*block.Volume
+	)
+
+	for i, vol := range s.ScalewayMachine.Spec.AdditionalVolumes {
+		if vol.Type == scratchVolumeType {
+			// Scratch volumes are automatically created with the instance, so we don't need to do anything here.
+			continue
+		}
+
+		volName := fmt.Sprintf("%s-%d", s.ResourceName(), i)
+		volSize := scw.GB
+		if vol.Size != 0 {
+			volSize = scw.Size(vol.Size) * scw.GB
+		}
+
+		switch vol.Type {
+		case "local":
+			if instanceVolumesByName == nil {
+				instanceVolumes, err := s.ScalewayClient.FindInstanceVolumes(ctx, server.Zone, s.ResourceTags())
+				if err != nil {
+					return err
+				}
+				instanceVolumesByName = make(map[string]*instance.Volume)
+				for _, vol := range instanceVolumes {
+					instanceVolumesByName[vol.Name] = vol
+				}
+			}
+
+			if _, ok := instanceVolumesByName[volName]; !ok {
+				volume, err := s.ScalewayClient.CreateInstanceVolume(ctx, server.Zone, volName, volSize, s.ResourceTags())
+				if err != nil {
+					return fmt.Errorf("failed to create instance volume: %w", err)
+				}
+
+				instanceVolumesByName[volName] = volume
+			}
+
+			if !isVolumeAttached(server, instanceVolumesByName[volName].ID) {
+				if err := s.ScalewayClient.AttachServerVolume(ctx, server.Zone, server.ID, instanceVolumesByName[volName].ID, true); err != nil {
+					return fmt.Errorf("failed to attach server volume: %w", err)
+				}
+			}
+		case "block":
+			if blockVolumesByName == nil {
+				blockVolumes, err := s.ScalewayClient.FindVolumes(ctx, server.Zone, s.ResourceTags())
+				if err != nil {
+					return err
+				}
+
+				blockVolumesByName = make(map[string]*block.Volume)
+				for _, vol := range blockVolumes {
+					blockVolumesByName[vol.Name] = vol
+				}
+			}
+
+			if _, ok := blockVolumesByName[volName]; !ok {
+				volume, err := s.ScalewayClient.CreateVolume(ctx, server.Zone, volName, volSize, vol.IOPS, s.ResourceTags())
+				if err != nil {
+					return fmt.Errorf("failed to create block volume: %w", err)
+				}
+
+				blockVolumesByName[volName] = volume
+			}
+
+			if !isVolumeAttached(server, blockVolumesByName[volName].ID) {
+				// Instance currently does not allow attaching block volumes in creating
+				// state, this should change soon but in the meantime we'll get a retryable error.
+				// TODO: revisit this if we need to change the attach logic.
+				if err := s.ScalewayClient.AttachServerVolume(ctx, server.Zone, server.ID, blockVolumesByName[volName].ID, false); err != nil {
+					return fmt.Errorf("failed to attach block volume: %w", err)
+				}
+			}
+		default:
+			return fmt.Errorf("unsupported additional volume type: %s", vol.Type)
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) ensurePublicIPs(ctx context.Context, server *instance.Server) (*instance.Server, error) {
@@ -720,14 +818,13 @@ func (s *Service) ensureNoPublicIPs(ctx context.Context, server *instance.Server
 	return nil
 }
 
-func (s *Service) ensureBootVolumeDeleted(ctx context.Context, server *instance.Server) error {
-	// First: detach the boot volume
+func (s *Service) ensureSystemVolumesDeleted(ctx context.Context, server *instance.Server) error {
+	// First: tag the boot volume to mark it for deletion.
 	for _, vol := range server.Volumes {
 		if !vol.Boot {
 			continue
 		}
 
-		// We add a tag on the boot volume to be able to find it and delete it in the next step.
 		switch vol.VolumeType {
 		case instance.VolumeServerVolumeTypeSbsVolume:
 			if err := s.ScalewayClient.UpdateVolumeTags(ctx, server.Zone, vol.ID, s.ResourceTags()); err != nil {
@@ -741,38 +838,71 @@ func (s *Service) ensureBootVolumeDeleted(ctx context.Context, server *instance.
 			return fmt.Errorf("cannot detach unsupported boot volume with type %s", vol.VolumeType)
 		}
 
-		if err := s.ScalewayClient.DetachVolume(ctx, server.Zone, vol.ID); err != nil {
+		break
+	}
+
+	volumesNotDeleted := make([]string, 0)
+
+	// Detach and remove block volumes.
+	volumes, err := s.ScalewayClient.FindVolumes(ctx, server.Zone, s.ResourceTags())
+	if err != nil {
+		return err
+	}
+
+	for _, volume := range volumes {
+		if isVolumeAttached(server, volume.ID) {
+			if err := s.ScalewayClient.DetachServerVolume(ctx, server.Zone, server.ID, volume.ID); err != nil {
+				return err
+			}
+		}
+
+		if volume.Status != block.VolumeStatusAvailable {
+			volumesNotDeleted = append(volumesNotDeleted, volume.ID)
+			continue
+		}
+
+		if err := s.ScalewayClient.DeleteVolume(ctx, server.Zone, volume.ID); err != nil {
 			return err
 		}
 	}
 
-	// Finally: delete the volume. From here, we may no longer have the information
-	// about the root volume type (l_ssd or sbs_volume), so we have to try both APIs.
-	volume, err := s.ScalewayClient.FindVolume(ctx, server.Zone, s.ResourceTags())
-	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
+	// Detach and remove instance volumes.
+	instanceVolumes, err := s.ScalewayClient.FindInstanceVolumes(ctx, server.Zone, s.ResourceTags())
+	if err != nil {
 		return err
 	}
 
-	if volume != nil {
-		if volume.Status != block.VolumeStatusAvailable {
-			return scaleway.WithTransientError(fmt.Errorf("root block volume is not yet ready to be deleted (%s)", volume.Status), 2*time.Second)
+	for _, volume := range instanceVolumes {
+		if isVolumeAttached(server, volume.ID) {
+			if err := s.ScalewayClient.DetachServerVolume(ctx, server.Zone, server.ID, volume.ID); err != nil {
+				return err
+			}
 		}
 
-		return s.ScalewayClient.DeleteVolume(ctx, server.Zone, volume.ID)
-	}
-
-	instanceVolume, err := s.ScalewayClient.FindInstanceVolume(ctx, server.Zone, s.ResourceTags())
-	if err := utilerrors.FilterOut(err, client.IsNotFoundError); err != nil {
-		return err
-	}
-
-	if instanceVolume != nil {
-		if instanceVolume.State != instance.VolumeStateAvailable {
-			return scaleway.WithTransientError(fmt.Errorf("root volume is not yet ready to be deleted (%s)", instanceVolume.State), time.Second)
+		if volume.State != instance.VolumeStateAvailable {
+			volumesNotDeleted = append(volumesNotDeleted, volume.ID)
+			continue
 		}
 
-		return s.ScalewayClient.DeleteInstanceVolume(ctx, server.Zone, instanceVolume.ID)
+		if err := s.ScalewayClient.DeleteInstanceVolume(ctx, server.Zone, volume.ID); err != nil {
+			return err
+		}
+	}
+
+	if len(volumesNotDeleted) > 0 {
+		return scaleway.WithTransientError(fmt.Errorf("volumes [%s] are not yet ready to be deleted", strings.Join(volumesNotDeleted, ", ")), time.Second)
 	}
 
 	return nil
+}
+
+// isVolumeAttached checks if the volume with the given ID is attached to the server.
+func isVolumeAttached(server *instance.Server, volumeID string) bool {
+	for _, vol := range server.Volumes {
+		if vol.ID == volumeID {
+			return true
+		}
+	}
+
+	return false
 }
