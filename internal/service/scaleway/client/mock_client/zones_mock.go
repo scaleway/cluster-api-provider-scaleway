@@ -40,44 +40,6 @@ func (m *MockZones) EXPECT() *MockZonesMockRecorder {
 	return m.recorder
 }
 
-// DefaultZone mocks base method.
-func (m *MockZones) DefaultZone() scw.Zone {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DefaultZone")
-	ret0, _ := ret[0].(scw.Zone)
-	return ret0
-}
-
-// DefaultZone indicates an expected call of DefaultZone.
-func (mr *MockZonesMockRecorder) DefaultZone() *MockZonesDefaultZoneCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultZone", reflect.TypeOf((*MockZones)(nil).DefaultZone))
-	return &MockZonesDefaultZoneCall{Call: call}
-}
-
-// MockZonesDefaultZoneCall wrap *gomock.Call
-type MockZonesDefaultZoneCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockZonesDefaultZoneCall) Return(arg0 scw.Zone) *MockZonesDefaultZoneCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockZonesDefaultZoneCall) Do(f func() scw.Zone) *MockZonesDefaultZoneCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockZonesDefaultZoneCall) DoAndReturn(f func() scw.Zone) *MockZonesDefaultZoneCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // GetControlPlaneZones mocks base method.
 func (m *MockZones) GetControlPlaneZones() []scw.Zone {
 	m.ctrl.T.Helper()
