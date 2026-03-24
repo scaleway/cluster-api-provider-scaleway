@@ -9,6 +9,7 @@ import (
 
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"k8s.io/utils/ptr"
 )
 
 type InstanceAPI interface {
@@ -26,7 +27,9 @@ type InstanceAPI interface {
 	SetServerUserData(req *instance.SetServerUserDataRequest, opts ...scw.RequestOption) error
 	DeleteServerUserData(req *instance.DeleteServerUserDataRequest, opts ...scw.RequestOption) error
 	ServerAction(req *instance.ServerActionRequest, opts ...scw.RequestOption) (*instance.ServerActionResponse, error)
-	DetachVolume(req *instance.DetachVolumeRequest, opts ...scw.RequestOption) (*instance.DetachVolumeResponse, error)
+	AttachServerVolume(req *instance.AttachServerVolumeRequest, opts ...scw.RequestOption) (*instance.AttachServerVolumeResponse, error)
+	DetachServerVolume(req *instance.DetachServerVolumeRequest, opts ...scw.RequestOption) (*instance.DetachServerVolumeResponse, error)
+	CreateVolume(req *instance.CreateVolumeRequest, opts ...scw.RequestOption) (*instance.CreateVolumeResponse, error)
 	UpdateVolume(req *instance.UpdateVolumeRequest, opts ...scw.RequestOption) (*instance.UpdateVolumeResponse, error)
 	ListVolumes(req *instance.ListVolumesRequest, opts ...scw.RequestOption) (*instance.ListVolumesResponse, error)
 	DeleteVolume(req *instance.DeleteVolumeRequest, opts ...scw.RequestOption) error
@@ -45,6 +48,7 @@ type Instance interface {
 		placementGroupID, securityGroupID *string,
 		rootVolumeSize scw.Size,
 		rootVolumeType instance.VolumeVolumeType,
+		scratchVolumeSizes []scw.Size,
 		tags []string,
 	) (*instance.Server, error)
 	FindImage(ctx context.Context, zone scw.Zone, name string) (*instance.Image, error)
@@ -56,9 +60,11 @@ type Instance interface {
 	SetServerUserData(ctx context.Context, zone scw.Zone, serverID, key, content string) error
 	DeleteServerUserData(ctx context.Context, zone scw.Zone, serverID, key string) error
 	ServerAction(ctx context.Context, zone scw.Zone, serverID string, action instance.ServerAction) error
-	DetachVolume(ctx context.Context, zone scw.Zone, volumeID string) error
+	DetachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string) error
+	AttachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string, local bool) error
+	CreateInstanceVolume(ctx context.Context, zone scw.Zone, name string, size scw.Size, tags []string) (*instance.Volume, error)
 	UpdateInstanceVolumeTags(ctx context.Context, zone scw.Zone, volumeID string, tags []string) error
-	FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []string) (*instance.Volume, error)
+	FindInstanceVolumes(ctx context.Context, zone scw.Zone, tags []string) ([]*instance.Volume, error)
 	DeleteInstanceVolume(ctx context.Context, zone scw.Zone, volumeID string) error
 	DeleteServer(ctx context.Context, zone scw.Zone, serverID string) error
 	FindPlacementGroup(ctx context.Context, zone scw.Zone, name string) (*instance.PlacementGroup, error)
@@ -108,18 +114,11 @@ func (c *Client) CreateServer(
 	placementGroupID, securityGroupID *string,
 	rootVolumeSize scw.Size,
 	rootVolumeType instance.VolumeVolumeType,
+	scratchVolumeSizes []scw.Size,
 	tags []string,
 ) (*instance.Server, error) {
 	if err := c.validateZone(c.instance, zone); err != nil {
 		return nil, err
-	}
-
-	serverType, err := c.instance.GetServerType(&instance.GetServerTypeRequest{
-		Zone: zone,
-		Name: commercialType,
-	})
-	if err != nil {
-		return nil, newCallError("GetServerType", err)
 	}
 
 	req := &instance.CreateServerRequest{
@@ -140,12 +139,38 @@ func (c *Client) CreateServer(
 		Tags: append(tags, createdByTag),
 	}
 
-	// Automatically attach scratch volume if server supports it.
-	if serverType.ScratchStorageMaxSize != nil && *serverType.ScratchStorageMaxSize > 0 {
-		req.Volumes["1"] = &instance.VolumeServerTemplate{
-			Name:       scw.StringPtr(fmt.Sprintf("%s-scratch", name)),
-			Size:       serverType.ScratchStorageMaxSize,
-			VolumeType: instance.VolumeVolumeTypeScratch,
+	if len(scratchVolumeSizes) > 0 {
+		serverType, err := c.instance.GetServerType(&instance.GetServerTypeRequest{
+			Zone: zone,
+			Name: commercialType,
+		})
+		if err != nil {
+			return nil, newCallError("GetServerType", err)
+		}
+
+		if serverType.ScratchStorageMaxSize == nil || *serverType.ScratchStorageMaxSize == 0 {
+			return nil, fmt.Errorf("server type %s does not support scratch volumes", commercialType)
+		}
+
+		remainingScratchSize := int64(ptr.Deref(serverType.ScratchStorageMaxSize, 0))
+
+		for i, scratchVolumeSize := range scratchVolumeSizes {
+			// If the requested scratch volume size is 0, use the maximum scratch storage size of the server type.
+			if scratchVolumeSize == 0 {
+				scratchVolumeSize = *serverType.ScratchStorageMaxSize
+			}
+
+			req.Volumes[fmt.Sprintf("%d", i+1)] = &instance.VolumeServerTemplate{
+				Name:       ptr.To(fmt.Sprintf("%s-scratch-%d", name, i)),
+				Size:       &scratchVolumeSize,
+				VolumeType: instance.VolumeVolumeTypeScratch,
+			}
+
+			remainingScratchSize -= int64(scratchVolumeSize)
+		}
+
+		if remainingScratchSize < 0 {
+			return nil, fmt.Errorf("requested scratch volume sizes exceed maximum scratch storage size of server type: %d bytes", *serverType.ScratchStorageMaxSize)
 		}
 	}
 
@@ -330,19 +355,62 @@ func (c *Client) ServerAction(ctx context.Context, zone scw.Zone, serverID strin
 	return nil
 }
 
-func (c *Client) DetachVolume(ctx context.Context, zone scw.Zone, volumeID string) error {
+func (c *Client) AttachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string, local bool) error {
 	if err := c.validateZone(c.instance, zone); err != nil {
 		return err
 	}
 
-	if _, err := c.instance.DetachVolume(&instance.DetachVolumeRequest{
-		Zone:     zone,
-		VolumeID: volumeID,
-	}, scw.WithContext(ctx)); err != nil {
-		return newCallError("DetachVolume", err)
+	req := &instance.AttachServerVolumeRequest{
+		Zone:       zone,
+		ServerID:   serverID,
+		VolumeID:   volumeID,
+		VolumeType: instance.AttachServerVolumeRequestVolumeTypeLSSD,
+	}
+
+	if !local {
+		req.VolumeType = instance.AttachServerVolumeRequestVolumeTypeSbsVolume
+	}
+
+	if _, err := c.instance.AttachServerVolume(req, scw.WithContext(ctx)); err != nil {
+		return newCallError("AttachServerVolume", err)
 	}
 
 	return nil
+}
+
+func (c *Client) DetachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string) error {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return err
+	}
+
+	if _, err := c.instance.DetachServerVolume(&instance.DetachServerVolumeRequest{
+		Zone:     zone,
+		ServerID: serverID,
+		VolumeID: volumeID,
+	}, scw.WithContext(ctx)); err != nil {
+		return newCallError("DetachServerVolume", err)
+	}
+
+	return nil
+}
+
+func (c *Client) CreateInstanceVolume(ctx context.Context, zone scw.Zone, name string, size scw.Size, tags []string) (*instance.Volume, error) {
+	if err := c.validateZone(c.instance, zone); err != nil {
+		return nil, err
+	}
+
+	resp, err := c.instance.CreateVolume(&instance.CreateVolumeRequest{
+		Zone:       zone,
+		Name:       name,
+		Size:       &size,
+		VolumeType: instance.VolumeVolumeTypeLSSD,
+		Tags:       append(tags, createdByTag),
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("CreateVolume", err)
+	}
+
+	return resp.Volume, nil
 }
 
 func (c *Client) UpdateInstanceVolumeTags(ctx context.Context, zone scw.Zone, volumeID string, tags []string) error {
@@ -361,7 +429,7 @@ func (c *Client) UpdateInstanceVolumeTags(ctx context.Context, zone scw.Zone, vo
 	return nil
 }
 
-func (c *Client) FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []string) (*instance.Volume, error) {
+func (c *Client) FindInstanceVolumes(ctx context.Context, zone scw.Zone, tags []string) ([]*instance.Volume, error) {
 	if err := c.validateZone(c.instance, zone); err != nil {
 		return nil, err
 	}
@@ -383,14 +451,7 @@ func (c *Client) FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []s
 		return !matchTags(volume.Tags, tags)
 	})
 
-	switch len(volumes) {
-	case 0:
-		return nil, ErrNoItemFound
-	case 1:
-		return volumes[0], nil
-	default:
-		return nil, fmt.Errorf("%w: found %d volumes with tags %s", ErrTooManyItemsFound, len(volumes), tags)
-	}
+	return volumes, nil
 }
 
 func (c *Client) DeleteInstanceVolume(ctx context.Context, zone scw.Zone, volumeID string) error {

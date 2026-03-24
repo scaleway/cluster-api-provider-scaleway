@@ -30,6 +30,8 @@ import (
 
 const (
 	extraVolumeID    = "22222222-2222-2222-2222-222222222222"
+	blockVolumeID    = "33333333-3333-3333-3333-333333333333"
+	localVolumeID    = "44444444-4444-4444-4444-444444444444"
 	bootVolumeID     = "11111111-1111-1111-1111-111111111111"
 	privateNetworkID = "11111111-1111-1111-1111-111111111111"
 	privateNICID     = "11111111-1111-1111-1111-111111111111"
@@ -159,6 +161,7 @@ func TestService_Reconcile(t *testing.T) {
 					nil,
 					42*scw.GB,
 					instance.VolumeVolumeTypeSbsVolume,
+					nil,
 					tags,
 				).Return(&instance.Server{
 					Name:     "machine",
@@ -227,6 +230,151 @@ func TestService_Reconcile(t *testing.T) {
 					{Type: clusterv1.MachineInternalIP, Address: "10.0.0.1"},
 				}))
 				g.Expect(m.ScalewayMachine.Spec.ProviderID).To(Equal(scw.StringPtr("scaleway://instance/fr-par-1/11111111-1111-1111-1111-111111111111")))
+			},
+		},
+		{
+			name: "create machine with additional block, local and scratch volumes",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: clusterv1.MachineSpec{
+							FailureDomain: "fr-par-1",
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To("bootstrap"),
+							},
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							CommercialType: "DEV1-S",
+							Image: infrav1.Image{
+								IDOrName: infrav1.IDOrName{
+									ID: imageID,
+								},
+							},
+							RootVolume: infrav1.RootVolume{
+								Size: 42,
+							},
+							AdditionalVolumes: []infrav1.AdditionalVolume{
+								{Type: "block", Size: 20, IOPS: 5000},
+								{Type: "local", Size: 10},
+								{Type: "scratch", Size: 50},
+							},
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+							Spec: infrav1.ScalewayClusterSpec{
+								Network: infrav1.ScalewayClusterNetwork{
+									PrivateNetwork: infrav1.PrivateNetworkSpec{
+										Enabled: ptr.To(true),
+									},
+								},
+							},
+							Status: infrav1.ScalewayClusterStatus{
+								Network: infrav1.ScalewayClusterNetworkStatus{
+									PrivateNetworkID: privateNetworkID,
+								},
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+			},
+			objects: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "bootstrap",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"value": []byte(cloudInitBootstrap),
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+				tags := append(clusterTags, "caps-scalewaymachine=machine")
+
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
+				i.FindServer(gomock.Any(), scw.ZoneFrPar1, tags).Return(nil, client.ErrNoItemFound)
+				i.CreateServer(
+					gomock.Any(),
+					scw.ZoneFrPar1,
+					"machine",
+					"DEV1-S",
+					imageID,
+					nil,
+					nil,
+					42*scw.GB,
+					instance.VolumeVolumeTypeSbsVolume,
+					[]scw.Size{50 * scw.GB},
+					tags,
+				).Return(&instance.Server{
+					Name:     "machine",
+					Hostname: "machine",
+					ID:       serverID,
+					Zone:     scw.ZoneFrPar1,
+					State:    instance.ServerStateStopped,
+				}, nil)
+
+				// Additional volumes: block (index 0), local (index 1), scratch (index 2, skipped).
+				i.FindVolumes(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*block.Volume{}, nil)
+				i.CreateVolume(gomock.Any(), scw.ZoneFrPar1, "machine-0", 20*scw.GB, int64(5000), tags).Return(&block.Volume{
+					ID:   blockVolumeID,
+					Name: "machine-0",
+				}, nil)
+				i.AttachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, blockVolumeID, false)
+				i.FindInstanceVolumes(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.Volume{}, nil)
+				i.CreateInstanceVolume(gomock.Any(), scw.ZoneFrPar1, "machine-1", 10*scw.GB, tags).Return(&instance.Volume{
+					ID:   localVolumeID,
+					Name: "machine-1",
+				}, nil)
+				i.AttachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, localVolumeID, true)
+
+				// Private NIC (no public IPs).
+				i.CreatePrivateNIC(gomock.Any(), scw.ZoneFrPar1, serverID, privateNetworkID).Return(&instance.PrivateNIC{
+					ID: privateNICID,
+				}, nil)
+				i.FindPrivateNICIPs(gomock.Any(), privateNICID).Return([]*ipam.IP{
+					{Address: scw.IPNet{IPNet: net.IPNet{IP: net.IPv4(10, 0, 0, 1), Mask: net.CIDRMask(24, 32)}}},
+				}, nil)
+
+				// LB: worker node, so no backend or ACL changes.
+				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
+				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(clusterTags, servicelb.CAPSMainLBTag)).Return(&lb.LB{
+					ID:   lbID,
+					Zone: scw.ZoneFrPar1,
+				}, nil)
+				i.FindLBs(gomock.Any(), append(clusterTags, servicelb.CAPSExtraLBTag)).Return(nil, nil)
+				i.FindFrontend(gomock.Any(), scw.ZoneFrPar1, lbID, servicelb.FrontendName).Return(&lb.Frontend{
+					ID: frontendID,
+				}, nil)
+				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, "machine").Return(nil, client.ErrNoItemFound)
+
+				// Cloud Init
+				i.GetAllServerUserData(gomock.Any(), scw.ZoneFrPar1, serverID).Return(map[string]io.Reader{}, nil)
+				i.SetServerUserData(gomock.Any(), scw.ZoneFrPar1, serverID, cloudInitUserDataKey, cloudInitData)
+
+				// Start
+				i.ServerAction(gomock.Any(), scw.ZoneFrPar1, serverID, instance.ServerActionPoweron)
+			},
+			asserts: func(g *WithT, m *scope.Machine) {
+				g.Expect(m.ScalewayMachine.Spec.ProviderID).To(Equal("scaleway://instance/fr-par-1/11111111-1111-1111-1111-111111111111"))
 			},
 		},
 		{
@@ -510,14 +658,123 @@ func TestService_Delete(t *testing.T) {
 
 				// Volumes detach and remove
 				i.UpdateInstanceVolumeTags(gomock.Any(), scw.ZoneFrPar1, bootVolumeID, tags)
-				i.DetachVolume(gomock.Any(), scw.ZoneFrPar1, bootVolumeID)
-				i.FindVolume(gomock.Any(), scw.ZoneFrPar1, tags).Return(&block.Volume{
-					ID:     bootVolumeID,
-					Status: block.VolumeStatusAvailable,
+				i.FindVolumes(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*block.Volume{
+					{
+						ID:     bootVolumeID,
+						Status: block.VolumeStatusAvailable,
+					},
 				}, nil)
+				i.DetachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, bootVolumeID)
 				i.DeleteVolume(gomock.Any(), scw.ZoneFrPar1, bootVolumeID)
+				i.FindInstanceVolumes(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.Volume{}, nil)
 
-				// Delete serever
+				// Delete server
+				i.DeleteServer(gomock.Any(), scw.ZoneFrPar1, serverID)
+			},
+		},
+		{
+			name: "delete machine with additional block and local volumes",
+			fields: fields{
+				Machine: &scope.Machine{
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: clusterv1.MachineSpec{
+							FailureDomain: "fr-par-1",
+						},
+					},
+					ScalewayMachine: &infrav1.ScalewayMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "machine",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayMachineSpec{
+							CommercialType: "DEV1-S",
+							Image: infrav1.Image{
+								IDOrName: infrav1.IDOrName{
+									ID: imageID,
+								},
+							},
+							RootVolume: infrav1.RootVolume{
+								Type: "local",
+								Size: 42,
+							},
+							AdditionalVolumes: []infrav1.AdditionalVolume{
+								{Type: "block", Size: 20, IOPS: 5000},
+								{Type: "local", Size: 10},
+							},
+							ProviderID: "scaleway://instance/fr-par-1/11111111-1111-1111-1111-111111111111",
+						},
+					},
+					Cluster: &scope.Cluster{
+						ScalewayCluster: &infrav1.ScalewayCluster{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "cluster",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+				tags := append(clusterTags, "caps-scalewaymachine=machine")
+
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
+				i.FindServer(gomock.Any(), scw.ZoneFrPar1, tags).Return(&instance.Server{
+					Name:  "machine",
+					ID:    serverID,
+					Zone:  scw.ZoneFrPar1,
+					State: instance.ServerStateStopped,
+					Volumes: map[string]*instance.VolumeServer{
+						"0": {
+							ID:         bootVolumeID,
+							Boot:       true,
+							VolumeType: instance.VolumeServerVolumeTypeLSSD,
+						},
+						"1": {
+							ID:         blockVolumeID,
+							VolumeType: instance.VolumeServerVolumeTypeSbsVolume,
+						},
+						"2": {
+							ID:         localVolumeID,
+							VolumeType: instance.VolumeServerVolumeTypeLSSD,
+						},
+					},
+				}, nil)
+
+				// No LB found (filtered).
+				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
+				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(clusterTags, servicelb.CAPSMainLBTag)).Return(nil, client.ErrNoItemFound)
+
+				// No public IPs to clean up.
+				i.FindIPs(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.IP{}, nil)
+
+				// Volumes detach and remove.
+				i.UpdateInstanceVolumeTags(gomock.Any(), scw.ZoneFrPar1, bootVolumeID, tags)
+				i.FindVolumes(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*block.Volume{
+					{
+						ID:     blockVolumeID,
+						Status: block.VolumeStatusAvailable,
+					},
+				}, nil)
+				i.DetachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, blockVolumeID)
+				i.DeleteVolume(gomock.Any(), scw.ZoneFrPar1, blockVolumeID)
+				i.FindInstanceVolumes(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.Volume{
+					{
+						ID:    localVolumeID,
+						State: instance.VolumeStateAvailable,
+					},
+				}, nil)
+				i.DetachServerVolume(gomock.Any(), scw.ZoneFrPar1, serverID, localVolumeID)
+				i.DeleteInstanceVolume(gomock.Any(), scw.ZoneFrPar1, localVolumeID)
+
+				// Delete server.
 				i.DeleteServer(gomock.Any(), scw.ZoneFrPar1, serverID)
 			},
 		},
