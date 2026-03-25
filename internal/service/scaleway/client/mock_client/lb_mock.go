@@ -349,6 +349,92 @@ func (c *MockLBAPIDeleteACLCall) DoAndReturn(f func(*lb.ZonedAPIDeleteACLRequest
 	return c
 }
 
+// DeleteBackend mocks base method.
+func (m *MockLBAPI) DeleteBackend(req *lb.ZonedAPIDeleteBackendRequest, opts ...scw.RequestOption) error {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteBackend", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBackend indicates an expected call of DeleteBackend.
+func (mr *MockLBAPIMockRecorder) DeleteBackend(req any, opts ...any) *MockLBAPIDeleteBackendCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBackend", reflect.TypeOf((*MockLBAPI)(nil).DeleteBackend), varargs...)
+	return &MockLBAPIDeleteBackendCall{Call: call}
+}
+
+// MockLBAPIDeleteBackendCall wrap *gomock.Call
+type MockLBAPIDeleteBackendCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBAPIDeleteBackendCall) Return(arg0 error) *MockLBAPIDeleteBackendCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBAPIDeleteBackendCall) Do(f func(*lb.ZonedAPIDeleteBackendRequest, ...scw.RequestOption) error) *MockLBAPIDeleteBackendCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBAPIDeleteBackendCall) DoAndReturn(f func(*lb.ZonedAPIDeleteBackendRequest, ...scw.RequestOption) error) *MockLBAPIDeleteBackendCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DeleteFrontend mocks base method.
+func (m *MockLBAPI) DeleteFrontend(req *lb.ZonedAPIDeleteFrontendRequest, opts ...scw.RequestOption) error {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteFrontend", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteFrontend indicates an expected call of DeleteFrontend.
+func (mr *MockLBAPIMockRecorder) DeleteFrontend(req any, opts ...any) *MockLBAPIDeleteFrontendCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFrontend", reflect.TypeOf((*MockLBAPI)(nil).DeleteFrontend), varargs...)
+	return &MockLBAPIDeleteFrontendCall{Call: call}
+}
+
+// MockLBAPIDeleteFrontendCall wrap *gomock.Call
+type MockLBAPIDeleteFrontendCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBAPIDeleteFrontendCall) Return(arg0 error) *MockLBAPIDeleteFrontendCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBAPIDeleteFrontendCall) Do(f func(*lb.ZonedAPIDeleteFrontendRequest, ...scw.RequestOption) error) *MockLBAPIDeleteFrontendCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBAPIDeleteFrontendCall) DoAndReturn(f func(*lb.ZonedAPIDeleteFrontendRequest, ...scw.RequestOption) error) *MockLBAPIDeleteFrontendCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DeleteLB mocks base method.
 func (m *MockLBAPI) DeleteLB(req *lb.ZonedAPIDeleteLBRequest, opts ...scw.RequestOption) error {
 	m.ctrl.T.Helper()
@@ -876,6 +962,94 @@ func (c *MockLBAPIUpdateACLCall) DoAndReturn(f func(*lb.ZonedAPIUpdateACLRequest
 	return c
 }
 
+// UpdateBackend mocks base method.
+func (m *MockLBAPI) UpdateBackend(req *lb.ZonedAPIUpdateBackendRequest, opts ...scw.RequestOption) (*lb.Backend, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateBackend", varargs...)
+	ret0, _ := ret[0].(*lb.Backend)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateBackend indicates an expected call of UpdateBackend.
+func (mr *MockLBAPIMockRecorder) UpdateBackend(req any, opts ...any) *MockLBAPIUpdateBackendCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBackend", reflect.TypeOf((*MockLBAPI)(nil).UpdateBackend), varargs...)
+	return &MockLBAPIUpdateBackendCall{Call: call}
+}
+
+// MockLBAPIUpdateBackendCall wrap *gomock.Call
+type MockLBAPIUpdateBackendCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBAPIUpdateBackendCall) Return(arg0 *lb.Backend, arg1 error) *MockLBAPIUpdateBackendCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBAPIUpdateBackendCall) Do(f func(*lb.ZonedAPIUpdateBackendRequest, ...scw.RequestOption) (*lb.Backend, error)) *MockLBAPIUpdateBackendCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBAPIUpdateBackendCall) DoAndReturn(f func(*lb.ZonedAPIUpdateBackendRequest, ...scw.RequestOption) (*lb.Backend, error)) *MockLBAPIUpdateBackendCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateHealthCheck mocks base method.
+func (m *MockLBAPI) UpdateHealthCheck(req *lb.ZonedAPIUpdateHealthCheckRequest, opts ...scw.RequestOption) (*lb.HealthCheck, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateHealthCheck", varargs...)
+	ret0, _ := ret[0].(*lb.HealthCheck)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateHealthCheck indicates an expected call of UpdateHealthCheck.
+func (mr *MockLBAPIMockRecorder) UpdateHealthCheck(req any, opts ...any) *MockLBAPIUpdateHealthCheckCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHealthCheck", reflect.TypeOf((*MockLBAPI)(nil).UpdateHealthCheck), varargs...)
+	return &MockLBAPIUpdateHealthCheckCall{Call: call}
+}
+
+// MockLBAPIUpdateHealthCheckCall wrap *gomock.Call
+type MockLBAPIUpdateHealthCheckCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBAPIUpdateHealthCheckCall) Return(arg0 *lb.HealthCheck, arg1 error) *MockLBAPIUpdateHealthCheckCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBAPIUpdateHealthCheckCall) Do(f func(*lb.ZonedAPIUpdateHealthCheckRequest, ...scw.RequestOption) (*lb.HealthCheck, error)) *MockLBAPIUpdateHealthCheckCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBAPIUpdateHealthCheckCall) DoAndReturn(f func(*lb.ZonedAPIUpdateHealthCheckRequest, ...scw.RequestOption) (*lb.HealthCheck, error)) *MockLBAPIUpdateHealthCheckCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Zones mocks base method.
 func (m *MockLBAPI) Zones() []scw.Zone {
 	m.ctrl.T.Helper()
@@ -1169,6 +1343,82 @@ func (c *MockLBCreateLBACLCall) DoAndReturn(f func(context.Context, scw.Zone, st
 	return c
 }
 
+// DeleteBackend mocks base method.
+func (m *MockLB) DeleteBackend(ctx context.Context, zone scw.Zone, backendID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBackend", ctx, zone, backendID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBackend indicates an expected call of DeleteBackend.
+func (mr *MockLBMockRecorder) DeleteBackend(ctx, zone, backendID any) *MockLBDeleteBackendCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBackend", reflect.TypeOf((*MockLB)(nil).DeleteBackend), ctx, zone, backendID)
+	return &MockLBDeleteBackendCall{Call: call}
+}
+
+// MockLBDeleteBackendCall wrap *gomock.Call
+type MockLBDeleteBackendCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBDeleteBackendCall) Return(arg0 error) *MockLBDeleteBackendCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBDeleteBackendCall) Do(f func(context.Context, scw.Zone, string) error) *MockLBDeleteBackendCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBDeleteBackendCall) DoAndReturn(f func(context.Context, scw.Zone, string) error) *MockLBDeleteBackendCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// DeleteFrontend mocks base method.
+func (m *MockLB) DeleteFrontend(ctx context.Context, zone scw.Zone, frontendID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteFrontend", ctx, zone, frontendID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteFrontend indicates an expected call of DeleteFrontend.
+func (mr *MockLBMockRecorder) DeleteFrontend(ctx, zone, frontendID any) *MockLBDeleteFrontendCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFrontend", reflect.TypeOf((*MockLB)(nil).DeleteFrontend), ctx, zone, frontendID)
+	return &MockLBDeleteFrontendCall{Call: call}
+}
+
+// MockLBDeleteFrontendCall wrap *gomock.Call
+type MockLBDeleteFrontendCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBDeleteFrontendCall) Return(arg0 error) *MockLBDeleteFrontendCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBDeleteFrontendCall) Do(f func(context.Context, scw.Zone, string) error) *MockLBDeleteFrontendCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBDeleteFrontendCall) DoAndReturn(f func(context.Context, scw.Zone, string) error) *MockLBDeleteFrontendCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DeleteLB mocks base method.
 func (m *MockLB) DeleteLB(ctx context.Context, zone scw.Zone, id string, releaseIP bool) error {
 	m.ctrl.T.Helper()
@@ -1241,84 +1491,6 @@ func (c *MockLBDeleteLBACLCall) Do(f func(context.Context, scw.Zone, string) err
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockLBDeleteLBACLCall) DoAndReturn(f func(context.Context, scw.Zone, string) error) *MockLBDeleteLBACLCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// FindBackend mocks base method.
-func (m *MockLB) FindBackend(ctx context.Context, zone scw.Zone, lbID, name string) (*lb.Backend, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindBackend", ctx, zone, lbID, name)
-	ret0, _ := ret[0].(*lb.Backend)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindBackend indicates an expected call of FindBackend.
-func (mr *MockLBMockRecorder) FindBackend(ctx, zone, lbID, name any) *MockLBFindBackendCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBackend", reflect.TypeOf((*MockLB)(nil).FindBackend), ctx, zone, lbID, name)
-	return &MockLBFindBackendCall{Call: call}
-}
-
-// MockLBFindBackendCall wrap *gomock.Call
-type MockLBFindBackendCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockLBFindBackendCall) Return(arg0 *lb.Backend, arg1 error) *MockLBFindBackendCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockLBFindBackendCall) Do(f func(context.Context, scw.Zone, string, string) (*lb.Backend, error)) *MockLBFindBackendCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockLBFindBackendCall) DoAndReturn(f func(context.Context, scw.Zone, string, string) (*lb.Backend, error)) *MockLBFindBackendCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// FindFrontend mocks base method.
-func (m *MockLB) FindFrontend(ctx context.Context, zone scw.Zone, lbID, name string) (*lb.Frontend, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindFrontend", ctx, zone, lbID, name)
-	ret0, _ := ret[0].(*lb.Frontend)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindFrontend indicates an expected call of FindFrontend.
-func (mr *MockLBMockRecorder) FindFrontend(ctx, zone, lbID, name any) *MockLBFindFrontendCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindFrontend", reflect.TypeOf((*MockLB)(nil).FindFrontend), ctx, zone, lbID, name)
-	return &MockLBFindFrontendCall{Call: call}
-}
-
-// MockLBFindFrontendCall wrap *gomock.Call
-type MockLBFindFrontendCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockLBFindFrontendCall) Return(arg0 *lb.Frontend, arg1 error) *MockLBFindFrontendCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockLBFindFrontendCall) Do(f func(context.Context, scw.Zone, string, string) (*lb.Frontend, error)) *MockLBFindFrontendCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockLBFindFrontendCall) DoAndReturn(f func(context.Context, scw.Zone, string, string) (*lb.Frontend, error)) *MockLBFindFrontendCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1518,6 +1690,84 @@ func (c *MockLBFindLBsCall) DoAndReturn(f func(context.Context, []string) ([]*lb
 	return c
 }
 
+// ListBackends mocks base method.
+func (m *MockLB) ListBackends(ctx context.Context, zone scw.Zone, lbID string) ([]*lb.Backend, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBackends", ctx, zone, lbID)
+	ret0, _ := ret[0].([]*lb.Backend)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBackends indicates an expected call of ListBackends.
+func (mr *MockLBMockRecorder) ListBackends(ctx, zone, lbID any) *MockLBListBackendsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBackends", reflect.TypeOf((*MockLB)(nil).ListBackends), ctx, zone, lbID)
+	return &MockLBListBackendsCall{Call: call}
+}
+
+// MockLBListBackendsCall wrap *gomock.Call
+type MockLBListBackendsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBListBackendsCall) Return(arg0 []*lb.Backend, arg1 error) *MockLBListBackendsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBListBackendsCall) Do(f func(context.Context, scw.Zone, string) ([]*lb.Backend, error)) *MockLBListBackendsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBListBackendsCall) DoAndReturn(f func(context.Context, scw.Zone, string) ([]*lb.Backend, error)) *MockLBListBackendsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ListFrontends mocks base method.
+func (m *MockLB) ListFrontends(ctx context.Context, zone scw.Zone, lbID string) ([]*lb.Frontend, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListFrontends", ctx, zone, lbID)
+	ret0, _ := ret[0].([]*lb.Frontend)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListFrontends indicates an expected call of ListFrontends.
+func (mr *MockLBMockRecorder) ListFrontends(ctx, zone, lbID any) *MockLBListFrontendsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFrontends", reflect.TypeOf((*MockLB)(nil).ListFrontends), ctx, zone, lbID)
+	return &MockLBListFrontendsCall{Call: call}
+}
+
+// MockLBListFrontendsCall wrap *gomock.Call
+type MockLBListFrontendsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBListFrontendsCall) Return(arg0 []*lb.Frontend, arg1 error) *MockLBListFrontendsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBListFrontendsCall) Do(f func(context.Context, scw.Zone, string) ([]*lb.Frontend, error)) *MockLBListFrontendsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBListFrontendsCall) DoAndReturn(f func(context.Context, scw.Zone, string) ([]*lb.Frontend, error)) *MockLBListFrontendsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // ListLBACLs mocks base method.
 func (m *MockLB) ListLBACLs(ctx context.Context, zone scw.Zone, frontendID string) ([]*lb.ACL, error) {
 	m.ctrl.T.Helper()
@@ -1707,6 +1957,84 @@ func (c *MockLBSetLBACLsCall) Do(f func(context.Context, scw.Zone, string, []*lb
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockLBSetLBACLsCall) DoAndReturn(f func(context.Context, scw.Zone, string, []*lb.ACLSpec) error) *MockLBSetLBACLsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateBackend mocks base method.
+func (m *MockLB) UpdateBackend(ctx context.Context, zone scw.Zone, backendID, name string, port int32) (*lb.Backend, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBackend", ctx, zone, backendID, name, port)
+	ret0, _ := ret[0].(*lb.Backend)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateBackend indicates an expected call of UpdateBackend.
+func (mr *MockLBMockRecorder) UpdateBackend(ctx, zone, backendID, name, port any) *MockLBUpdateBackendCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBackend", reflect.TypeOf((*MockLB)(nil).UpdateBackend), ctx, zone, backendID, name, port)
+	return &MockLBUpdateBackendCall{Call: call}
+}
+
+// MockLBUpdateBackendCall wrap *gomock.Call
+type MockLBUpdateBackendCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBUpdateBackendCall) Return(arg0 *lb.Backend, arg1 error) *MockLBUpdateBackendCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBUpdateBackendCall) Do(f func(context.Context, scw.Zone, string, string, int32) (*lb.Backend, error)) *MockLBUpdateBackendCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBUpdateBackendCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, int32) (*lb.Backend, error)) *MockLBUpdateBackendCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateHealthCheck mocks base method.
+func (m *MockLB) UpdateHealthCheck(ctx context.Context, zone scw.Zone, backendID string, port int32) (*lb.HealthCheck, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHealthCheck", ctx, zone, backendID, port)
+	ret0, _ := ret[0].(*lb.HealthCheck)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateHealthCheck indicates an expected call of UpdateHealthCheck.
+func (mr *MockLBMockRecorder) UpdateHealthCheck(ctx, zone, backendID, port any) *MockLBUpdateHealthCheckCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHealthCheck", reflect.TypeOf((*MockLB)(nil).UpdateHealthCheck), ctx, zone, backendID, port)
+	return &MockLBUpdateHealthCheckCall{Call: call}
+}
+
+// MockLBUpdateHealthCheckCall wrap *gomock.Call
+type MockLBUpdateHealthCheckCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockLBUpdateHealthCheckCall) Return(arg0 *lb.HealthCheck, arg1 error) *MockLBUpdateHealthCheckCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockLBUpdateHealthCheckCall) Do(f func(context.Context, scw.Zone, string, int32) (*lb.HealthCheck, error)) *MockLBUpdateHealthCheckCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockLBUpdateHealthCheckCall) DoAndReturn(f func(context.Context, scw.Zone, string, int32) (*lb.HealthCheck, error)) *MockLBUpdateHealthCheckCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

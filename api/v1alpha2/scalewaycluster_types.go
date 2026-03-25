@@ -1,6 +1,8 @@
 package v1alpha2
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -50,11 +52,8 @@ const (
 	// ScalewayClusterLoadBalancerPrivateNetworkAttachmentFailedReason when the attachment of the load balancers to the private network failed.
 	ScalewayClusterLoadBalancerPrivateNetworkAttachmentFailedReason = PrivateNetworkAttachmentFailedReason
 
-	// ScalewayClusterBackendReconciliationFailedReason surfaces when the backend reconciliation failed.
-	ScalewayClusterBackendReconciliationFailedReason = "BackendReconciliationFailed"
-
-	// ScalewayClusterFrontendReconciliationFailedReason surfaces when the frontend reconciliation failed.
-	ScalewayClusterFrontendReconciliationFailedReason = "FrontendReconciliationFailed"
+	// ScalewayClusterLoadBalancerPortsReconciliationFailedReason surfaces when the load balancer ports reconciliation failed.
+	ScalewayClusterLoadBalancerPortsReconciliationFailedReason = "LoadBalancerPortsReconciliationFailed"
 
 	// ScalewayClusterLoadBalancerACLReconciliationFailedReason surfaces when the load balancer ACL reconciliation failed.
 	ScalewayClusterLoadBalancerACLReconciliationFailedReason = "LoadBalancerACLReconciliationFailed"
@@ -194,6 +193,14 @@ type ControlPlaneLoadBalancer struct {
 	// +optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	Private *bool `json:"private,omitempty"`
+
+	// additionalPorts to expose on the control plane load balancer.
+	// +optional
+	// +listType=map
+	// +listMapKey=port
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	AdditionalPorts []LoadBalancerPort `json:"additionalPorts,omitempty"`
 }
 
 // ControlPlaneDNS defines the DNS configuration of the control plane endpoint.
@@ -234,6 +241,26 @@ type PrivateNetworkSpec struct {
 	// +required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// LoadBalancerPort defines a port to expose on the control plane load balancer.
+type LoadBalancerPort struct {
+	// port is the port number that will be exposed on the load balancer.
+	// +required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port,omitempty"`
+
+	// targetPort is the port number on the control plane nodes to which the traffic will be forwarded.
+	// +required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	TargetPort int32 `json:"targetPort,omitempty"`
+}
+
+// Name returns a unique name for the LoadBalancerPort, which is used as an identifier in the load balancer configuration.
+func (p *LoadBalancerPort) Name() string {
+	return fmt.Sprintf("port-%d", p.Port)
 }
 
 // ScalewayClusterStatus defines the observed state of ScalewayCluster.
