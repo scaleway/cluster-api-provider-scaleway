@@ -227,7 +227,7 @@ ENVTEST_VERSION ?= $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller
 ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
 GOLANGCI_LINT_VERSION ?= v2.1.0
 NILAWAY_VERSION ?= latest
-MOCKGEN_VERSION ?= v0.5.2
+MOCKGEN_VERSION ?= v0.6.0
 ENVSUBST_VERSION ?=latest
 GINKGO_VERSION ?= v2.23.4
 

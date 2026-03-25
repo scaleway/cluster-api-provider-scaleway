@@ -42,6 +42,50 @@ func (m *MockBlockAPI) EXPECT() *MockBlockAPIMockRecorder {
 	return m.recorder
 }
 
+// CreateVolume mocks base method.
+func (m *MockBlockAPI) CreateVolume(req *block.CreateVolumeRequest, opts ...scw.RequestOption) (*block.Volume, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateVolume", varargs...)
+	ret0, _ := ret[0].(*block.Volume)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateVolume indicates an expected call of CreateVolume.
+func (mr *MockBlockAPIMockRecorder) CreateVolume(req any, opts ...any) *MockBlockAPICreateVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVolume", reflect.TypeOf((*MockBlockAPI)(nil).CreateVolume), varargs...)
+	return &MockBlockAPICreateVolumeCall{Call: call}
+}
+
+// MockBlockAPICreateVolumeCall wrap *gomock.Call
+type MockBlockAPICreateVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockBlockAPICreateVolumeCall) Return(arg0 *block.Volume, arg1 error) *MockBlockAPICreateVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockBlockAPICreateVolumeCall) Do(f func(*block.CreateVolumeRequest, ...scw.RequestOption) (*block.Volume, error)) *MockBlockAPICreateVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockBlockAPICreateVolumeCall) DoAndReturn(f func(*block.CreateVolumeRequest, ...scw.RequestOption) (*block.Volume, error)) *MockBlockAPICreateVolumeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DeleteVolume mocks base method.
 func (m *MockBlockAPI) DeleteVolume(req *block.DeleteVolumeRequest, opts ...scw.RequestOption) error {
 	m.ctrl.T.Helper()
@@ -235,6 +279,45 @@ func (m *MockBlock) EXPECT() *MockBlockMockRecorder {
 	return m.recorder
 }
 
+// CreateVolume mocks base method.
+func (m *MockBlock) CreateVolume(ctx context.Context, zone scw.Zone, name string, size scw.Size, iops int64, tags []string) (*block.Volume, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateVolume", ctx, zone, name, size, iops, tags)
+	ret0, _ := ret[0].(*block.Volume)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateVolume indicates an expected call of CreateVolume.
+func (mr *MockBlockMockRecorder) CreateVolume(ctx, zone, name, size, iops, tags any) *MockBlockCreateVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVolume", reflect.TypeOf((*MockBlock)(nil).CreateVolume), ctx, zone, name, size, iops, tags)
+	return &MockBlockCreateVolumeCall{Call: call}
+}
+
+// MockBlockCreateVolumeCall wrap *gomock.Call
+type MockBlockCreateVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockBlockCreateVolumeCall) Return(arg0 *block.Volume, arg1 error) *MockBlockCreateVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockBlockCreateVolumeCall) Do(f func(context.Context, scw.Zone, string, scw.Size, int64, []string) (*block.Volume, error)) *MockBlockCreateVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockBlockCreateVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string, scw.Size, int64, []string) (*block.Volume, error)) *MockBlockCreateVolumeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DeleteVolume mocks base method.
 func (m *MockBlock) DeleteVolume(ctx context.Context, zone scw.Zone, volumeID string) error {
 	m.ctrl.T.Helper()
@@ -273,41 +356,41 @@ func (c *MockBlockDeleteVolumeCall) DoAndReturn(f func(context.Context, scw.Zone
 	return c
 }
 
-// FindVolume mocks base method.
-func (m *MockBlock) FindVolume(ctx context.Context, zone scw.Zone, tags []string) (*block.Volume, error) {
+// FindVolumes mocks base method.
+func (m *MockBlock) FindVolumes(ctx context.Context, zone scw.Zone, tags []string) ([]*block.Volume, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindVolume", ctx, zone, tags)
-	ret0, _ := ret[0].(*block.Volume)
+	ret := m.ctrl.Call(m, "FindVolumes", ctx, zone, tags)
+	ret0, _ := ret[0].([]*block.Volume)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindVolume indicates an expected call of FindVolume.
-func (mr *MockBlockMockRecorder) FindVolume(ctx, zone, tags any) *MockBlockFindVolumeCall {
+// FindVolumes indicates an expected call of FindVolumes.
+func (mr *MockBlockMockRecorder) FindVolumes(ctx, zone, tags any) *MockBlockFindVolumesCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVolume", reflect.TypeOf((*MockBlock)(nil).FindVolume), ctx, zone, tags)
-	return &MockBlockFindVolumeCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVolumes", reflect.TypeOf((*MockBlock)(nil).FindVolumes), ctx, zone, tags)
+	return &MockBlockFindVolumesCall{Call: call}
 }
 
-// MockBlockFindVolumeCall wrap *gomock.Call
-type MockBlockFindVolumeCall struct {
+// MockBlockFindVolumesCall wrap *gomock.Call
+type MockBlockFindVolumesCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockBlockFindVolumeCall) Return(arg0 *block.Volume, arg1 error) *MockBlockFindVolumeCall {
+func (c *MockBlockFindVolumesCall) Return(arg0 []*block.Volume, arg1 error) *MockBlockFindVolumesCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockBlockFindVolumeCall) Do(f func(context.Context, scw.Zone, []string) (*block.Volume, error)) *MockBlockFindVolumeCall {
+func (c *MockBlockFindVolumesCall) Do(f func(context.Context, scw.Zone, []string) ([]*block.Volume, error)) *MockBlockFindVolumesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockBlockFindVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, []string) (*block.Volume, error)) *MockBlockFindVolumeCall {
+func (c *MockBlockFindVolumesCall) DoAndReturn(f func(context.Context, scw.Zone, []string) ([]*block.Volume, error)) *MockBlockFindVolumesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
