@@ -43,6 +43,50 @@ func (m *MockInstanceAPI) EXPECT() *MockInstanceAPIMockRecorder {
 	return m.recorder
 }
 
+// AttachServerVolume mocks base method.
+func (m *MockInstanceAPI) AttachServerVolume(req *instance.AttachServerVolumeRequest, opts ...scw.RequestOption) (*instance.AttachServerVolumeResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AttachServerVolume", varargs...)
+	ret0, _ := ret[0].(*instance.AttachServerVolumeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AttachServerVolume indicates an expected call of AttachServerVolume.
+func (mr *MockInstanceAPIMockRecorder) AttachServerVolume(req any, opts ...any) *MockInstanceAPIAttachServerVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachServerVolume", reflect.TypeOf((*MockInstanceAPI)(nil).AttachServerVolume), varargs...)
+	return &MockInstanceAPIAttachServerVolumeCall{Call: call}
+}
+
+// MockInstanceAPIAttachServerVolumeCall wrap *gomock.Call
+type MockInstanceAPIAttachServerVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInstanceAPIAttachServerVolumeCall) Return(arg0 *instance.AttachServerVolumeResponse, arg1 error) *MockInstanceAPIAttachServerVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInstanceAPIAttachServerVolumeCall) Do(f func(*instance.AttachServerVolumeRequest, ...scw.RequestOption) (*instance.AttachServerVolumeResponse, error)) *MockInstanceAPIAttachServerVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInstanceAPIAttachServerVolumeCall) DoAndReturn(f func(*instance.AttachServerVolumeRequest, ...scw.RequestOption) (*instance.AttachServerVolumeResponse, error)) *MockInstanceAPIAttachServerVolumeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CreateIP mocks base method.
 func (m *MockInstanceAPI) CreateIP(req *instance.CreateIPRequest, opts ...scw.RequestOption) (*instance.CreateIPResponse, error) {
 	m.ctrl.T.Helper()
@@ -171,6 +215,50 @@ func (c *MockInstanceAPICreateServerCall) Do(f func(*instance.CreateServerReques
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInstanceAPICreateServerCall) DoAndReturn(f func(*instance.CreateServerRequest, ...scw.RequestOption) (*instance.CreateServerResponse, error)) *MockInstanceAPICreateServerCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateVolume mocks base method.
+func (m *MockInstanceAPI) CreateVolume(req *instance.CreateVolumeRequest, opts ...scw.RequestOption) (*instance.CreateVolumeResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateVolume", varargs...)
+	ret0, _ := ret[0].(*instance.CreateVolumeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateVolume indicates an expected call of CreateVolume.
+func (mr *MockInstanceAPIMockRecorder) CreateVolume(req any, opts ...any) *MockInstanceAPICreateVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVolume", reflect.TypeOf((*MockInstanceAPI)(nil).CreateVolume), varargs...)
+	return &MockInstanceAPICreateVolumeCall{Call: call}
+}
+
+// MockInstanceAPICreateVolumeCall wrap *gomock.Call
+type MockInstanceAPICreateVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInstanceAPICreateVolumeCall) Return(arg0 *instance.CreateVolumeResponse, arg1 error) *MockInstanceAPICreateVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInstanceAPICreateVolumeCall) Do(f func(*instance.CreateVolumeRequest, ...scw.RequestOption) (*instance.CreateVolumeResponse, error)) *MockInstanceAPICreateVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInstanceAPICreateVolumeCall) DoAndReturn(f func(*instance.CreateVolumeRequest, ...scw.RequestOption) (*instance.CreateVolumeResponse, error)) *MockInstanceAPICreateVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -347,46 +435,46 @@ func (c *MockInstanceAPIDeleteVolumeCall) DoAndReturn(f func(*instance.DeleteVol
 	return c
 }
 
-// DetachVolume mocks base method.
-func (m *MockInstanceAPI) DetachVolume(req *instance.DetachVolumeRequest, opts ...scw.RequestOption) (*instance.DetachVolumeResponse, error) {
+// DetachServerVolume mocks base method.
+func (m *MockInstanceAPI) DetachServerVolume(req *instance.DetachServerVolumeRequest, opts ...scw.RequestOption) (*instance.DetachServerVolumeResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{req}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "DetachVolume", varargs...)
-	ret0, _ := ret[0].(*instance.DetachVolumeResponse)
+	ret := m.ctrl.Call(m, "DetachServerVolume", varargs...)
+	ret0, _ := ret[0].(*instance.DetachServerVolumeResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DetachVolume indicates an expected call of DetachVolume.
-func (mr *MockInstanceAPIMockRecorder) DetachVolume(req any, opts ...any) *MockInstanceAPIDetachVolumeCall {
+// DetachServerVolume indicates an expected call of DetachServerVolume.
+func (mr *MockInstanceAPIMockRecorder) DetachServerVolume(req any, opts ...any) *MockInstanceAPIDetachServerVolumeCall {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{req}, opts...)
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachVolume", reflect.TypeOf((*MockInstanceAPI)(nil).DetachVolume), varargs...)
-	return &MockInstanceAPIDetachVolumeCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachServerVolume", reflect.TypeOf((*MockInstanceAPI)(nil).DetachServerVolume), varargs...)
+	return &MockInstanceAPIDetachServerVolumeCall{Call: call}
 }
 
-// MockInstanceAPIDetachVolumeCall wrap *gomock.Call
-type MockInstanceAPIDetachVolumeCall struct {
+// MockInstanceAPIDetachServerVolumeCall wrap *gomock.Call
+type MockInstanceAPIDetachServerVolumeCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceAPIDetachVolumeCall) Return(arg0 *instance.DetachVolumeResponse, arg1 error) *MockInstanceAPIDetachVolumeCall {
+func (c *MockInstanceAPIDetachServerVolumeCall) Return(arg0 *instance.DetachServerVolumeResponse, arg1 error) *MockInstanceAPIDetachServerVolumeCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceAPIDetachVolumeCall) Do(f func(*instance.DetachVolumeRequest, ...scw.RequestOption) (*instance.DetachVolumeResponse, error)) *MockInstanceAPIDetachVolumeCall {
+func (c *MockInstanceAPIDetachServerVolumeCall) Do(f func(*instance.DetachServerVolumeRequest, ...scw.RequestOption) (*instance.DetachServerVolumeResponse, error)) *MockInstanceAPIDetachServerVolumeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceAPIDetachVolumeCall) DoAndReturn(f func(*instance.DetachVolumeRequest, ...scw.RequestOption) (*instance.DetachVolumeResponse, error)) *MockInstanceAPIDetachVolumeCall {
+func (c *MockInstanceAPIDetachServerVolumeCall) DoAndReturn(f func(*instance.DetachServerVolumeRequest, ...scw.RequestOption) (*instance.DetachServerVolumeResponse, error)) *MockInstanceAPIDetachServerVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -975,6 +1063,44 @@ func (m *MockInstance) EXPECT() *MockInstanceMockRecorder {
 	return m.recorder
 }
 
+// AttachServerVolume mocks base method.
+func (m *MockInstance) AttachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string, local bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AttachServerVolume", ctx, zone, serverID, volumeID, local)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AttachServerVolume indicates an expected call of AttachServerVolume.
+func (mr *MockInstanceMockRecorder) AttachServerVolume(ctx, zone, serverID, volumeID, local any) *MockInstanceAttachServerVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachServerVolume", reflect.TypeOf((*MockInstance)(nil).AttachServerVolume), ctx, zone, serverID, volumeID, local)
+	return &MockInstanceAttachServerVolumeCall{Call: call}
+}
+
+// MockInstanceAttachServerVolumeCall wrap *gomock.Call
+type MockInstanceAttachServerVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInstanceAttachServerVolumeCall) Return(arg0 error) *MockInstanceAttachServerVolumeCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInstanceAttachServerVolumeCall) Do(f func(context.Context, scw.Zone, string, string, bool) error) *MockInstanceAttachServerVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInstanceAttachServerVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, bool) error) *MockInstanceAttachServerVolumeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CreateIP mocks base method.
 func (m *MockInstance) CreateIP(ctx context.Context, zone scw.Zone, ipType instance.IPType, tags []string) (*instance.IP, error) {
 	m.ctrl.T.Helper()
@@ -1010,6 +1136,45 @@ func (c *MockInstanceCreateIPCall) Do(f func(context.Context, scw.Zone, instance
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInstanceCreateIPCall) DoAndReturn(f func(context.Context, scw.Zone, instance.IPType, []string) (*instance.IP, error)) *MockInstanceCreateIPCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateInstanceVolume mocks base method.
+func (m *MockInstance) CreateInstanceVolume(ctx context.Context, zone scw.Zone, name string, size scw.Size, tags []string) (*instance.Volume, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateInstanceVolume", ctx, zone, name, size, tags)
+	ret0, _ := ret[0].(*instance.Volume)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateInstanceVolume indicates an expected call of CreateInstanceVolume.
+func (mr *MockInstanceMockRecorder) CreateInstanceVolume(ctx, zone, name, size, tags any) *MockInstanceCreateInstanceVolumeCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstanceVolume", reflect.TypeOf((*MockInstance)(nil).CreateInstanceVolume), ctx, zone, name, size, tags)
+	return &MockInstanceCreateInstanceVolumeCall{Call: call}
+}
+
+// MockInstanceCreateInstanceVolumeCall wrap *gomock.Call
+type MockInstanceCreateInstanceVolumeCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInstanceCreateInstanceVolumeCall) Return(arg0 *instance.Volume, arg1 error) *MockInstanceCreateInstanceVolumeCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInstanceCreateInstanceVolumeCall) Do(f func(context.Context, scw.Zone, string, scw.Size, []string) (*instance.Volume, error)) *MockInstanceCreateInstanceVolumeCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInstanceCreateInstanceVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string, scw.Size, []string) (*instance.Volume, error)) *MockInstanceCreateInstanceVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1054,18 +1219,18 @@ func (c *MockInstanceCreatePrivateNICCall) DoAndReturn(f func(context.Context, s
 }
 
 // CreateServer mocks base method.
-func (m *MockInstance) CreateServer(ctx context.Context, zone scw.Zone, name, commercialType, imageID string, placementGroupID, securityGroupID *string, rootVolumeSize scw.Size, rootVolumeType instance.VolumeVolumeType, tags []string) (*instance.Server, error) {
+func (m *MockInstance) CreateServer(ctx context.Context, zone scw.Zone, name, commercialType, imageID string, placementGroupID, securityGroupID *string, rootVolumeSize scw.Size, rootVolumeType instance.VolumeVolumeType, scratchVolumeSizes []scw.Size, tags []string) (*instance.Server, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateServer", ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags)
+	ret := m.ctrl.Call(m, "CreateServer", ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, scratchVolumeSizes, tags)
 	ret0, _ := ret[0].(*instance.Server)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateServer indicates an expected call of CreateServer.
-func (mr *MockInstanceMockRecorder) CreateServer(ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags any) *MockInstanceCreateServerCall {
+func (mr *MockInstanceMockRecorder) CreateServer(ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, scratchVolumeSizes, tags any) *MockInstanceCreateServerCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServer", reflect.TypeOf((*MockInstance)(nil).CreateServer), ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, tags)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateServer", reflect.TypeOf((*MockInstance)(nil).CreateServer), ctx, zone, name, commercialType, imageID, placementGroupID, securityGroupID, rootVolumeSize, rootVolumeType, scratchVolumeSizes, tags)
 	return &MockInstanceCreateServerCall{Call: call}
 }
 
@@ -1081,13 +1246,13 @@ func (c *MockInstanceCreateServerCall) Return(arg0 *instance.Server, arg1 error)
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceCreateServerCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string) (*instance.Server, error)) *MockInstanceCreateServerCall {
+func (c *MockInstanceCreateServerCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []scw.Size, []string) (*instance.Server, error)) *MockInstanceCreateServerCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceCreateServerCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []string) (*instance.Server, error)) *MockInstanceCreateServerCall {
+func (c *MockInstanceCreateServerCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, scw.Size, instance.VolumeVolumeType, []scw.Size, []string) (*instance.Server, error)) *MockInstanceCreateServerCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1244,40 +1409,40 @@ func (c *MockInstanceDeleteServerUserDataCall) DoAndReturn(f func(context.Contex
 	return c
 }
 
-// DetachVolume mocks base method.
-func (m *MockInstance) DetachVolume(ctx context.Context, zone scw.Zone, volumeID string) error {
+// DetachServerVolume mocks base method.
+func (m *MockInstance) DetachServerVolume(ctx context.Context, zone scw.Zone, serverID, volumeID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DetachVolume", ctx, zone, volumeID)
+	ret := m.ctrl.Call(m, "DetachServerVolume", ctx, zone, serverID, volumeID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DetachVolume indicates an expected call of DetachVolume.
-func (mr *MockInstanceMockRecorder) DetachVolume(ctx, zone, volumeID any) *MockInstanceDetachVolumeCall {
+// DetachServerVolume indicates an expected call of DetachServerVolume.
+func (mr *MockInstanceMockRecorder) DetachServerVolume(ctx, zone, serverID, volumeID any) *MockInstanceDetachServerVolumeCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachVolume", reflect.TypeOf((*MockInstance)(nil).DetachVolume), ctx, zone, volumeID)
-	return &MockInstanceDetachVolumeCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachServerVolume", reflect.TypeOf((*MockInstance)(nil).DetachServerVolume), ctx, zone, serverID, volumeID)
+	return &MockInstanceDetachServerVolumeCall{Call: call}
 }
 
-// MockInstanceDetachVolumeCall wrap *gomock.Call
-type MockInstanceDetachVolumeCall struct {
+// MockInstanceDetachServerVolumeCall wrap *gomock.Call
+type MockInstanceDetachServerVolumeCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceDetachVolumeCall) Return(arg0 error) *MockInstanceDetachVolumeCall {
+func (c *MockInstanceDetachServerVolumeCall) Return(arg0 error) *MockInstanceDetachServerVolumeCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceDetachVolumeCall) Do(f func(context.Context, scw.Zone, string) error) *MockInstanceDetachVolumeCall {
+func (c *MockInstanceDetachServerVolumeCall) Do(f func(context.Context, scw.Zone, string, string) error) *MockInstanceDetachServerVolumeCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceDetachVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string) error) *MockInstanceDetachVolumeCall {
+func (c *MockInstanceDetachServerVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, string, string) error) *MockInstanceDetachServerVolumeCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1360,41 +1525,41 @@ func (c *MockInstanceFindImageCall) DoAndReturn(f func(context.Context, scw.Zone
 	return c
 }
 
-// FindInstanceVolume mocks base method.
-func (m *MockInstance) FindInstanceVolume(ctx context.Context, zone scw.Zone, tags []string) (*instance.Volume, error) {
+// FindInstanceVolumes mocks base method.
+func (m *MockInstance) FindInstanceVolumes(ctx context.Context, zone scw.Zone, tags []string) ([]*instance.Volume, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindInstanceVolume", ctx, zone, tags)
-	ret0, _ := ret[0].(*instance.Volume)
+	ret := m.ctrl.Call(m, "FindInstanceVolumes", ctx, zone, tags)
+	ret0, _ := ret[0].([]*instance.Volume)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindInstanceVolume indicates an expected call of FindInstanceVolume.
-func (mr *MockInstanceMockRecorder) FindInstanceVolume(ctx, zone, tags any) *MockInstanceFindInstanceVolumeCall {
+// FindInstanceVolumes indicates an expected call of FindInstanceVolumes.
+func (mr *MockInstanceMockRecorder) FindInstanceVolumes(ctx, zone, tags any) *MockInstanceFindInstanceVolumesCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindInstanceVolume", reflect.TypeOf((*MockInstance)(nil).FindInstanceVolume), ctx, zone, tags)
-	return &MockInstanceFindInstanceVolumeCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindInstanceVolumes", reflect.TypeOf((*MockInstance)(nil).FindInstanceVolumes), ctx, zone, tags)
+	return &MockInstanceFindInstanceVolumesCall{Call: call}
 }
 
-// MockInstanceFindInstanceVolumeCall wrap *gomock.Call
-type MockInstanceFindInstanceVolumeCall struct {
+// MockInstanceFindInstanceVolumesCall wrap *gomock.Call
+type MockInstanceFindInstanceVolumesCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockInstanceFindInstanceVolumeCall) Return(arg0 *instance.Volume, arg1 error) *MockInstanceFindInstanceVolumeCall {
+func (c *MockInstanceFindInstanceVolumesCall) Return(arg0 []*instance.Volume, arg1 error) *MockInstanceFindInstanceVolumesCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInstanceFindInstanceVolumeCall) Do(f func(context.Context, scw.Zone, []string) (*instance.Volume, error)) *MockInstanceFindInstanceVolumeCall {
+func (c *MockInstanceFindInstanceVolumesCall) Do(f func(context.Context, scw.Zone, []string) ([]*instance.Volume, error)) *MockInstanceFindInstanceVolumesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInstanceFindInstanceVolumeCall) DoAndReturn(f func(context.Context, scw.Zone, []string) (*instance.Volume, error)) *MockInstanceFindInstanceVolumeCall {
+func (c *MockInstanceFindInstanceVolumesCall) DoAndReturn(f func(context.Context, scw.Zone, []string) ([]*instance.Volume, error)) *MockInstanceFindInstanceVolumesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

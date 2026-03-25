@@ -102,7 +102,9 @@ The `image` field must contain one of the following:
 
 To build your own image, you can use the [Kubernetes image-builder project](https://image-builder.sigs.k8s.io/capi/quickstart).
 
-## Root Volume
+## Volumes management
+
+### Root Volume
 
 During machine creation, a root volume will be provisioned based on the chosen image.
 
@@ -137,6 +139,44 @@ volumes will have 5000 IOPS. Currently, only `5000` and `15000` IOPS are support
 
 For GPU Instances that support [scratch storage](https://www.scaleway.com/en/docs/gpu/how-to/use-scratch-storage-h100-instances/),
 an additional scratch volume is automatically created and attached to the Instance.
+
+### Additional Volumes
+
+Additional volumes can be created and attached to the Instance before it is first started.
+These volumes are automatically deleted when the Instance is deleted.
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: ScalewayMachine
+metadata:
+  name: my-machine
+  namespace: default
+spec:
+  additionalVolumes:
+    - size: 100
+      type: block # can be block, local, or scratch
+      iops: 15000 # can be 5000 or 15000; only applicable for block volumes
+  # some fields were omitted...
+```
+
+The `additionalVolumes` field accepts a list of up to 15 volumes. Each volume supports the following fields:
+
+- `size`: size of the volume in GB (1–10000). Required for `block` and `local` volumes.
+- `type`: type of the volume. Defaults to `block`. Supported values:
+  - `block`: uses Scaleway Block Storage (SBS).
+  - `local`: uses Instance SSD Local Storage (`l_ssd`). Not all commercial types support local volumes.
+  - `scratch`: uses NVMe scratch storage. Available as a paid option on some CPU Instance types.
+    For GPU Instances, scratch storage is free and automatically attached — you do not need to add it here.
+- `iops`: number of IOPS for `block` volumes. Cannot be set for `local` or `scratch` volumes.
+  Currently, only `5000` and `15000` IOPS are supported.
+
+> [!WARNING]
+> The [Scaleway Block CSI driver](https://github.com/scaleway/scaleway-csi) is not
+> supported when `additionalVolumes` contains `block` or `local` volumes. The CSI driver
+> calculates `maxVolumesPerNode` assuming only one system volume is attached, so additional
+> block or local volumes will cause it to miscalculate the available attachment slots,
+> which may result in failed or incorrect volume scheduling. `scratch` volumes are correctly
+> taken into account and do not cause this issue.
 
 ## Public Network
 
