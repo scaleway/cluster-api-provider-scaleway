@@ -89,16 +89,16 @@ Set the following environment variable:
 export SCW_PROJECT_ID="<PROJECT_ID>"
 ```
 
-Use the following command to import the `cluster-api-ubuntu-2404-v1.32.4` image provided by Scaleway:
+Use the following command to import the `cluster-api-ubuntu-2404-v1.34.3` image provided by Scaleway:
 
 > [!WARNING]
 > This image is provided only for testing and should not be used in production.
 
 ```bash
 export SNAPSHOT_ID=$(scw block snapshot import-from-object-storage \
-    name=cluster-api-ubuntu-2404-v1.32.4 \
+    name=cluster-api-ubuntu-2404-v1.34.3 \
     bucket=scwcaps \
-    key=images/cluster-api-ubuntu-2404-v1.32.4.qcow2 \
+    key=images/cluster-api-ubuntu-2404-v1.34.3.qcow2 \
     project-id=${SCW_PROJECT_ID} \
     -o json | jq -r .id)
 ```
@@ -109,11 +109,11 @@ Wait for the snapshot to have the `available` status:
 watch scw block snapshot get ${SNAPSHOT_ID}
 ```
 
-Finally, create an Instance image with the name `cluster-api-ubuntu-2404-v1.32.4` from the previously imported snapshot:
+Finally, create an Instance image with the name `cluster-api-ubuntu-2404-v1.34.3` from the previously imported snapshot:
 
 ```bash
 scw instance image create \
-   name=cluster-api-ubuntu-2404-v1.32.4 \
+   name=cluster-api-ubuntu-2404-v1.34.3 \
    arch=x86_64 \
    snapshot-id=${SNAPSHOT_ID} \
    project-id=${SCW_PROJECT_ID}
@@ -154,7 +154,7 @@ Then, please follow the [Building Images for Scaleway documentation](https://ima
 
    ```bash
    clusterctl generate cluster ${CLUSTER_NAME} \
-      --kubernetes-version v1.32.4 \
+      --kubernetes-version v1.34.3 \
       --control-plane-machine-count 1 \
       --worker-machine-count 1 > my-cluster.yaml
    ```
@@ -191,8 +191,8 @@ Then, please follow the [Building Images for Scaleway documentation](https://ima
    ```bash
    $ kubectl get nodes
    NAME                             STATUS     ROLES           AGE     VERSION
-   my-cluster-control-plane-pxpdl   NotReady   control-plane   3m46s   v1.32.4
-   my-cluster-md-0-bgzv8-5k96v      NotReady   <none>          2m57s   v1.32.4
+   my-cluster-control-plane-pxpdl   NotReady   control-plane   3m46s   v1.34.3
+   my-cluster-md-0-bgzv8-5k96v      NotReady   <none>          2m57s   v1.34.3
    ```
 
 > [!NOTE]
