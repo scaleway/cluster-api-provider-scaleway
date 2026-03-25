@@ -9,9 +9,9 @@ export SCW_PROJECT_ID=${E2E_SCW_PROJECT_ID:?Variable not set or empty}
 
 export SCW_REGION="nl-ams"
 export CONTROL_PLANE_FAILURE_DOMAINS="[nl-ams-1, nl-ams-2, nl-ams-3]"
-export CONTROL_PLANE_MACHINE_IMAGE="cluster-api-ubuntu-2404-v1.32.4"
-export WORKER_MACHINE_IMAGE="cluster-api-ubuntu-2404-v1.32.4"
-export KUBERNETES_VERSION="1.32.4"
+export CONTROL_PLANE_MACHINE_IMAGE="cluster-api-ubuntu-2404-v1.34.3"
+export WORKER_MACHINE_IMAGE="cluster-api-ubuntu-2404-v1.34.3"
+export KUBERNETES_VERSION="1.34.3"
 export CONTROL_PLANE_MACHINE_COMMERCIAL_TYPE="PLAY2-NANO"
 export WORKER_MACHINE_COMMERCIAL_TYPE="PLAY2-NANO"
 

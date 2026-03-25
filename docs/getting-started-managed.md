@@ -91,7 +91,7 @@ export KUBECONFIG=/path/to/your/kubeconfig
 
    ```bash
    clusterctl generate cluster ${CLUSTER_NAME} \
-      --kubernetes-version v1.32.4 \
+      --kubernetes-version v1.34.3 \
       --flavor managed \
       --worker-machine-count 1 > my-cluster.yaml
    ```
@@ -126,5 +126,5 @@ export KUBECONFIG=/path/to/your/kubeconfig
    ```bash
    $ kubectl get nodes
    NAME                                             STATUS   ROLES    AGE     VERSION
-   scw-default-my-cluster-control-my-clust-c8e009   Ready    <none>   4m13s   v1.32.4
+   scw-default-my-cluster-control-my-clust-c8e009   Ready    <none>   4m13s   v1.34.3
    ```
