@@ -444,7 +444,7 @@ func TestService_Reconcile(t *testing.T) {
 			},
 			objects: []runtime.Object{},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {
-				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"} //nolint:prealloc
 				tags := append(clusterTags, "caps-scalewaymachine=machine")
 
 				i.GetZoneOrDefault(scw.StringPtr("fr-par-1")).Return(scw.ZoneFrPar1, nil)
