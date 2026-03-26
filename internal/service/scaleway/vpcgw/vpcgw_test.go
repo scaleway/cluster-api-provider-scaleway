@@ -287,7 +287,7 @@ func TestService_Reconcile(t *testing.T) {
 				},
 			},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {
-				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"} //nolint:prealloc
 
 				// Indexing desired gateways by zone.
 				i.GetZoneOrDefault(scw.StringPtr("fr-par-1")).Return(scw.ZoneFrPar1, nil).Times(4)
