@@ -188,7 +188,7 @@ spec:
                     description: |-
                       Node utilization level, defined as a sum of requested resources divided
                       by capacity, below which a node can be considered for scale down.
-                    format: float
+                    pattern: ^(0(\.[0-9]{1,2})?|1)$
                     type: string
                 type: object
               clusterName:
@@ -562,9 +562,9 @@ spec:
                       scaleDownUtilizationThreshold is the Node utilization level, defined as a
                       sum of requested resources divided by capacity, below which a node can be
                       considered for scale down.
-                    format: float
                     maxLength: 10
                     minLength: 1
+                    pattern: ^(0(\.[0-9]{1,2})?|1)$
                     type: string
                 type: object
               clusterName:

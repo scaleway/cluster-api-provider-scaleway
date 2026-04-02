@@ -134,7 +134,7 @@ type AutoscalerSpec struct {
 
 	// Node utilization level, defined as a sum of requested resources divided
 	// by capacity, below which a node can be considered for scale down.
-	// +kubebuilder:validation:Format="float"
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]{1,2})?|1)$`
 	// +optional
 	ScaleDownUtilizationThreshold *string `json:"scaleDownUtilizationThreshold,omitempty"`
 

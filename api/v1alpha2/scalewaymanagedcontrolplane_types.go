@@ -186,7 +186,7 @@ type Autoscaler struct {
 	// sum of requested resources divided by capacity, below which a node can be
 	// considered for scale down.
 	// +optional
-	// +kubebuilder:validation:Format="float"
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]{1,2})?|1)$`
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10
 	ScaleDownUtilizationThreshold string `json:"scaleDownUtilizationThreshold,omitempty"`
