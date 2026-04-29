@@ -13,6 +13,5 @@ var scalewaymachinetemplatelog = logf.Log.WithName("scalewaymachinetemplate-reso
 
 // SetupScalewayMachineTemplateWebhookWithManager registers the webhook for ScalewayMachineTemplate in the manager.
 func SetupScalewayMachineTemplateWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&infrav1.ScalewayMachineTemplate{}).
-		Complete()
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.ScalewayMachineTemplate{}).Complete()
 }

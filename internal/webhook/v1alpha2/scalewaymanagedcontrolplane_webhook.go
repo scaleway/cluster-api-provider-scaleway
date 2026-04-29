@@ -2,9 +2,7 @@ package v1alpha2
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -18,7 +16,7 @@ var scalewaymanagedcontrolplanelog = logf.Log.WithName("scalewaymanagedcontrolpl
 
 // SetupScalewayManagedControlPlaneWebhookWithManager registers the webhook for ScalewayManagedControlPlane in the manager.
 func SetupScalewayManagedControlPlaneWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&infrav1.ScalewayManagedControlPlane{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.ScalewayManagedControlPlane{}).
 		WithDefaulter(&ScalewayManagedControlPlaneCustomDefaulter{}).
 		Complete()
 }
@@ -34,21 +32,16 @@ type ScalewayManagedControlPlaneCustomDefaulter struct {
 }
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind ScalewayManagedControlPlane.
-func (d *ScalewayManagedControlPlaneCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	scalewaymanagedcontrolplane, ok := obj.(*infrav1.ScalewayManagedControlPlane)
-	if !ok {
-		return fmt.Errorf("expected an ScalewayManagedControlPlane object but got %T", obj)
-	}
+func (d *ScalewayManagedControlPlaneCustomDefaulter) Default(_ context.Context, obj *infrav1.ScalewayManagedControlPlane) error {
+	scalewaymanagedcontrolplanelog.Info("Defaulting for ScalewayManagedControlPlane", "name", obj.GetName())
 
-	scalewaymanagedcontrolplanelog.Info("Defaulting for ScalewayManagedControlPlane", "name", scalewaymanagedcontrolplane.GetName())
-
-	if scalewaymanagedcontrolplane.Spec.ClusterName == "" {
-		name, err := scope.GenerateClusterName(scalewaymanagedcontrolplane)
+	if obj.Spec.ClusterName == "" {
+		name, err := scope.GenerateClusterName(obj)
 		if err != nil {
 			return err
 		}
 
-		scalewaymanagedcontrolplane.Spec.ClusterName = name
+		obj.Spec.ClusterName = name
 	}
 
 	return nil
