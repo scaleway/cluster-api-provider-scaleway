@@ -13,6 +13,5 @@ var scalewayclustertemplatelog = logf.Log.WithName("scalewayclustertemplate-reso
 
 // SetupScalewayClusterTemplateWebhookWithManager registers the webhook for ScalewayClusterTemplate in the manager.
 func SetupScalewayClusterTemplateWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&infrav1.ScalewayClusterTemplate{}).
-		Complete()
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.ScalewayClusterTemplate{}).Complete()
 }
