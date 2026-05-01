@@ -3,7 +3,7 @@ module github.com/scaleway/cluster-api-provider-scaleway
 go 1.25.3
 
 require (
-	github.com/Masterminds/semver/v3 v3.4.0
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.36
