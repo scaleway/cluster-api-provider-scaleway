@@ -46,9 +46,6 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 					EnableIPv4: ptr.To(true),
 					EnableIPv6: ptr.To(false),
 				},
-				PlacementGroup: infrav1.IDOrName{
-					Name: "scaleway-placement-group",
-				},
 				SecurityGroup: infrav1.IDOrName{
 					Name: "scaleway-security-group",
 				},
@@ -138,6 +135,19 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 			ctx := context.Background()
 			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}})
 			By("calling the validateUpdate method with bad template metadata change")
+			_, err := validator.ValidateUpdate(ctx, oldObj, obj)
+			Expect(err).To(HaveOccurred())
+		})
+		It("Should failed if add element to template spec ", func() {
+			oldObj = v1alpha2ScalewayMachineTemplate
+			obj := oldObj.DeepCopy()
+			obj.Spec.Template.Spec.PlacementGroup = infrav1.IDOrName{
+				Name: "scaleway-placement-group",
+			}
+			obj.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
+			ctx := context.Background()
+			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}})
+			By("calling the validateUpdate method with adding element to spec")
 			_, err := validator.ValidateUpdate(ctx, oldObj, obj)
 			Expect(err).To(HaveOccurred())
 		})
