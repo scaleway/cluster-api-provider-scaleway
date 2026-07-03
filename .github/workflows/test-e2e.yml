@@ -9,6 +9,7 @@ on:
 concurrency:
   group: test-e2e
   cancel-in-progress: false
+  queue: max
 
 jobs:
   test-e2e:
