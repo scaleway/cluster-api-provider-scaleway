@@ -24,34 +24,25 @@ const (
 )
 
 // ScalewayMachineSpec defines the desired state of ScalewayMachine.
-// +kubebuilder:validation:XValidation:rule="has(self.rootVolume) == has(oldSelf.rootVolume)",message="rootVolume cannot be added or removed"
-// +kubebuilder:validation:XValidation:rule="has(self.publicNetwork) == has(oldSelf.publicNetwork)",message="publicNetwork cannot be added or removed"
-// +kubebuilder:validation:XValidation:rule="has(self.placementGroup) == has(oldSelf.placementGroup)",message="placementGroup cannot be added or removed"
-// +kubebuilder:validation:XValidation:rule="has(self.securityGroup) == has(oldSelf.securityGroup)",message="securityGroup cannot be added or removed"
-// +kubebuilder:validation:XValidation:rule="has(self.additionalVolumes) == has(oldSelf.additionalVolumes)",message="additionalVolumes cannot be added or removed"
 type ScalewayMachineSpec struct {
 	// providerID must match the provider ID as seen on the node object corresponding to this machine.
 	// +optional
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
 	ProviderID string `json:"providerID,omitempty"`
 
 	// commercialType of instance (e.g. PRO2-S).
 	// +required
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=20
 	CommercialType string `json:"commercialType,omitempty"`
 
 	// image defines an image ID, Name or Label to use to create the instance.
 	// +required
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	Image Image `json:"image,omitempty,omitzero"`
 
 	// rootVolume defines the characteristics of the system (root) volume.
 	// +optional
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	RootVolume RootVolume `json:"rootVolume,omitempty,omitzero"`
 
 	// additionalVolumes to be created and attached to the instance before it's first started.
@@ -60,22 +51,18 @@ type ScalewayMachineSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=15
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	AdditionalVolumes []AdditionalVolume `json:"additionalVolumes,omitempty"`
 
 	// publicNetwork allows attaching public IPs to the instance.
 	// +optional
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	PublicNetwork PublicNetwork `json:"publicNetwork,omitempty,omitzero"`
 
 	// placementGroup allows attaching a Placement Group to the instance.
 	// +optional
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	PlacementGroup IDOrName `json:"placementGroup,omitempty,omitzero"`
 
 	// securityGroup allows attaching a Security Group to the instance.
 	// +optional
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	SecurityGroup IDOrName `json:"securityGroup,omitempty,omitzero"`
 }
 

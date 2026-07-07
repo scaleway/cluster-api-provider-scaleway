@@ -354,17 +354,11 @@ spec:
                 minItems: 1
                 type: array
                 x-kubernetes-list-type: atomic
-                x-kubernetes-validations:
-                - message: Value is immutable
-                  rule: self == oldSelf
               commercialType:
                 description: commercialType of instance (e.g. PRO2-S).
                 maxLength: 20
                 minLength: 1
                 type: string
-                x-kubernetes-validations:
-                - message: Value is immutable
-                  rule: self == oldSelf
               image:
                 allOf:
                 - maxProperties: 1
@@ -391,9 +385,6 @@ spec:
                     minLength: 1
                     type: string
                 type: object
-                x-kubernetes-validations:
-                - message: Value is immutable
-                  rule: self == oldSelf
               placementGroup:
                 description: placementGroup allows attaching a Placement Group to
                   the instance.
@@ -412,18 +403,12 @@ spec:
                     minLength: 1
                     type: string
                 type: object
-                x-kubernetes-validations:
-                - message: Value is immutable
-                  rule: self == oldSelf
               providerID:
                 description: providerID must match the provider ID as seen on the
                   node object corresponding to this machine.
                 maxLength: 512
                 minLength: 1
                 type: string
-                x-kubernetes-validations:
-                - message: Value is immutable
-                  rule: self == oldSelf
               publicNetwork:
                 description: publicNetwork allows attaching public IPs to the instance.
                 minProperties: 1
@@ -437,9 +422,6 @@ spec:
                       IPv6 created and attached.
                     type: boolean
                 type: object
-                x-kubernetes-validations:
-                - message: Value is immutable
-                  rule: self == oldSelf
               rootVolume:
                 description: rootVolume defines the characteristics of the system
                   (root) volume.
@@ -469,8 +451,6 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-validations:
-                - message: Value is immutable
-                  rule: self == oldSelf
                 - message: iops can only be set for block volumes
                   rule: '!has(self.iops) || has(self.type) && self.type == ''block'''
               securityGroup:
@@ -491,24 +471,10 @@ spec:
                     minLength: 1
                     type: string
                 type: object
-                x-kubernetes-validations:
-                - message: Value is immutable
-                  rule: self == oldSelf
             required:
             - commercialType
             - image
             type: object
-            x-kubernetes-validations:
-            - message: rootVolume cannot be added or removed
-              rule: has(self.rootVolume) == has(oldSelf.rootVolume)
-            - message: publicNetwork cannot be added or removed
-              rule: has(self.publicNetwork) == has(oldSelf.publicNetwork)
-            - message: placementGroup cannot be added or removed
-              rule: has(self.placementGroup) == has(oldSelf.placementGroup)
-            - message: securityGroup cannot be added or removed
-              rule: has(self.securityGroup) == has(oldSelf.securityGroup)
-            - message: additionalVolumes cannot be added or removed
-              rule: has(self.additionalVolumes) == has(oldSelf.additionalVolumes)
           status:
             description: status defines the observed state of ScalewayMachine
             minProperties: 1
