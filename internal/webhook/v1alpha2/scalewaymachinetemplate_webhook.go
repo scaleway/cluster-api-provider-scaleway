@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/util/compare"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api/util/topology"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/util/compare"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 )

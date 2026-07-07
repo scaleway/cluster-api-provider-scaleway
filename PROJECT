@@ -95,6 +95,7 @@ resources:
     conversion: true
     spoke:
     - v1alpha1
+    validation: true
     webhookVersion: v1
 - api:
     crdVersion: v1
@@ -121,6 +122,7 @@ resources:
     conversion: true
     spoke:
     - v1alpha1
+    validation: true
     webhookVersion: v1
 - api:
     crdVersion: v1
