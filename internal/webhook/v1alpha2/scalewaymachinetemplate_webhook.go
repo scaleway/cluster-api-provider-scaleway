@@ -11,9 +11,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/scaleway/cluster-api-provider-scaleway/internal/util/compare"
-
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
+	"github.com/scaleway/cluster-api-provider-scaleway/internal/util/compare"
 )
 
 // nolint:unused

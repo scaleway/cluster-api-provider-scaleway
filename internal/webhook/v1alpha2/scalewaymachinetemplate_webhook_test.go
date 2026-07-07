@@ -6,8 +6,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	admissionv1 "k8s.io/api/admission/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -57,7 +58,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 			},
 		}
 		v1alpha2ScalewayMachineTemplate = &infrav1.ScalewayMachineTemplate{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-machine-template",
 			},
 			Spec: infrav1.ScalewayMachineTemplateSpec{
