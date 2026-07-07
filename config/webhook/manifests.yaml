@@ -38,8 +38,7 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha2-scalewaymachine
   failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.scalewaymachine.infrastructure.cluster.x-k8s.io
+  name: vscalewaymachine-v1alpha2.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -59,8 +58,7 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha2-scalewaymachinetemplate
   failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.scalewaymachinetemplate.infrastructure.cluster.x-k8s.io
+  name: vscalewaymachinetemplate-v1alpha2.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io

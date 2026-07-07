@@ -26,7 +26,7 @@ import (
 
 // Diff uses cmp.Diff to compare x and y.
 // If cmp.Diff panics, Equal returns an error.
-func Diff(x any, y any) (equal bool, diff string, matchErr error) {
+func Diff(x any, y any, opts ...cmp.Option) (equal bool, diff string, matchErr error) {
 	defer func() {
 		if r := recover(); r != nil {
 			equal = false
@@ -44,7 +44,7 @@ func Diff(x any, y any) (equal bool, diff string, matchErr error) {
 		}
 	}()
 
-	diff = cmp.Diff(x, y)
+	diff = cmp.Diff(x, y, opts...)
 
 	if diff != "" {
 		// Replace non-breaking space (NBSP) through a regular space.
