@@ -5,9 +5,11 @@ on:
     branches: [ "main", "release-*" ]
   workflow_dispatch:
 
+# Avoid orphan/garbage resources on Scaleway
 concurrency:
   group: test-e2e
   cancel-in-progress: false
+  queue: max
 
 jobs:
   test-e2e:
@@ -15,10 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone the code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
