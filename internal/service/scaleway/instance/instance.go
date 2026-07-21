@@ -85,6 +85,10 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 
 	// Ensure the server configuration when the node has never joined the cluster.
 	if !s.HasJoinedCluster() {
+		if err := s.setResourceTagsToBootVolume(ctx, server); err != nil {
+			return fmt.Errorf("failed to add resource tags to boot volume: %w", err)
+		}
+
 		if err := s.ensureAdditionalVolumes(ctx, server); err != nil {
 			return fmt.Errorf("failed to ensure additional volumes: %w", err)
 		}
@@ -818,8 +822,7 @@ func (s *Service) ensureNoPublicIPs(ctx context.Context, server *instance.Server
 	return nil
 }
 
-func (s *Service) ensureSystemVolumesDeleted(ctx context.Context, server *instance.Server) error {
-	// First: tag the boot volume to mark it for deletion.
+func (s *Service) setResourceTagsToBootVolume(ctx context.Context, server *instance.Server) error {
 	for _, vol := range server.Volumes {
 		if !vol.Boot {
 			continue
@@ -835,10 +838,19 @@ func (s *Service) ensureSystemVolumesDeleted(ctx context.Context, server *instan
 				return err
 			}
 		default:
-			return fmt.Errorf("cannot detach unsupported boot volume with type %s", vol.VolumeType)
+			return fmt.Errorf("cannot update unsupported boot volume with type %s", vol.VolumeType)
 		}
 
 		break
+	}
+
+	return nil
+}
+
+func (s *Service) ensureSystemVolumesDeleted(ctx context.Context, server *instance.Server) error {
+	// First: tag the boot volume to mark it for deletion.
+	if err := s.setResourceTagsToBootVolume(ctx, server); err != nil {
+		return err
 	}
 
 	volumesNotDeleted := make([]string, 0)
