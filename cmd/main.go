@@ -200,23 +200,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controller.NewScalewayClusterReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
+	if err = controller.NewScalewayClusterReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr, ctrlcontroller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayCluster")
 		os.Exit(1)
 	}
-	if err = controller.NewScalewayMachineReconciler(mgr.GetClient()).SetupWithManager(mgr); err != nil {
+	if err = controller.NewScalewayMachineReconciler(mgr.GetClient()).SetupWithManager(mgr, ctrlcontroller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayMachine")
 		os.Exit(1)
 	}
-	if err := controller.NewScalewayManagedClusterReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
+	if err := controller.NewScalewayManagedClusterReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr, ctrlcontroller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedCluster")
 		os.Exit(1)
 	}
-	if err := controller.NewScalewayManagedControlPlaneReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
+	if err := controller.NewScalewayManagedControlPlaneReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr, ctrlcontroller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedControlPlane")
 		os.Exit(1)
 	}
-	if err := controller.NewScalewayManagedMachinePoolReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr); err != nil {
+	if err := controller.NewScalewayManagedMachinePoolReconciler(mgr.GetClient()).SetupWithManager(ctx, mgr, ctrlcontroller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ScalewayManagedMachinePool")
 		os.Exit(1)
 	}
