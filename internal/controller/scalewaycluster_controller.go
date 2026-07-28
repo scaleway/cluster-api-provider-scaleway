@@ -13,6 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -185,7 +186,7 @@ func (r *ScalewayClusterReconciler) reconcileNormal(ctx context.Context, cluster
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ScalewayClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *ScalewayClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.ScalewayCluster{}).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), mgr.GetLogger())).
@@ -195,6 +196,7 @@ func (r *ScalewayClusterReconciler) SetupWithManager(ctx context.Context, mgr ct
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("ScalewayCluster"), mgr.GetClient(), &infrav1.ScalewayCluster{})),
 			builder.WithPredicates(predicates.ClusterPausedTransitions(mgr.GetScheme(), mgr.GetLogger())),
 		).
+		WithOptions(options).
 		Named("scalewaycluster").
 		Complete(r)
 }

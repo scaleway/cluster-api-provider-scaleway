@@ -13,6 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -34,7 +35,7 @@ type ScalewayMachineReconciler struct {
 // scalewayMachineServiceCreator is a function that creates a new scalewayMachineService reconciler.
 type scalewayMachineServiceCreator func(machineScope *scope.Machine) *scalewayMachineService
 
-// NewScalewayClusterReconciler returns a new ScalewayClusterReconciler.
+// NewScalewayMachineReconciler returns a new ScalewayMachineReconciler.
 func NewScalewayMachineReconciler(c client.Client) *ScalewayMachineReconciler {
 	return &ScalewayMachineReconciler{
 		Client:                       c,
@@ -207,7 +208,7 @@ func (r *ScalewayMachineReconciler) reconcileDelete(ctx context.Context, machine
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ScalewayMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ScalewayMachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.ScalewayMachine{}).
 		// Watch for changes to Machine and enqueue requests for ScalewayMachine
@@ -217,6 +218,7 @@ func (r *ScalewayMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("ScalewayMachine"))),
 			builder.WithPredicates(MachineUpdateNodeRefAvailable()),
 		).
+		WithOptions(options).
 		Named("scalewaymachine").
 		Complete(r)
 }

@@ -16,6 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -191,7 +192,7 @@ func (r *ScalewayManagedMachinePoolReconciler) reconcileDelete(ctx context.Conte
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ScalewayManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *ScalewayManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	scalewayManagedMachinePoolMapper, err := util.ClusterToTypedObjectsMapper(r.Client, &infrav1.ScalewayManagedMachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return fmt.Errorf("failed to create mapper for Cluster to ScalewayManagedMachinePools: %w", err)
@@ -217,6 +218,7 @@ func (r *ScalewayManagedMachinePoolReconciler) SetupWithManager(ctx context.Cont
 			handler.EnqueueRequestsFromMapFunc(scalewayManagedMachinePoolMapper),
 			builder.WithPredicates(predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), mgr.GetLogger())),
 		).
+		WithOptions(options).
 		Complete(r)
 }
 
