@@ -51,6 +51,9 @@ linters:
           - lll
         path: test/e2e/*
       - linters:
+          - lll
+        path: cmd/main.go
+      - linters:
           - dupl
           - lll
         path: internal/*
