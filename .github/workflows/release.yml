@@ -19,12 +19,12 @@ jobs:
       - name: Set env
         run: echo "RELEASE_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ env.RELEASE_TAG }}
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: generate release artifacts
@@ -32,7 +32,7 @@ jobs:
           IMG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.RELEASE_TAG }}
         run: make release
       - name: Release
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # tag=v2.6.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # tag=v3.0.2
         with:
           prerelease: true
           generate_release_notes: true
