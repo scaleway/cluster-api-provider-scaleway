@@ -1,6 +1,6 @@
 module github.com/scaleway/cluster-api-provider-scaleway
 
-go 1.25.3
+go 1.26.0
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
@@ -11,7 +11,7 @@ require (
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.37
 	github.com/spf13/pflag v1.0.10
 	go.uber.org/mock v0.6.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	k8s.io/api v0.35.4
 	k8s.io/apiextensions-apiserver v0.35.4
 	k8s.io/apimachinery v0.35.4
