@@ -58,9 +58,9 @@ func (s *scalewayClusterService) reconcile(ctx context.Context) error {
 
 // Delete reconciles all the services in a predetermined order.
 func (s *scalewayClusterService) delete(ctx context.Context) error {
-	for i := len(s.services) - 1; i >= 0; i-- {
-		if err := s.services[i].Delete(ctx); err != nil {
-			return fmt.Errorf("failed to delete ScalewayCluster service %s: %w", s.services[i].Name(), err)
+	for _, service := range slices.Backward(s.services) {
+		if err := service.Delete(ctx); err != nil {
+			return fmt.Errorf("failed to delete ScalewayCluster service %s: %w", service.Name(), err)
 		}
 	}
 

@@ -11,13 +11,13 @@ var _ = Describe("ScalewayMachine Webhook", func() {
 	var (
 		obj       *infrav1.ScalewayMachine
 		oldObj    *infrav1.ScalewayMachine
-		validator ScalewayMachineCustomValidator
+		validator ScalewayMachineValidator
 	)
 
 	BeforeEach(func() {
 		obj = &infrav1.ScalewayMachine{}
 		oldObj = &infrav1.ScalewayMachine{}
-		validator = ScalewayMachineCustomValidator{}
+		validator = ScalewayMachineValidator{}
 		Expect(validator).NotTo(BeNil(), "Expected validator to be initialized")
 		Expect(oldObj).NotTo(BeNil(), "Expected oldObj to be initialized")
 		Expect(obj).NotTo(BeNil(), "Expected obj to be initialized")

@@ -3,6 +3,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
@@ -77,7 +78,7 @@ func (m *ManagedMachinePool) PatchObject(ctx context.Context) error {
 	}
 
 	return m.patchHelper.Patch(ctx, m.ScalewayManagedMachinePool, patch.WithOwnedConditions{
-		Conditions: append(summaryConditions, infrav1.ScalewayManagedMachinePoolReadyCondition),
+		Conditions: slices.Concat(summaryConditions, []string{infrav1.ScalewayManagedMachinePoolReadyCondition}),
 	})
 }
 
@@ -147,7 +148,7 @@ func (c *ManagedMachinePool) RootVolumeSizeGB() *uint64 {
 		return nil
 	}
 
-	return ptr.To(uint64(c.ScalewayManagedMachinePool.Spec.RootVolumeSizeGB))
+	return new(uint64(c.ScalewayManagedMachinePool.Spec.RootVolumeSizeGB))
 }
 
 func (c *ManagedMachinePool) SetProviderIDs(nodes []*k8s.Node) {
@@ -165,7 +166,7 @@ func (c *ManagedMachinePool) SetProviderIDs(nodes []*k8s.Node) {
 }
 
 func (c *ManagedMachinePool) SetStatusReplicas(replicas uint32) {
-	c.ScalewayManagedMachinePool.Status.Replicas = ptr.To(int32(replicas))
+	c.ScalewayManagedMachinePool.Status.Replicas = new(int32(replicas))
 }
 
 func (c *ManagedMachinePool) RootVolumeType() k8s.PoolVolumeType {
@@ -202,7 +203,7 @@ func (m *ManagedMachinePool) PlacementGroupID() *string {
 		return nil
 	}
 
-	return ptr.To(string(m.ScalewayManagedMachinePool.Spec.PlacementGroupID))
+	return new(string(m.ScalewayManagedMachinePool.Spec.PlacementGroupID))
 }
 
 func (m *ManagedMachinePool) SecurityGroupID() *string {
@@ -210,5 +211,5 @@ func (m *ManagedMachinePool) SecurityGroupID() *string {
 		return nil
 	}
 
-	return ptr.To(string(m.ScalewayManagedMachinePool.Spec.SecurityGroupID))
+	return new(string(m.ScalewayManagedMachinePool.Spec.SecurityGroupID))
 }

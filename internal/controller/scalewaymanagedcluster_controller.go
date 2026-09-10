@@ -7,7 +7,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -158,7 +157,7 @@ func (r *ScalewayManagedClusterReconciler) reconcileNormal(ctx context.Context, 
 
 	// Infrastructure must be ready before control plane. We should also enqueue
 	// requests from control plane to infra cluster to keep control plane endpoint accurate.
-	s.ScalewayManagedCluster.Status.Initialization.Provisioned = ptr.To(true)
+	s.ScalewayManagedCluster.Status.Initialization.Provisioned = new(true)
 	s.ScalewayManagedCluster.Spec.ControlPlaneEndpoint = s.ScalewayManagedControlPlane.Spec.ControlPlaneEndpoint
 
 	return ctrl.Result{}, nil

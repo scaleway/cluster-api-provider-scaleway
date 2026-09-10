@@ -17,22 +17,21 @@ var scalewaymanagedcontrolplanelog = logf.Log.WithName("scalewaymanagedcontrolpl
 // SetupScalewayManagedControlPlaneWebhookWithManager registers the webhook for ScalewayManagedControlPlane in the manager.
 func SetupScalewayManagedControlPlaneWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.ScalewayManagedControlPlane{}).
-		WithDefaulter(&ScalewayManagedControlPlaneCustomDefaulter{}).
+		WithDefaulter(&ScalewayManagedControlPlaneDefaulter{}).
 		Complete()
 }
 
 // +kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha2-scalewaymanagedcontrolplane,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=scalewaymanagedcontrolplanes,verbs=create;update,versions=v1alpha2,name=mscalewaymanagedcontrolplane-v1alpha2.kb.io,admissionReviewVersions=v1
 
-// ScalewayManagedControlPlaneCustomDefaulter struct is responsible for setting default values on the custom resource of the
+// ScalewayManagedControlPlaneDefaulter struct is responsible for setting default values on the custom resource of the
 // Kind ScalewayManagedControlPlane when those are created or updated.
 //
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as it is used only for temporary operations and does not need to be deeply copied.
-type ScalewayManagedControlPlaneCustomDefaulter struct {
-}
+type ScalewayManagedControlPlaneDefaulter struct{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind ScalewayManagedControlPlane.
-func (d *ScalewayManagedControlPlaneCustomDefaulter) Default(_ context.Context, obj *infrav1.ScalewayManagedControlPlane) error {
+// Default implements admission.Defaulter so a webhook will be registered for the Kind ScalewayManagedControlPlane.
+func (d *ScalewayManagedControlPlaneDefaulter) Default(_ context.Context, obj *infrav1.ScalewayManagedControlPlane) error {
 	scalewaymanagedcontrolplanelog.Info("Defaulting for ScalewayManagedControlPlane", "name", obj.GetName())
 
 	if obj.Spec.ClusterName == "" {

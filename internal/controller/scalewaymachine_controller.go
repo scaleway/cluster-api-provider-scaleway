@@ -182,7 +182,7 @@ func (r *ScalewayMachineReconciler) reconcileNormal(ctx context.Context, machine
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile machine services: %w", err)
 	}
 
-	scalewayMachine.Status.Initialization.Provisioned = ptr.To(true)
+	scalewayMachine.Status.Initialization.Provisioned = new(true)
 
 	return ctrl.Result{}, nil
 }

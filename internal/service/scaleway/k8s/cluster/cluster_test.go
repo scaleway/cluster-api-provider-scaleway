@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -76,7 +75,7 @@ func TestService_Reconcile(t *testing.T) {
 						},
 						Status: infrav1.ScalewayManagedClusterStatus{
 							Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
-								Provisioned: ptr.To(true),
+								Provisioned: new(true),
 							},
 							Network: infrav1.ScalewayManagedClusterNetworkStatus{
 								PrivateNetworkID: infrav1.UUID("11111111-1111-1111-1111-111111111111"),
@@ -107,21 +106,21 @@ func TestService_Reconcile(t *testing.T) {
 					"default-controlplane",
 					"kapsule",
 					"1.31.1",
-					ptr.To(privateNetworkID),
+					new(privateNetworkID),
 					[]string{"caps-namespace=default", "caps-scalewaymanagedcontrolplane=controlplane"},
 					nil,
 					nil,
 					nil,
 					k8s.CNICilium,
 					&k8s.CreateClusterRequestAutoscalerConfig{
-						ScaleDownDisabled:             ptr.To(false),
-						ScaleDownDelayAfterAdd:        ptr.To("10m"),
+						ScaleDownDisabled:             new(false),
+						ScaleDownDelayAfterAdd:        new("10m"),
 						Estimator:                     k8s.AutoscalerEstimatorBinpacking,
 						Expander:                      k8s.AutoscalerExpanderRandom,
-						IgnoreDaemonsetsUtilization:   ptr.To(false),
-						BalanceSimilarNodeGroups:      ptr.To(false),
+						IgnoreDaemonsetsUtilization:   new(false),
+						BalanceSimilarNodeGroups:      new(false),
 						ExpendablePodsPriorityCutoff:  scw.Int32Ptr(-10),
-						ScaleDownUnneededTime:         ptr.To("10m"),
+						ScaleDownUnneededTime:         new("10m"),
 						ScaleDownUtilizationThreshold: scw.Float32Ptr(0.5),
 						MaxGracefulTerminationSec:     scw.Uint32Ptr(600),
 					},
@@ -133,9 +132,9 @@ func TestService_Reconcile(t *testing.T) {
 						},
 					},
 					&k8s.CreateClusterRequestOpenIDConnectConfig{
-						UsernameClaim:  ptr.To(""),
-						UsernamePrefix: ptr.To(""),
-						GroupsPrefix:   ptr.To(""),
+						UsernameClaim:  new(""),
+						UsernamePrefix: new(""),
+						GroupsPrefix:   new(""),
 						GroupsClaim:    &[]string{},
 						RequiredClaim:  &[]string{},
 					},
@@ -220,7 +219,7 @@ func TestService_Reconcile(t *testing.T) {
 						},
 						Status: infrav1.ScalewayManagedClusterStatus{
 							Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
-								Provisioned: ptr.To(true),
+								Provisioned: new(true),
 							},
 							Network: infrav1.ScalewayManagedClusterNetworkStatus{
 								PrivateNetworkID: infrav1.UUID("11111111-1111-1111-1111-111111111111"),
@@ -245,9 +244,9 @@ func TestService_Reconcile(t *testing.T) {
 						Status: infrav1.ScalewayManagedControlPlaneStatus{
 							Version: "v1.31.1",
 							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
-								ControlPlaneInitialized: ptr.To(true),
+								ControlPlaneInitialized: new(true),
 							},
-							ExternalManagedControlPlane: ptr.To(true),
+							ExternalManagedControlPlane: new(true),
 						},
 					},
 				},
@@ -367,9 +366,9 @@ func TestService_Delete(t *testing.T) {
 						Status: infrav1.ScalewayManagedControlPlaneStatus{
 							Version: "v1.31.1",
 							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
-								ControlPlaneInitialized: ptr.To(true),
+								ControlPlaneInitialized: new(true),
 							},
-							ExternalManagedControlPlane: ptr.To(true),
+							ExternalManagedControlPlane: new(true),
 						},
 					},
 				},
@@ -403,15 +402,15 @@ func TestService_Delete(t *testing.T) {
 								Port: 6443,
 							},
 							OnDelete: infrav1.OnDelete{
-								WithAdditionalResources: ptr.To(true),
+								WithAdditionalResources: new(true),
 							},
 						},
 						Status: infrav1.ScalewayManagedControlPlaneStatus{
 							Version: "v1.31.1",
 							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
-								ControlPlaneInitialized: ptr.To(true),
+								ControlPlaneInitialized: new(true),
 							},
-							ExternalManagedControlPlane: ptr.To(true),
+							ExternalManagedControlPlane: new(true),
 						},
 					},
 				},

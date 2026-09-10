@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -80,7 +81,7 @@ func (m *ManagedControlPlane) PatchObject(ctx context.Context) error {
 	}
 
 	return m.patchHelper.Patch(ctx, m.ScalewayManagedControlPlane, patch.WithOwnedConditions{
-		Conditions: append(summaryConditions, infrav1.ScalewayManagedControlPlaneReadyCondition),
+		Conditions: slices.Concat(summaryConditions, []string{infrav1.ScalewayManagedControlPlaneReadyCondition}),
 	})
 }
 
@@ -106,7 +107,7 @@ func (m *ManagedControlPlane) PrivateNetworkID() *string {
 		return nil
 	}
 
-	return ptr.To(string(m.ScalewayManagedCluster.Status.Network.PrivateNetworkID))
+	return new(string(m.ScalewayManagedCluster.Status.Network.PrivateNetworkID))
 }
 
 // DeleteWithAdditionalResources returns true if we should tell Scaleway k8s API

@@ -1,6 +1,16 @@
-version: v2.7.2
+# This file configures golangci-lint with module plugins.
+# When you run 'make lint', it will automatically build a custom golangci-lint binary
+# with all the plugins listed below.
+#
+# See: https://golangci-lint.run/plugins/module-plugins/
+version: v2.13.1
 name: golangci-lint-kube-api-linter
 destination: ./bin
 plugins:
-- module: 'sigs.k8s.io/kube-api-linter'
-  version: v0.0.0-20260206102632-39e3d06a2850
+  # logcheck validates structured logging calls and parameters (e.g., balanced key-value pairs)
+  - module: "sigs.k8s.io/logtools"
+    import: "sigs.k8s.io/logtools/logcheck/gclplugin"
+    version: latest
+  # kube-api-linter lints Kube-like APIs based on API conventions (used by 'make lint-api')
+  - module: "sigs.k8s.io/kube-api-linter"
+    version: v0.0.0-20260206102632-39e3d06a2850

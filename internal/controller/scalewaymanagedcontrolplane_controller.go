@@ -153,8 +153,8 @@ func (r *ScalewayManagedControlPlaneReconciler) reconcileNormal(ctx context.Cont
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile cluster services: %w", err)
 	}
 
-	s.ScalewayManagedControlPlane.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
-	s.ScalewayManagedControlPlane.Status.ExternalManagedControlPlane = ptr.To(true)
+	s.ScalewayManagedControlPlane.Status.Initialization.ControlPlaneInitialized = new(true)
+	s.ScalewayManagedControlPlane.Status.ExternalManagedControlPlane = new(true)
 	s.ScalewayManagedControlPlane.Spec.Version = s.FixedVersion()
 
 	return ctrl.Result{}, nil

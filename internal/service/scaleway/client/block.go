@@ -40,7 +40,7 @@ func (c *Client) CreateVolume(ctx context.Context, zone scw.Zone, name string, s
 	}
 
 	if iops != 0 {
-		req.PerfIops = scw.Uint32Ptr(uint32(iops))
+		req.PerfIops = new(uint32(iops))
 	}
 
 	volume, err := c.block.CreateVolume(req, scw.WithContext(ctx))
@@ -59,7 +59,7 @@ func (c *Client) UpdateVolumeIOPS(ctx context.Context, zone scw.Zone, volumeID s
 	if _, err := c.block.UpdateVolume(&block.UpdateVolumeRequest{
 		Zone:     zone,
 		VolumeID: volumeID,
-		PerfIops: scw.Uint32Ptr(uint32(iops)),
+		PerfIops: new(uint32(iops)),
 	}, scw.WithContext(ctx)); err != nil {
 		return newCallError("UpdateVolume", err)
 	}

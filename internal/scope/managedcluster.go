@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,7 +64,7 @@ func (m *ManagedCluster) PatchObject(ctx context.Context) error {
 	}
 
 	return m.patchHelper.Patch(ctx, m.ScalewayManagedCluster, patch.WithOwnedConditions{
-		Conditions: append(summaryConditions, infrav1.ScalewayManagedClusterReadyCondition),
+		Conditions: slices.Concat(summaryConditions, []string{infrav1.ScalewayManagedClusterReadyCondition}),
 	})
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
@@ -59,7 +58,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 							},
 						},
@@ -97,7 +96,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 							},
 						},
@@ -140,7 +139,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 									PrivateNetwork: infrav1.PrivateNetwork{
 										ID: infrav1.UUID(privateNetworkID),
 									},
@@ -233,7 +232,7 @@ func TestService_Delete(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 							},
 						},
@@ -268,7 +267,7 @@ func TestService_Delete(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 									PrivateNetwork: infrav1.PrivateNetwork{
 										ID: infrav1.UUID(privateNetworkID),
 									},

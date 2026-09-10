@@ -2,13 +2,13 @@ package vpcgw
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
@@ -139,7 +139,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 							},
 						},
@@ -168,7 +168,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 							},
 						},
@@ -202,7 +202,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								PublicGateways: []infrav1.PublicGateway{
 									{Zone: infrav1.ScalewayZone("fr-par-1")},
@@ -270,7 +270,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								PublicGateways: []infrav1.PublicGateway{
 									{Zone: infrav1.ScalewayZone("fr-par-1")},
@@ -324,7 +324,7 @@ func TestService_Reconcile(t *testing.T) {
 					scw.ZoneFrPar1,
 					"cluster-2", "",
 					tags,
-					ptr.To(ipID),
+					new(ipID),
 				).Return(&vpcgw.Gateway{
 					ID:     gwID3,
 					Name:   "cluster-2",
@@ -336,7 +336,7 @@ func TestService_Reconcile(t *testing.T) {
 					gomock.Any(),
 					scw.ZoneFrPar1,
 					"cluster-3", "",
-					append(tags, capsManagedIPTag),
+					slices.Concat(tags, []string{capsManagedIPTag}),
 					nil,
 				).Return(&vpcgw.Gateway{
 					ID:     gwID4,
@@ -361,7 +361,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								PublicGateways: []infrav1.PublicGateway{
 									{Zone: infrav1.ScalewayZone("fr-par-1"), Type: "VPC-GW-S"},
@@ -492,7 +492,7 @@ func TestService_Delete(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								PublicGateways: []infrav1.PublicGateway{
 									{Zone: infrav1.ScalewayZone("fr-par-1")},

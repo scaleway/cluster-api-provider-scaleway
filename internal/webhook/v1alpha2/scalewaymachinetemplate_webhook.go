@@ -19,24 +19,24 @@ import (
 // log is for logging in this package.
 var scalewaymachinetemplatelog = logf.Log.WithName("scalewaymachinetemplate-resource")
 
-// ScalewayMachineTemplateCustomValidator struct is responsible for validating the ScalewayMachineTemplate resource
+// ScalewayMachineTemplateValidator struct is responsible for validating the ScalewayMachineTemplate resource
 // when it is created, updated, or deleted.
 //
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as this struct is used only for temporary operations and does not need to be deeply copied.
-type ScalewayMachineTemplateCustomValidator struct{}
+type ScalewayMachineTemplateValidator struct{}
 
 // SetupScalewayMachineTemplateWebhookWithManager registers the webhook for ScalewayMachineTemplate in the manager.
 func SetupScalewayMachineTemplateWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr, &infrav1.ScalewayMachineTemplate{}).
-		WithValidator(&ScalewayMachineTemplateCustomValidator{}).
+		WithValidator(&ScalewayMachineTemplateValidator{}).
 		Complete()
 }
 
 // +kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1alpha2-scalewaymachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=scalewaymachinetemplates,verbs=create;update,versions=v1alpha2,name=vscalewaymachinetemplate-v1alpha2.kb.io,admissionReviewVersions=v1
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type ScalewayMachineTemplate.
-func (v *ScalewayMachineTemplateCustomValidator) ValidateCreate(_ context.Context, obj *infrav1.ScalewayMachineTemplate) (admission.Warnings, error) {
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type ScalewayMachineTemplate.
+func (v *ScalewayMachineTemplateValidator) ValidateCreate(_ context.Context, obj *infrav1.ScalewayMachineTemplate) (admission.Warnings, error) {
 	scalewaymachinetemplatelog.Info("Validation for ScalewayMachineTemplate upon creation", "name", obj.GetName())
 	// Validate the metadata of the template.
 	allErrs := obj.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))
@@ -46,8 +46,8 @@ func (v *ScalewayMachineTemplateCustomValidator) ValidateCreate(_ context.Contex
 	return nil, nil
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type ScalewayMachineTemplate.
-func (v *ScalewayMachineTemplateCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj *infrav1.ScalewayMachineTemplate) (admission.Warnings, error) {
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type ScalewayMachineTemplate.
+func (v *ScalewayMachineTemplateValidator) ValidateUpdate(ctx context.Context, oldObj, newObj *infrav1.ScalewayMachineTemplate) (admission.Warnings, error) {
 	scalewaymachinetemplatelog.Info("Validation for ScalewayMachineTemplate upon update", "name", newObj.GetName())
 	req, err := admission.RequestFromContext(ctx)
 	if err != nil {
@@ -79,8 +79,8 @@ func (v *ScalewayMachineTemplateCustomValidator) ValidateUpdate(ctx context.Cont
 	return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("ScalewayMachineTemplate").GroupKind(), newObj.Name, allErrs)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type ScalewayMachineTemplate.
-func (v *ScalewayMachineTemplateCustomValidator) ValidateDelete(_ context.Context, obj *infrav1.ScalewayMachineTemplate) (admission.Warnings, error) {
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type ScalewayMachineTemplate.
+func (v *ScalewayMachineTemplateValidator) ValidateDelete(_ context.Context, obj *infrav1.ScalewayMachineTemplate) (admission.Warnings, error) {
 	scalewaymachinetemplatelog.Info("Validation for ScalewayMachineTemplate upon deletion", "name", obj.GetName())
 	return nil, nil
 }

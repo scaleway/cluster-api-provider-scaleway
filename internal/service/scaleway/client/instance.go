@@ -9,7 +9,6 @@ import (
 
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
-	"k8s.io/utils/ptr"
 )
 
 type InstanceAPI interface {
@@ -125,7 +124,7 @@ func (c *Client) CreateServer(
 		Zone:              zone,
 		Name:              name,
 		CommercialType:    commercialType,
-		DynamicIPRequired: ptr.To(false),
+		DynamicIPRequired: new(false),
 		Image:             &imageID,
 		PlacementGroup:    placementGroupID,
 		SecurityGroup:     securityGroupID,
@@ -133,7 +132,7 @@ func (c *Client) CreateServer(
 			"0": {
 				Size:       &rootVolumeSize,
 				VolumeType: rootVolumeType,
-				Boot:       ptr.To(true),
+				Boot:       new(true),
 			},
 		},
 		Tags: append(tags, createdByTag),
@@ -161,7 +160,7 @@ func (c *Client) CreateServer(
 			}
 
 			req.Volumes[fmt.Sprintf("%d", i+1)] = &instance.VolumeServerTemplate{
-				Name:       ptr.To(fmt.Sprintf("%s-scratch-%d", name, i)),
+				Name:       new(fmt.Sprintf("%s-scratch-%d", name, i)),
 				Size:       &scratchVolumeSize,
 				VolumeType: instance.VolumeVolumeTypeScratch,
 			}
@@ -192,8 +191,8 @@ func (c *Client) FindImage(ctx context.Context, zone scw.Zone, name string) (*in
 	resp, err := c.instance.ListImages(&instance.ListImagesRequest{
 		Zone:    zone,
 		Project: &c.projectID,
-		Name:    ptr.To(name),
-		Public:  ptr.To(false),
+		Name:    new(name),
+		Public:  new(false),
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListImages", err)
