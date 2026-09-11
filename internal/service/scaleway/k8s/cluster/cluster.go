@@ -13,7 +13,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -227,8 +226,8 @@ func (s *Service) getOrCreateCluster(ctx context.Context) (*k8s.Cluster, error) 
 				UsernameClaim:  &oidcConfig.UsernameClaim,
 				UsernamePrefix: &oidcConfig.UsernamePrefix,
 				GroupsPrefix:   &oidcConfig.GroupsPrefix,
-				GroupsClaim:    ptr.To(makeSliceIfNeeded(oidcConfig.GroupsClaim)),
-				RequiredClaim:  ptr.To(makeSliceIfNeeded(oidcConfig.RequiredClaim)),
+				GroupsClaim:    new(makeSliceIfNeeded(oidcConfig.GroupsClaim)),
+				RequiredClaim:  new(makeSliceIfNeeded(oidcConfig.RequiredClaim)),
 			},
 			podCIDR,
 			serviceCIDR,
@@ -248,25 +247,25 @@ func (s *Service) updateCluster(ctx context.Context, cluster *k8s.Cluster) (bool
 	var tags *[]string
 	if !common.SlicesEqualIgnoreOrder(client.TagsWithoutCreatedBy(cluster.Tags), s.DesiredTags()) {
 		updateNeeded = true
-		tags = ptr.To(s.DesiredTags())
+		tags = new(s.DesiredTags())
 	}
 
 	var featureGates *[]string
 	if !common.SlicesEqualIgnoreOrder(cluster.FeatureGates, smmp.Spec.FeatureGates) {
 		updateNeeded = true
-		featureGates = ptr.To(makeSliceIfNeeded(smmp.Spec.FeatureGates))
+		featureGates = new(makeSliceIfNeeded(smmp.Spec.FeatureGates))
 	}
 
 	var admissionPlugins *[]string
 	if !common.SlicesEqualIgnoreOrder(cluster.AdmissionPlugins, smmp.Spec.AdmissionPlugins) {
 		updateNeeded = true
-		admissionPlugins = ptr.To(makeSliceIfNeeded(smmp.Spec.AdmissionPlugins))
+		admissionPlugins = new(makeSliceIfNeeded(smmp.Spec.AdmissionPlugins))
 	}
 
 	var apiServerCertSANs *[]string
 	if !common.SlicesEqualIgnoreOrder(cluster.ApiserverCertSans, smmp.Spec.APIServerCertSANs) {
 		updateNeeded = true
-		apiServerCertSANs = ptr.To(makeSliceIfNeeded(smmp.Spec.APIServerCertSANs))
+		apiServerCertSANs = new(makeSliceIfNeeded(smmp.Spec.APIServerCertSANs))
 	}
 
 	var autoscalerConfig *k8s.UpdateClusterRequestAutoscalerConfig
@@ -310,8 +309,8 @@ func (s *Service) updateCluster(ctx context.Context, cluster *k8s.Cluster) (bool
 			UsernameClaim:  &desiredOIDCConfig.UsernameClaim,
 			UsernamePrefix: &desiredOIDCConfig.UsernamePrefix,
 			GroupsPrefix:   &desiredOIDCConfig.GroupsPrefix,
-			GroupsClaim:    ptr.To(makeSliceIfNeeded(desiredOIDCConfig.GroupsClaim)),
-			RequiredClaim:  ptr.To(makeSliceIfNeeded(desiredOIDCConfig.RequiredClaim)),
+			GroupsClaim:    new(makeSliceIfNeeded(desiredOIDCConfig.GroupsClaim)),
+			RequiredClaim:  new(makeSliceIfNeeded(desiredOIDCConfig.RequiredClaim)),
 		}
 	}
 
@@ -361,7 +360,7 @@ func (s *Service) updateClusterACLs(ctx context.Context, cluster *k8s.Cluster) (
 
 	if currentScalewayRanges {
 		request = append(request, &k8s.ACLRuleRequest{
-			ScalewayRanges: ptr.To(true),
+			ScalewayRanges: new(true),
 		})
 	}
 

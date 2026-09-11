@@ -7,7 +7,6 @@ import (
 
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
-	"k8s.io/utils/ptr"
 )
 
 type K8sAPI interface {
@@ -221,7 +220,7 @@ func (c *Client) SetClusterType(ctx context.Context, id, clusterType string) err
 func (c *Client) FindPool(ctx context.Context, clusterID, name string) (*k8s.Pool, error) {
 	resp, err := c.k8s.ListPools(&k8s.ListPoolsRequest{
 		ClusterID: clusterID,
-		Name:      ptr.To(name),
+		Name:      new(name),
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {
 		return nil, newCallError("ListPools", err)
@@ -260,7 +259,7 @@ func (c *Client) CreatePool(
 ) (*k8s.Pool, error) {
 	var rootVolumeSize *scw.Size
 	if rootVolumeSizeGB != nil {
-		rootVolumeSize = ptr.To(scw.Size(*rootVolumeSizeGB) * scw.GB)
+		rootVolumeSize = new(scw.Size(*rootVolumeSizeGB) * scw.GB)
 	}
 
 	pool, err := c.k8s.CreatePool(&k8s.CreatePoolRequest{

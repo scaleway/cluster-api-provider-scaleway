@@ -69,6 +69,8 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet setup-envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e | grep -v /mock) -coverprofile cover.out
 
+# kubectl kuberc is disabled by default for e2e test isolation; enable with:
+# - KUBECTL_KUBERC=true
 KIND_CLUSTER ?= caps-e2e
 KIND_KUBECONFIG ?= /tmp/caps-e2e-kubeconfig
 
@@ -95,7 +97,7 @@ generate-e2e: kustomize ## Generate templates for e2e
 .PHONY: test-e2e
 test-e2e: setup-test-e2e generate-e2e docker-build envsubst ginkgo build-installer fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
 	MANAGER_IMAGE=$(IMG) $(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
-	KIND_CLUSTER=$(KIND_CLUSTER) KUBECONFIG=$(KIND_KUBECONFIG) $(GINKGO) run -v --nodes=2 --focus=$(E2E_FOCUS) ./test/e2e/ -- \
+	KIND_CLUSTER=$(KIND_CLUSTER) KUBECONFIG=$(KIND_KUBECONFIG) $(GINKGO) run -v --tags=e2e --nodes=2 --focus=$(E2E_FOCUS) ./test/e2e/ -- \
 		-e2e.config $(E2E_CONF_FILE_ENVSUBST) \
 		-e2e.use-existing-cluster \
 		-e2e.artifacts-folder=$(E2E_ARTIFACTS)
@@ -142,9 +144,11 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
+# Override BASE_IMAGE to build from another registry, e.g.
+# make docker-build IMG=<img> BASE_IMAGE=docker.io/library/golang:1.26
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+	$(CONTAINER_TOOL) build $(if $(BASE_IMAGE),--build-arg BASE_IMAGE=$(BASE_IMAGE)) -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -163,7 +167,7 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
 	- $(CONTAINER_TOOL) buildx create --name cluster-api-provider-scaleway-builder
 	$(CONTAINER_TOOL) buildx use cluster-api-provider-scaleway-builder
-	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
+	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) $(if $(BASE_IMAGE),--build-arg BASE_IMAGE=$(BASE_IMAGE)) --tag ${IMG} -f Dockerfile.cross .
 	- $(CONTAINER_TOOL) buildx rm cluster-api-provider-scaleway-builder
 	rm Dockerfile.cross
 
@@ -233,18 +237,18 @@ CONVERSION_GEN ?= $(LOCALBIN)/conversion-gen
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.8.1
-CONTROLLER_TOOLS_VERSION ?= v0.20.1
-GOLANGCI_LINT_VERSION ?= v2.7.2
+CONTROLLER_TOOLS_VERSION ?= v0.22.0
+GOLANGCI_LINT_VERSION ?= v2.13.1
 NILAWAY_VERSION ?= latest
 MOCKGEN_VERSION ?= v0.6.0
 ENVSUBST_VERSION ?=latest
 GINKGO_VERSION ?= v2.28.1
 CONVERSION_GEN_VERSION ?= v0.35.1
 
-#ENVTEST_VERSION is the version of controller-runtime release branch to fetch the envtest setup script (i.e. release-0.20)
+#ENVTEST_VERSION is the controller-runtime version to use for setup-envtest, derived from go.mod
 ENVTEST_VERSION ?= $(shell v='$(call gomodver,sigs.k8s.io/controller-runtime)'; \
   [ -n "$$v" ] || { echo "Set ENVTEST_VERSION manually (controller-runtime replace has no tag)" >&2; exit 1; }; \
-  printf '%s\n' "$$v" | sed -E 's/^v?([0-9]+)\.([0-9]+).*/release-\1.\2/')
+  printf '%s\n' "$$v")
 
 #ENVTEST_K8S_VERSION is the version of Kubernetes to use for setting up ENVTEST binaries (i.e. 1.31)
 ENVTEST_K8S_VERSION ?= $(shell v='$(call gomodver,k8s.io/api)'; \
@@ -283,6 +287,11 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+	@test -f .custom-gcl.yml && { \
+		echo "Building custom golangci-lint with plugins..." && \
+		$(GOLANGCI_LINT) custom --destination $(LOCALBIN) --name golangci-lint-custom && \
+		mv -f $(LOCALBIN)/golangci-lint-custom $(GOLANGCI_LINT); \
+	} || true
 
 .PHONY: nilaway
 nilaway: $(NILAWAY) ## Download nilaway locally if necessary.

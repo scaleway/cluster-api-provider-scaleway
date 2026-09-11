@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"slices"
 	"strings"
 	"testing"
 
@@ -19,7 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -90,7 +90,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							FailureDomain: "fr-par-1",
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("bootstrap"),
+								DataSecretName: new("bootstrap"),
 							},
 						},
 					},
@@ -107,8 +107,8 @@ func TestService_Reconcile(t *testing.T) {
 								},
 							},
 							PublicNetwork: infrav1.PublicNetwork{
-								EnableIPv4: ptr.To(true),
-								EnableIPv6: ptr.To(true),
+								EnableIPv4: new(true),
+								EnableIPv6: new(true),
 							},
 							RootVolume: infrav1.RootVolume{
 								Size: 42,
@@ -124,7 +124,7 @@ func TestService_Reconcile(t *testing.T) {
 							Spec: infrav1.ScalewayClusterSpec{
 								Network: infrav1.ScalewayClusterNetwork{
 									PrivateNetwork: infrav1.PrivateNetworkSpec{
-										Enabled: ptr.To(true),
+										Enabled: new(true),
 									},
 									ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
 										AdditionalPorts: []infrav1.LoadBalancerPort{{
@@ -159,7 +159,7 @@ func TestService_Reconcile(t *testing.T) {
 			},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {
 				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
-				tags := append(clusterTags, "caps-scalewaymachine=machine")
+				tags := slices.Concat(clusterTags, []string{"caps-scalewaymachine=machine"})
 
 				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
 				i.FindServer(gomock.Any(), scw.ZoneFrPar1, tags).Return(nil, client.ErrNoItemFound)
@@ -211,11 +211,11 @@ func TestService_Reconcile(t *testing.T) {
 
 				// LB configuration
 				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil) // Get main LB zone.
-				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(clusterTags, servicelb.CAPSMainLBTag)).Return(&lb.LB{
+				i.FindLB(gomock.Any(), scw.ZoneFrPar1, slices.Concat(clusterTags, []string{servicelb.CAPSMainLBTag})).Return(&lb.LB{
 					ID:   lbID,
 					Zone: scw.ZoneFrPar1,
 				}, nil)
-				i.FindLBs(gomock.Any(), append(clusterTags, servicelb.CAPSExtraLBTag)).Return(nil, nil)
+				i.FindLBs(gomock.Any(), slices.Concat(clusterTags, []string{servicelb.CAPSExtraLBTag})).Return(nil, nil)
 				i.ListBackends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Backend{
 					{
 						ID:   backendID,
@@ -273,7 +273,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							FailureDomain: "fr-par-1",
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("bootstrap"),
+								DataSecretName: new("bootstrap"),
 							},
 						},
 					},
@@ -309,7 +309,7 @@ func TestService_Reconcile(t *testing.T) {
 							Spec: infrav1.ScalewayClusterSpec{
 								Network: infrav1.ScalewayClusterNetwork{
 									PrivateNetwork: infrav1.PrivateNetworkSpec{
-										Enabled: ptr.To(true),
+										Enabled: new(true),
 									},
 								},
 							},
@@ -338,7 +338,7 @@ func TestService_Reconcile(t *testing.T) {
 			},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {
 				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
-				tags := append(clusterTags, "caps-scalewaymachine=machine")
+				tags := slices.Concat(clusterTags, []string{"caps-scalewaymachine=machine"})
 
 				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
 				i.FindServer(gomock.Any(), scw.ZoneFrPar1, tags).Return(nil, client.ErrNoItemFound)
@@ -386,11 +386,11 @@ func TestService_Reconcile(t *testing.T) {
 
 				// LB: worker node, so no backend or ACL changes.
 				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
-				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(clusterTags, servicelb.CAPSMainLBTag)).Return(&lb.LB{
+				i.FindLB(gomock.Any(), scw.ZoneFrPar1, slices.Concat(clusterTags, []string{servicelb.CAPSMainLBTag})).Return(&lb.LB{
 					ID:   lbID,
 					Zone: scw.ZoneFrPar1,
 				}, nil)
-				i.FindLBs(gomock.Any(), append(clusterTags, servicelb.CAPSExtraLBTag)).Return(nil, nil)
+				i.FindLBs(gomock.Any(), slices.Concat(clusterTags, []string{servicelb.CAPSExtraLBTag})).Return(nil, nil)
 				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Frontend{{ID: frontendID}}, nil)
 				i.FindLBACLByName(gomock.Any(), scw.ZoneFrPar1, frontendID, "machine").Return(nil, client.ErrNoItemFound)
 
@@ -418,7 +418,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							FailureDomain: "fr-par-1",
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("bootstrap"),
+								DataSecretName: new("bootstrap"),
 							},
 						},
 						Status: clusterv1.MachineStatus{
@@ -440,8 +440,8 @@ func TestService_Reconcile(t *testing.T) {
 								},
 							},
 							PublicNetwork: infrav1.PublicNetwork{
-								EnableIPv4: ptr.To(true),
-								EnableIPv6: ptr.To(true),
+								EnableIPv4: new(true),
+								EnableIPv6: new(true),
 							},
 							RootVolume: infrav1.RootVolume{
 								Size: 42,
@@ -458,7 +458,7 @@ func TestService_Reconcile(t *testing.T) {
 							Spec: infrav1.ScalewayClusterSpec{
 								Network: infrav1.ScalewayClusterNetwork{
 									PrivateNetwork: infrav1.PrivateNetworkSpec{
-										Enabled: ptr.To(true),
+										Enabled: new(true),
 									},
 								},
 							},
@@ -477,7 +477,7 @@ func TestService_Reconcile(t *testing.T) {
 			objects: []runtime.Object{},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {
 				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
-				tags := append(clusterTags, "caps-scalewaymachine=machine")
+				tags := slices.Concat(clusterTags, []string{"caps-scalewaymachine=machine"})
 
 				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
 				i.FindServer(gomock.Any(), scw.ZoneFrPar1, tags).Return(&instance.Server{
@@ -571,7 +571,7 @@ func TestService_Delete(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							FailureDomain: "fr-par-1",
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("bootstrap"),
+								DataSecretName: new("bootstrap"),
 							},
 						},
 						Status: clusterv1.MachineStatus{
@@ -593,8 +593,8 @@ func TestService_Delete(t *testing.T) {
 								},
 							},
 							PublicNetwork: infrav1.PublicNetwork{
-								EnableIPv4: ptr.To(true),
-								EnableIPv6: ptr.To(true),
+								EnableIPv4: new(true),
+								EnableIPv6: new(true),
 							},
 							RootVolume: infrav1.RootVolume{
 								Size: 42,
@@ -611,7 +611,7 @@ func TestService_Delete(t *testing.T) {
 							Spec: infrav1.ScalewayClusterSpec{
 								Network: infrav1.ScalewayClusterNetwork{
 									PrivateNetwork: infrav1.PrivateNetworkSpec{
-										Enabled: ptr.To(true),
+										Enabled: new(true),
 									},
 								},
 							},
@@ -629,7 +629,7 @@ func TestService_Delete(t *testing.T) {
 			},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {
 				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
-				tags := append(clusterTags, "caps-scalewaymachine=machine")
+				tags := slices.Concat(clusterTags, []string{"caps-scalewaymachine=machine"})
 
 				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
 				i.FindServer(gomock.Any(), scw.ZoneFrPar1, tags).Return(&instance.Server{
@@ -660,11 +660,11 @@ func TestService_Delete(t *testing.T) {
 
 				// LB config
 				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
-				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(clusterTags, servicelb.CAPSMainLBTag)).Return(&lb.LB{
+				i.FindLB(gomock.Any(), scw.ZoneFrPar1, slices.Concat(clusterTags, []string{servicelb.CAPSMainLBTag})).Return(&lb.LB{
 					ID:   lbID,
 					Zone: scw.ZoneFrPar1,
 				}, nil)
-				i.FindLBs(gomock.Any(), append(clusterTags, servicelb.CAPSExtraLBTag)).Return(nil, nil)
+				i.FindLBs(gomock.Any(), slices.Concat(clusterTags, []string{servicelb.CAPSExtraLBTag})).Return(nil, nil)
 				i.ListFrontends(gomock.Any(), scw.ZoneFrPar1, lbID).Return([]*lb.Frontend{{
 					ID:   frontendID,
 					Name: servicelb.APIServerPortName,
@@ -755,7 +755,7 @@ func TestService_Delete(t *testing.T) {
 			},
 			expect: func(i *mock_client.MockInterfaceMockRecorder) {
 				clusterTags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
-				tags := append(clusterTags, "caps-scalewaymachine=machine")
+				tags := slices.Concat(clusterTags, []string{"caps-scalewaymachine=machine"})
 
 				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
 				i.FindServer(gomock.Any(), scw.ZoneFrPar1, tags).Return(&instance.Server{
@@ -782,7 +782,7 @@ func TestService_Delete(t *testing.T) {
 
 				// No LB found (filtered).
 				i.GetZoneOrDefault("").Return(scw.ZoneFrPar1, nil)
-				i.FindLB(gomock.Any(), scw.ZoneFrPar1, append(clusterTags, servicelb.CAPSMainLBTag)).Return(nil, client.ErrNoItemFound)
+				i.FindLB(gomock.Any(), scw.ZoneFrPar1, slices.Concat(clusterTags, []string{servicelb.CAPSMainLBTag})).Return(nil, client.ErrNoItemFound)
 
 				// No public IPs to clean up.
 				i.FindIPs(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.IP{}, nil)

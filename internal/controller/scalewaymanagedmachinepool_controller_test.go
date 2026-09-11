@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -243,7 +242,7 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 					},
 					Status: infrav1.ScalewayManagedClusterStatus{
 						Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
-							Provisioned: ptr.To(true),
+							Provisioned: new(true),
 						},
 					},
 				},
@@ -379,7 +378,7 @@ func TestScalewayManagedMachinePoolReconciler_Reconcile(t *testing.T) {
 					},
 					Status: infrav1.ScalewayManagedClusterStatus{
 						Initialization: infrav1.ScalewayManagedClusterInitializationStatus{
-							Provisioned: ptr.To(true),
+							Provisioned: new(true),
 						},
 					},
 				},

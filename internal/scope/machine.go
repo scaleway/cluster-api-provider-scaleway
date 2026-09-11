@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
@@ -74,7 +75,7 @@ func (m *Machine) PatchObject(ctx context.Context) error {
 	}
 
 	return m.patchHelper.Patch(ctx, m.ScalewayMachine, patch.WithOwnedConditions{
-		Conditions: append(summaryConditions, infrav1.ScalewayMachineReadyCondition),
+		Conditions: slices.Concat(summaryConditions, []string{infrav1.ScalewayMachineReadyCondition}),
 	})
 }
 

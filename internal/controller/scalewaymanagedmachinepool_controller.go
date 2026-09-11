@@ -8,7 +8,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -163,8 +162,8 @@ func (r *ScalewayManagedMachinePoolReconciler) reconcileNormal(ctx context.Conte
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile cluster services: %w", err)
 	}
 
-	s.ScalewayManagedMachinePool.Status.Initialization.Provisioned = ptr.To(true)
-	s.ScalewayManagedMachinePool.Status.Ready = ptr.To(true)
+	s.ScalewayManagedMachinePool.Status.Initialization.Provisioned = new(true)
+	s.ScalewayManagedMachinePool.Status.Ready = new(true)
 
 	return ctrl.Result{}, nil
 }

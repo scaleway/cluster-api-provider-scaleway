@@ -17,7 +17,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -307,7 +306,7 @@ func (s *Service) placementGroupID(ctx context.Context, zone scw.Zone) (*string,
 	// If user has specified a placement group, get its ID.
 	switch pgref := s.ScalewayMachine.Spec.PlacementGroup; {
 	case pgref.ID != "":
-		return ptr.To(string(pgref.ID)), nil
+		return new(string(pgref.ID)), nil
 	case pgref.Name != "":
 		placementGroup, err := s.ScalewayClient.FindPlacementGroup(ctx, zone, pgref.Name)
 		if err != nil {
@@ -324,7 +323,7 @@ func (s *Service) securityGroupID(ctx context.Context, zone scw.Zone) (*string, 
 	// If user has specified a security group, get its ID.
 	switch sgref := s.ScalewayMachine.Spec.SecurityGroup; {
 	case sgref.ID != "":
-		return ptr.To(string(sgref.ID)), nil
+		return new(string(sgref.ID)), nil
 	case sgref.Name != "":
 		securityGroup, err := s.ScalewayClient.FindSecurityGroup(ctx, zone, sgref.Name)
 		if err != nil {

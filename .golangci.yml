@@ -1,10 +1,13 @@
 version: "2"
 run:
   allow-parallel-runners: true
+  build-tags:
+    - e2e
 linters:
   default: none
   enable:
     - copyloopvar
+    - depguard
     - dupl
     - errcheck
     - ginkgolinter
@@ -23,7 +26,18 @@ linters:
     - unconvert
     - unparam
     - unused
+    - logcheck
   settings:
+    custom:
+      logcheck:
+        type: "module"
+        description: Checks Go logging calls for Kubernetes logging conventions.
+    depguard:
+      rules:
+        forbid-sort-pkg:
+          deny:
+            - pkg: sort
+              desc: Should be replaced with slices package
     revive:
       rules:
         - name: comment-spacings
@@ -50,6 +64,9 @@ linters:
   exclusions:
     generated: lax
     rules:
+      - linters:
+          - goconst
+        path: _test\.go
       - linters:
           - lll
         path: api/*

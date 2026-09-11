@@ -12,7 +12,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -205,7 +204,7 @@ func (s *Service) updatePool(ctx context.Context, pool *k8s.Pool) (bool, error) 
 	var autohealing *bool
 	if pool.Autohealing != s.Autohealing() {
 		updateNeeded = true
-		autohealing = ptr.To(s.Autohealing())
+		autohealing = new(s.Autohealing())
 	}
 
 	var autoscaling *bool
@@ -242,7 +241,7 @@ func (s *Service) updatePool(ctx context.Context, pool *k8s.Pool) (bool, error) 
 	var tags *[]string
 	if !common.SlicesEqualIgnoreOrder(client.TagsWithoutCreatedBy(pool.Tags), s.DesiredTags()) {
 		updateNeeded = true
-		tags = ptr.To(s.DesiredTags())
+		tags = new(s.DesiredTags())
 	}
 
 	var kubeletArgs *map[string]string

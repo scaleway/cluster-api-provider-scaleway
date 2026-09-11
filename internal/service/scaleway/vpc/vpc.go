@@ -9,7 +9,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/vpc/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -54,7 +53,7 @@ func (s *Service) Delete(ctx context.Context) error {
 
 	var vpcID *string
 	if params.VPCID != "" {
-		vpcID = ptr.To(string(params.VPCID))
+		vpcID = new(string(params.VPCID))
 	}
 
 	pn, err := s.Cloud().FindPrivateNetwork(ctx, s.ResourceTags(), vpcID)
@@ -142,7 +141,7 @@ func (s *Service) Reconcile(ctx context.Context) error {
 func (s *Service) getOrCreatePN(ctx context.Context, params infrav1.PrivateNetwork) (*vpc.PrivateNetwork, error) {
 	var vpcID *string
 	if params.VPCID != "" {
-		vpcID = ptr.To(string(params.VPCID))
+		vpcID = new(string(params.VPCID))
 	}
 
 	pn, err := s.Cloud().FindPrivateNetwork(ctx, s.ResourceTags(), vpcID)
@@ -152,7 +151,7 @@ func (s *Service) getOrCreatePN(ctx context.Context, params infrav1.PrivateNetwo
 
 	var subnet *string
 	if params.Subnet != "" {
-		subnet = ptr.To(string(params.Subnet))
+		subnet = new(string(params.Subnet))
 	}
 
 	if pn == nil {

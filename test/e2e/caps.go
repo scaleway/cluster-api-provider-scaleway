@@ -1,3 +1,5 @@
+//go:build e2e
+
 package e2e
 
 import (
@@ -10,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -70,8 +71,8 @@ func CAPSClusterDeploymentSpec(inputGetter func() CAPSClusterDeploymentSpecInput
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
 				KubernetesVersion:        input.E2EConfig.MustGetVariable(capi_e2e.KubernetesVersion),
-				ControlPlaneMachineCount: ptr.To(input.ControlPlaneMachineCount),
-				WorkerMachineCount:       ptr.To(input.WorkerMachineCount),
+				ControlPlaneMachineCount: new(input.ControlPlaneMachineCount),
+				WorkerMachineCount:       new(input.WorkerMachineCount),
 				ClusterctlVariables:      input.ClusterctlVariables,
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),

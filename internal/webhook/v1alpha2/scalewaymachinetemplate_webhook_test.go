@@ -9,7 +9,6 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -20,7 +19,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 	var (
 		obj       *infrav1.ScalewayMachineTemplate
 		oldObj    *infrav1.ScalewayMachineTemplate
-		validator ScalewayMachineTemplateCustomValidator
+		validator ScalewayMachineTemplateValidator
 	)
 
 	var (
@@ -44,8 +43,8 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 					IOPS: 15000,
 				}},
 				PublicNetwork: infrav1.PublicNetwork{
-					EnableIPv4: ptr.To(true),
-					EnableIPv6: ptr.To(false),
+					EnableIPv4: new(true),
+					EnableIPv6: new(false),
 				},
 				SecurityGroup: infrav1.IDOrName{
 					Name: "scaleway-security-group",
@@ -53,7 +52,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 			},
 			Status: infrav1.ScalewayMachineStatus{
 				Initialization: infrav1.ScalewayMachineInitializationStatus{
-					Provisioned: ptr.To(true),
+					Provisioned: new(true),
 				},
 			},
 		}
@@ -72,7 +71,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 	BeforeEach(func() {
 		obj = &infrav1.ScalewayMachineTemplate{}
 		oldObj = &infrav1.ScalewayMachineTemplate{}
-		validator = ScalewayMachineTemplateCustomValidator{}
+		validator = ScalewayMachineTemplateValidator{}
 		Expect(validator).NotTo(BeNil(), "Expected validator to be initialized")
 		Expect(oldObj).NotTo(BeNil(), "Expected oldObj to be initialized")
 		Expect(obj).NotTo(BeNil(), "Expected obj to be initialized")
@@ -88,7 +87,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 				},
 			}
 			ctx := context.Background()
-			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}})
+			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}})
 			By("calling the validateUpdate method")
 			_, err := validator.ValidateUpdate(ctx, oldObj, obj)
 			Expect(err).To(HaveOccurred())
@@ -103,7 +102,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 			}
 			obj.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
 			ctx := context.Background()
-			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}})
+			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}})
 			By("calling the validateUpdate method in dry-run")
 			_, err := validator.ValidateUpdate(ctx, oldObj, obj)
 			Expect(err).ToNot(HaveOccurred())
@@ -114,7 +113,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 			obj.Spec.Template.ObjectMeta.Labels = nil
 			obj.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
 			ctx := context.Background()
-			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}})
+			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}})
 			By("calling the validateUpdate method with template metadata changed")
 			_, err := validator.ValidateUpdate(ctx, oldObj, obj)
 			Expect(err).ToNot(HaveOccurred())
@@ -134,7 +133,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 			}
 			obj.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
 			ctx := context.Background()
-			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}})
+			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}})
 			By("calling the validateUpdate method with bad template metadata change")
 			_, err := validator.ValidateUpdate(ctx, oldObj, obj)
 			Expect(err).To(HaveOccurred())
@@ -147,7 +146,7 @@ var _ = Describe("ScalewayMachineTemplate Webhook", func() {
 			}
 			obj.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
 			ctx := context.Background()
-			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}})
+			ctx = admission.NewContextWithRequest(ctx, admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}})
 			By("calling the validateUpdate method with adding element to spec")
 			_, err := validator.ValidateUpdate(ctx, oldObj, obj)
 			Expect(err).To(HaveOccurred())

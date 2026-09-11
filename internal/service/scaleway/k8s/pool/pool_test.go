@@ -11,7 +11,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -74,18 +73,18 @@ func TestService_Reconcile(t *testing.T) {
 							PlacementGroupID: placementGroupID,
 							NodeType:         "DEV1-M",
 							Scaling: infrav1.Scaling{
-								Autoscaling: ptr.To(true),
+								Autoscaling: new(true),
 								MinSize:     scw.Int32Ptr(1),
 								MaxSize:     scw.Int32Ptr(5),
 							},
-							Autohealing: ptr.To(true),
+							Autohealing: new(true),
 							UpgradePolicy: infrav1.UpgradePolicy{
 								MaxUnavailable: scw.Int32Ptr(0),
 								MaxSurge:       scw.Int32Ptr(2),
 							},
 							RootVolumeType:   "sbs_15k",
 							RootVolumeSizeGB: 42,
-							PublicIPDisabled: ptr.To(true),
+							PublicIPDisabled: new(true),
 							SecurityGroupID:  securityGroupID,
 							AdditionalTags:   []string{"tag1"},
 							KubeletArgs: map[string]string{
@@ -110,8 +109,8 @@ func TestService_Reconcile(t *testing.T) {
 					clusterID,
 					"pool",
 					"DEV1-M",
-					ptr.To(placementGroupID),
-					ptr.To(securityGroupID),
+					new(placementGroupID),
+					new(securityGroupID),
 					true,
 					true,
 					true,
@@ -141,7 +140,7 @@ func TestService_Reconcile(t *testing.T) {
 					MinSize:          1,
 					MaxSize:          5,
 					Tags:             []string{"caps-namespace=default", "caps-scalewaymanagedmachinepool=pool", "tag1", "created-by=cluster-api-provider-scaleway"},
-					PlacementGroupID: ptr.To(placementGroupID),
+					PlacementGroupID: new(placementGroupID),
 					SecurityGroupID:  securityGroupID,
 					KubeletArgs: map[string]string{
 						"containerLogMaxFiles": "500",
@@ -151,7 +150,7 @@ func TestService_Reconcile(t *testing.T) {
 						MaxSurge:       2,
 					},
 					RootVolumeType: k8s.PoolVolumeTypeSbs15k,
-					RootVolumeSize: ptr.To(42 * scw.GB),
+					RootVolumeSize: new(42 * scw.GB),
 				}, nil)
 				i.ListNodes(gomock.Any(), clusterID, poolID).Return([]*k8s.Node{
 					{
@@ -200,18 +199,18 @@ func TestService_Reconcile(t *testing.T) {
 							PlacementGroupID: placementGroupID,
 							NodeType:         "DEV1-M",
 							Scaling: infrav1.Scaling{
-								Autoscaling: ptr.To(true),
+								Autoscaling: new(true),
 								MinSize:     scw.Int32Ptr(1),
 								MaxSize:     scw.Int32Ptr(5),
 							},
-							Autohealing: ptr.To(true),
+							Autohealing: new(true),
 							UpgradePolicy: infrav1.UpgradePolicy{
 								MaxUnavailable: scw.Int32Ptr(0),
 								MaxSurge:       scw.Int32Ptr(2),
 							},
 							RootVolumeType:   "sbs_15k",
 							RootVolumeSizeGB: 42,
-							PublicIPDisabled: ptr.To(true),
+							PublicIPDisabled: new(true),
 							SecurityGroupID:  securityGroupID,
 							AdditionalTags:   []string{"tag1"},
 							KubeletArgs: map[string]string{
@@ -242,7 +241,7 @@ func TestService_Reconcile(t *testing.T) {
 					MinSize:          1,
 					MaxSize:          5,
 					Tags:             []string{"caps-namespace=default", "caps-scalewaymanagedmachinepool=pool", "tag1", "created-by=cluster-api-provider-scaleway"},
-					PlacementGroupID: ptr.To(placementGroupID),
+					PlacementGroupID: new(placementGroupID),
 					SecurityGroupID:  securityGroupID,
 					KubeletArgs: map[string]string{
 						"containerLogMaxFiles": "500",
@@ -252,7 +251,7 @@ func TestService_Reconcile(t *testing.T) {
 						MaxSurge:       2,
 					},
 					RootVolumeType: k8s.PoolVolumeTypeSbs15k,
-					RootVolumeSize: ptr.To(42 * scw.GB),
+					RootVolumeSize: new(42 * scw.GB),
 				}, nil)
 				i.ListNodes(gomock.Any(), clusterID, poolID).Return([]*k8s.Node{
 					{

@@ -2,6 +2,7 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -236,5 +237,8 @@ func (s *ScalewayMachine) SetConditions(conditions []metav1.Condition) {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayMachine{}, &ScalewayMachineList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(SchemeGroupVersion, &ScalewayMachine{}, &ScalewayMachineList{})
+		return nil
+	})
 }
