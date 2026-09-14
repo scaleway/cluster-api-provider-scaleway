@@ -186,7 +186,8 @@ func TestService_Reconcile(t *testing.T) {
 			},
 			asserts: func(g *WithT, s *scope.ManagedControlPlane) {
 				g.Expect(s.ScalewayManagedControlPlane.Spec.ClusterName).To(HaveValue(Equal("default-controlplane")))
-				g.Expect(s.ScalewayManagedControlPlane.Status.Version).To(HaveValue(Equal("v1.31.1")))
+				g.Expect(s.ScalewayManagedControlPlane.Status.Version).To(HaveValue(Equal("v1.31.1"))) //nolint:staticcheck
+				g.Expect(s.ScalewayManagedControlPlane.Status.Versions).To(ContainElement(clusterv1.StatusVersion{Version: "v1.31.1"}))
 				g.Expect(s.ScalewayManagedControlPlane.Spec.ControlPlaneEndpoint.Host).To(Equal(fmt.Sprintf("%s.api.k8s.fr-par.scw.cloud", clusterID)))
 				g.Expect(s.ScalewayManagedControlPlane.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(6443))
 
@@ -242,7 +243,8 @@ func TestService_Reconcile(t *testing.T) {
 							},
 						},
 						Status: infrav1.ScalewayManagedControlPlaneStatus{
-							Version: "v1.31.1",
+							Version:  "v1.31.1", //nolint:staticcheck
+							Versions: []clusterv1.StatusVersion{{Version: "v1.31.1"}},
 							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
 								ControlPlaneInitialized: new(true),
 							},
@@ -364,7 +366,8 @@ func TestService_Delete(t *testing.T) {
 							},
 						},
 						Status: infrav1.ScalewayManagedControlPlaneStatus{
-							Version: "v1.31.1",
+							Version:  "v1.31.1", //nolint:staticcheck
+							Versions: []clusterv1.StatusVersion{{Version: "v1.31.1"}},
 							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
 								ControlPlaneInitialized: new(true),
 							},
@@ -406,7 +409,8 @@ func TestService_Delete(t *testing.T) {
 							},
 						},
 						Status: infrav1.ScalewayManagedControlPlaneStatus{
-							Version: "v1.31.1",
+							Version:  "v1.31.1", //nolint:staticcheck
+							Versions: []clusterv1.StatusVersion{{Version: "v1.31.1"}},
 							Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
 								ControlPlaneInitialized: new(true),
 							},
