@@ -1158,6 +1158,11 @@ func (in *ScalewayManagedControlPlaneStatus) DeepCopyInto(out *ScalewayManagedCo
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Versions != nil {
+		in, out := &in.Versions, &out.Versions
+		*out = make([]v1beta2.StatusVersion, len(*in))
+		copy(*out, *in)
+	}
 	if in.ExternalManagedControlPlane != nil {
 		in, out := &in.ExternalManagedControlPlane, &out.ExternalManagedControlPlane
 		*out = new(bool)

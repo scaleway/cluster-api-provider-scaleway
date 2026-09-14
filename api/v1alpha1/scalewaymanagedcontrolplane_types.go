@@ -227,6 +227,14 @@ type ScalewayManagedControlPlaneStatus struct {
 	// Version represents the version of the Scaleway managed control plane.
 	// +optional
 	Version *string `json:"version,omitempty"`
+
+	// Versions is the aggregated Kubernetes versions in this control plane.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []clusterv1beta1.StatusVersion `json:"versions,omitempty"`
 }
 
 // ACLSpec configures the ACLs of the managed cluster.

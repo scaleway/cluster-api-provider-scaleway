@@ -1146,11 +1146,13 @@ func autoConvert_v1alpha1_ScalewayManagedControlPlaneStatus_To_v1alpha2_Scaleway
 	if err := v1.Convert_Pointer_string_To_string(&in.Version, &out.Version, s); err != nil {
 		return err
 	}
+	out.Versions = *(*[]v1beta2.StatusVersion)(unsafe.Pointer(&in.Versions))
 	return nil
 }
 
 func autoConvert_v1alpha2_ScalewayManagedControlPlaneStatus_To_v1alpha1_ScalewayManagedControlPlaneStatus(in *v1alpha2.ScalewayManagedControlPlaneStatus, out *ScalewayManagedControlPlaneStatus, s conversion.Scope) error {
 	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
+	out.Versions = *(*[]v1beta1.StatusVersion)(unsafe.Pointer(&in.Versions))
 	if err := v1.Convert_string_To_Pointer_string(&in.Version, &out.Version, s); err != nil {
 		return err
 	}

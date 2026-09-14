@@ -744,6 +744,9 @@ var (
 			Initialized:                 true,
 			ExternalManagedControlPlane: true,
 			Version:                     new("1.23.4"),
+			Versions: []clusterv1beta1.StatusVersion{{
+				Version: "1.23.4",
+			}},
 		},
 	}
 	v1alpha2ScalewayManagedControlPlane = &infrav1.ScalewayManagedControlPlane{
@@ -797,7 +800,10 @@ var (
 			},
 		},
 		Status: infrav1.ScalewayManagedControlPlaneStatus{
-			Version:                     "1.23.4",
+			Versions: []clusterv1.StatusVersion{{
+				Version: "1.23.4",
+			}},
+			Version:                     "1.23.4", //nolint:staticcheck
 			ExternalManagedControlPlane: new(true),
 			Initialization: infrav1.ScalewayManagedControlPlaneInitializationStatus{
 				ControlPlaneInitialized: new(true),

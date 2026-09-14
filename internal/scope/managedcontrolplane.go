@@ -124,7 +124,10 @@ func (m *ManagedControlPlane) SetControlPlaneEndpoint(host string, port int32) {
 
 // SetStatusVersion sets the current cluster Kubernetes version in the status.
 func (m *ManagedControlPlane) SetStatusVersion(version string) {
-	m.ScalewayManagedControlPlane.Status.Version = "v" + version
+	m.ScalewayManagedControlPlane.Status.Versions = []clusterv1.StatusVersion{{
+		Version: "v" + version,
+	}}
+	m.ScalewayManagedControlPlane.Status.Version = "v" + version //nolint:staticcheck
 }
 
 // DesiredVersion returns the desired Kubernetes version, without leading "v".
