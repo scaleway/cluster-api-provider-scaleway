@@ -22,7 +22,7 @@ spec:
   template:
     spec: # Put your ScalewayMachine spec here:
       image:
-        name: cluster-api-rockylinux-9-v1.34.3
+        name: cluster-api-rockylinux-9-v1.36.1
       commercialType: DEV1-S
       rootVolume:
         type: block
@@ -75,7 +75,7 @@ The `image` field must contain one of the following:
     namespace: default
   spec:
     image:
-      name: cluster-api-rockylinux-9-v1.34.3
+      name: cluster-api-rockylinux-9-v1.36.1
     # some fields were omitted...
   ```
 
