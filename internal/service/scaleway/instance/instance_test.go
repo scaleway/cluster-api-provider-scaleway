@@ -181,7 +181,15 @@ func TestService_Reconcile(t *testing.T) {
 					ID:       serverID,
 					Zone:     scw.ZoneFrPar1,
 					State:    instance.ServerStateStopped,
+					Volumes: map[string]*instance.VolumeServer{
+						"0": {
+							VolumeType: instance.VolumeServerVolumeTypeSbsVolume,
+							ID:         bootVolumeID,
+							Boot:       true,
+						},
+					},
 				}, nil)
+				i.UpdateVolumeTags(gomock.Any(), scw.ZoneFrPar1, bootVolumeID, tags)
 				i.FindIPs(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*instance.IP{}, nil)
 				i.CreateIP(gomock.Any(), scw.ZoneFrPar1, instance.IPTypeRoutedIPv4, tags).Return(&instance.IP{
 					ID:      ipv4ID,
@@ -360,8 +368,15 @@ func TestService_Reconcile(t *testing.T) {
 					ID:       serverID,
 					Zone:     scw.ZoneFrPar1,
 					State:    instance.ServerStateStopped,
+					Volumes: map[string]*instance.VolumeServer{
+						"0": {
+							VolumeType: instance.VolumeServerVolumeTypeLSSD,
+							ID:         bootVolumeID,
+							Boot:       true,
+						},
+					},
 				}, nil)
-
+				i.UpdateInstanceVolumeTags(gomock.Any(), scw.ZoneFrPar1, bootVolumeID, tags)
 				// Additional volumes: block (index 0), local (index 1), scratch (index 2, skipped).
 				i.FindVolumes(gomock.Any(), scw.ZoneFrPar1, tags).Return([]*block.Volume{}, nil)
 				i.CreateVolume(gomock.Any(), scw.ZoneFrPar1, "machine-0", 20*scw.GB, int64(5000), tags).Return(&block.Volume{
