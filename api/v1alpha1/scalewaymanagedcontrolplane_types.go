@@ -142,6 +142,19 @@ type AutoscalerSpec struct {
 	// when trying to scale down a node.
 	// +optional
 	MaxGracefulTerminationSec *int32 `json:"maxGracefulTerminationSec,omitempty"`
+
+	// SkipNodesWithLocalStorage defines if cluster autoscaler should skip nodes
+	// with pods with local storage, e.g. EmptyDir or HostPath, defaults to true.
+	// +optional
+	SkipNodesWithLocalStorage *bool `json:"skipNodesWithLocalStorage,omitempty"`
+
+	// LogLevel defines cluster autoscaler logging level expressed from 0 to 4
+	// (4 being the more verbose), defaults to 2.
+	//
+	// See https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-increase-the-information-that-the-ca-is-logging
+	// for details.
+	// +optional
+	LogLevel *int32 `json:"logLevel,omitempty"`
 }
 
 // AutoUpgradeSpec allows to set a specific 2-hour time window in which the cluster

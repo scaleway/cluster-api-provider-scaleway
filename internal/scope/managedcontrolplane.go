@@ -188,6 +188,8 @@ func (m *ManagedControlPlane) DesiredClusterAutoscalerConfig() (*k8s.ClusterAuto
 		ScaleDownUnneededTime:         "10m",
 		ScaleDownUtilizationThreshold: 0.5,
 		MaxGracefulTerminationSec:     600,
+		SkipNodesWithLocalStorage:     ptr.Deref(autoscaler.SkipNodesWithLocalStorage, true),
+		LogLevel:                      ptr.Deref(autoscaler.LogLevel, 2),
 	}
 
 	if autoscaler.ScaleDownDelayAfterAdd != "" {

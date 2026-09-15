@@ -123,6 +123,8 @@ func TestService_Reconcile(t *testing.T) {
 						ScaleDownUnneededTime:         new("10m"),
 						ScaleDownUtilizationThreshold: scw.Float32Ptr(0.5),
 						MaxGracefulTerminationSec:     scw.Uint32Ptr(600),
+						SkipNodesWithLocalStorage:     new(true),
+						LogLevel:                      new(int32(2)),
 					},
 					&k8s.CreateClusterRequestAutoUpgrade{
 						Enable: false,
@@ -159,6 +161,8 @@ func TestService_Reconcile(t *testing.T) {
 						ScaleDownUnneededTime:         "10m",
 						ScaleDownUtilizationThreshold: 0.5,
 						MaxGracefulTerminationSec:     600,
+						SkipNodesWithLocalStorage:     true,
+						LogLevel:                      2,
 					},
 					AutoUpgrade: &k8s.ClusterAutoUpgrade{
 						Enabled: false,
@@ -277,6 +281,8 @@ func TestService_Reconcile(t *testing.T) {
 						ScaleDownUnneededTime:         "10m",
 						ScaleDownUtilizationThreshold: 0.5,
 						MaxGracefulTerminationSec:     600,
+						SkipNodesWithLocalStorage:     true,
+						LogLevel:                      2,
 					},
 					AutoUpgrade: &k8s.ClusterAutoUpgrade{
 						Enabled: false,

@@ -95,6 +95,8 @@ spec:
     balanceSimilarNodeGroups: false
     scaleDownUtilizationThreshold: "0.5"
     maxGracefulTerminationSec: 600
+    skipNodesWithLocalStorage: true
+    logLevel: 2
 ```
 
 ## Auto Upgrade configuration

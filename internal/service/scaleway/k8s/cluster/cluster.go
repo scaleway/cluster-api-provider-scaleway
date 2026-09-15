@@ -212,6 +212,8 @@ func (s *Service) getOrCreateCluster(ctx context.Context) (*k8s.Cluster, error) 
 				ScaleDownUnneededTime:         &autoscalerConfig.ScaleDownUnneededTime,
 				ScaleDownUtilizationThreshold: &autoscalerConfig.ScaleDownUtilizationThreshold,
 				MaxGracefulTerminationSec:     &autoscalerConfig.MaxGracefulTerminationSec,
+				SkipNodesWithLocalStorage:     &autoscalerConfig.SkipNodesWithLocalStorage,
+				LogLevel:                      &autoscalerConfig.LogLevel,
 			},
 			&k8s.CreateClusterRequestAutoUpgrade{
 				Enable: autoUpgrade.Enabled,
@@ -286,6 +288,8 @@ func (s *Service) updateCluster(ctx context.Context, cluster *k8s.Cluster) (bool
 			ScaleDownUnneededTime:         &desiredAutoscalerConfig.ScaleDownUnneededTime,
 			ScaleDownUtilizationThreshold: &desiredAutoscalerConfig.ScaleDownUtilizationThreshold,
 			MaxGracefulTerminationSec:     &desiredAutoscalerConfig.MaxGracefulTerminationSec,
+			SkipNodesWithLocalStorage:     &desiredAutoscalerConfig.SkipNodesWithLocalStorage,
+			LogLevel:                      &desiredAutoscalerConfig.LogLevel,
 		}
 	}
 
@@ -421,7 +425,9 @@ func autoscalerConfigMatchesDesired(current, desired *k8s.ClusterAutoscalerConfi
 		current.ExpendablePodsPriorityCutoff == desired.ExpendablePodsPriorityCutoff &&
 		current.ScaleDownUnneededTime == desired.ScaleDownUnneededTime &&
 		current.ScaleDownUtilizationThreshold == desired.ScaleDownUtilizationThreshold &&
-		current.MaxGracefulTerminationSec == desired.MaxGracefulTerminationSec
+		current.MaxGracefulTerminationSec == desired.MaxGracefulTerminationSec &&
+		current.SkipNodesWithLocalStorage == desired.SkipNodesWithLocalStorage &&
+		current.LogLevel == desired.LogLevel
 }
 
 func clusterAutoUpgradeMatchesDesired(current, desired *k8s.ClusterAutoUpgrade) bool {

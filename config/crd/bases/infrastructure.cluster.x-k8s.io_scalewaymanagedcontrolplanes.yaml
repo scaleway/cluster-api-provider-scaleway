@@ -167,6 +167,15 @@ spec:
                     description: Ignore DaemonSet pods when calculating resource utilization
                       for scaling down.
                     type: boolean
+                  logLevel:
+                    description: |-
+                      LogLevel defines cluster autoscaler logging level expressed from 0 to 4
+                      (4 being the more verbose), defaults to 2.
+
+                      See https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-increase-the-information-that-the-ca-is-logging
+                      for details.
+                    format: int32
+                    type: integer
                   maxGracefulTerminationSec:
                     description: |-
                       Maximum number of seconds the cluster autoscaler waits for pod termination
@@ -190,6 +199,11 @@ spec:
                       by capacity, below which a node can be considered for scale down.
                     pattern: ^(0(\.[0-9]{1,2})?|1)$
                     type: string
+                  skipNodesWithLocalStorage:
+                    description: |-
+                      SkipNodesWithLocalStorage defines if cluster autoscaler should skip nodes
+                      with pods with local storage, e.g. EmptyDir or HostPath, defaults to true.
+                    type: boolean
                 type: object
               clusterName:
                 description: |-
@@ -557,6 +571,15 @@ spec:
                       ignoreDaemonsetsUtilization allows to ignore DaemonSet pods when calculating
                       resource utilization for scaling down.
                     type: boolean
+                  logLevel:
+                    description: |-
+                      logLevel defines cluster autoscaler logging level expressed from 0 to 4
+                      (4 being the more verbose), defaults to 2.
+
+                      See https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-increase-the-information-that-the-ca-is-logging
+                      for details.
+                    format: int32
+                    type: integer
                   maxGracefulTerminationSec:
                     description: |-
                       maxGracefulTerminationSec is the maximum number of seconds the cluster autoscaler
@@ -591,6 +614,11 @@ spec:
                     minLength: 1
                     pattern: ^(0(\.[0-9]{1,2})?|1)$
                     type: string
+                  skipNodesWithLocalStorage:
+                    description: |-
+                      skipNodesWithLocalStorage defines if cluster autoscaler should skip nodes
+                      with pods with local storage, e.g. EmptyDir or HostPath, defaults to true.
+                    type: boolean
                 type: object
               clusterName:
                 description: |-
