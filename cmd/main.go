@@ -289,7 +289,7 @@ func main() {
 			&infrav1.ScalewayCluster{}:             {UseCache: true},
 			&infrav1.ScalewayClusterTemplate{}:     {UseCache: false},
 			&infrav1.ScalewayMachine{}:             {UseCache: true},
-			&infrav1.ScalewayClusterTemplate{}:     {UseCache: false},
+			&infrav1.ScalewayMachineTemplate{}:     {UseCache: false},
 			&infrav1.ScalewayManagedCluster{}:      {UseCache: true},
 			&infrav1.ScalewayManagedControlPlane{}: {UseCache: true},
 			&infrav1.ScalewayManagedMachinePool{}:  {UseCache: true},
