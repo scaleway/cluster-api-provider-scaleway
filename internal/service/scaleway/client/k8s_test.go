@@ -160,6 +160,8 @@ func TestClient_CreateCluster(t *testing.T) {
 					ScaleDownUnneededTime:         new("1m"),
 					ScaleDownUtilizationThreshold: scw.Float32Ptr(1),
 					MaxGracefulTerminationSec:     scw.Uint32Ptr(30),
+					SkipNodesWithLocalStorage:     new(false),
+					LogLevel:                      new(int32(4)),
 				},
 				autoUpgrade: &k8s.CreateClusterRequestAutoUpgrade{
 					Enable: true,
@@ -203,6 +205,8 @@ func TestClient_CreateCluster(t *testing.T) {
 						ScaleDownUnneededTime:         new("1m"),
 						ScaleDownUtilizationThreshold: scw.Float32Ptr(1),
 						MaxGracefulTerminationSec:     scw.Uint32Ptr(30),
+						SkipNodesWithLocalStorage:     new(false),
+						LogLevel:                      new(int32(4)),
 					},
 					AutoUpgrade: &k8s.CreateClusterRequestAutoUpgrade{
 						Enable: true,
@@ -402,6 +406,8 @@ func TestClient_UpdateCluster(t *testing.T) {
 					ScaleDownUnneededTime:         new("1m"),
 					ScaleDownUtilizationThreshold: scw.Float32Ptr(1),
 					MaxGracefulTerminationSec:     scw.Uint32Ptr(30),
+					SkipNodesWithLocalStorage:     new(false),
+					LogLevel:                      new(int32(4)),
 				},
 				autoUpgrade: &k8s.UpdateClusterRequestAutoUpgrade{
 					Enable: new(true),
@@ -435,6 +441,8 @@ func TestClient_UpdateCluster(t *testing.T) {
 						ScaleDownUnneededTime:         new("1m"),
 						ScaleDownUtilizationThreshold: scw.Float32Ptr(1),
 						MaxGracefulTerminationSec:     scw.Uint32Ptr(30),
+						SkipNodesWithLocalStorage:     new(false),
+						LogLevel:                      new(int32(4)),
 					},
 					AutoUpgrade: &k8s.UpdateClusterRequestAutoUpgrade{
 						Enable: new(true),

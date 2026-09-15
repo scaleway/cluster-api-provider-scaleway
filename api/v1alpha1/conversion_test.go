@@ -707,6 +707,8 @@ var (
 				ScaleDownUnneededTime:         new("2m"),
 				ScaleDownUtilizationThreshold: new("0.1"),
 				MaxGracefulTerminationSec:     new(int32(60)),
+				SkipNodesWithLocalStorage:     new(false),
+				LogLevel:                      new(int32(4)),
 			},
 			AutoUpgrade: &AutoUpgradeSpec{
 				Enabled: true,
@@ -767,6 +769,8 @@ var (
 				ScaleDownUnneededTime:         "2m",
 				ScaleDownUtilizationThreshold: "0.1",
 				MaxGracefulTerminationSec:     60,
+				SkipNodesWithLocalStorage:     new(false),
+				LogLevel:                      new(int32(4)),
 			},
 			AutoUpgrade: infrav1.AutoUpgrade{
 				Enabled: new(true),
