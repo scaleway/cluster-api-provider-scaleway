@@ -107,6 +107,10 @@ type ScalewayManagedMachinePoolSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	SecurityGroupID UUID `json:"securityGroupID,omitempty"`
 
+	// labels are kubernetes labels applied and reconciled on the nodes.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
 	// providerIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional

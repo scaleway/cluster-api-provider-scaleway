@@ -689,6 +689,7 @@ func TestClient_CreatePool(t *testing.T) {
 		maxSize          *uint32
 		tags             []string
 		kubeletArgs      map[string]string
+		labels           map[string]string
 		rootVolumeType   k8s.PoolVolumeType
 		rootVolumeSizeGB *uint64
 		upgradePolicy    *k8s.CreatePoolRequestUpgradePolicy
@@ -727,6 +728,9 @@ func TestClient_CreatePool(t *testing.T) {
 					MaxUnavailable: scw.Uint32Ptr(0),
 					MaxSurge:       scw.Uint32Ptr(1),
 				},
+				labels: map[string]string{
+					"test": "value",
+				},
 			},
 			want: &k8s.Pool{
 				ID:   poolID,
@@ -757,6 +761,9 @@ func TestClient_CreatePool(t *testing.T) {
 					RootVolumeSize:   new(30 * scw.GB),
 					PublicIPDisabled: true,
 					SecurityGroupID:  new(securityGroupID),
+					Labels: map[string]string{
+						"test": "value",
+					},
 				}, gomock.Any()).Return(&k8s.Pool{
 					ID:   poolID,
 					Name: "mypool",
@@ -778,7 +785,7 @@ func TestClient_CreatePool(t *testing.T) {
 			c := &Client{
 				k8s: k8sMock,
 			}
-			got, err := c.CreatePool(tt.args.ctx, tt.args.zone, tt.args.clusterID, tt.args.name, tt.args.nodeType, tt.args.placementGroupID, tt.args.securityGroupID, tt.args.autoscaling, tt.args.autohealing, tt.args.publicIPDisabled, tt.args.size, tt.args.minSize, tt.args.maxSize, tt.args.tags, tt.args.kubeletArgs, tt.args.rootVolumeType, tt.args.rootVolumeSizeGB, tt.args.upgradePolicy)
+			got, err := c.CreatePool(tt.args.ctx, tt.args.zone, tt.args.clusterID, tt.args.name, tt.args.nodeType, tt.args.placementGroupID, tt.args.securityGroupID, tt.args.autoscaling, tt.args.autohealing, tt.args.publicIPDisabled, tt.args.size, tt.args.minSize, tt.args.maxSize, tt.args.tags, tt.args.kubeletArgs, tt.args.labels, tt.args.rootVolumeType, tt.args.rootVolumeSizeGB, tt.args.upgradePolicy)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.CreatePool() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -1170,6 +1177,59 @@ func TestClient_SetClusterACLRules(t *testing.T) {
 			}
 			if err := c.SetClusterACLRules(tt.args.ctx, tt.args.clusterID, tt.args.rules); (err != nil) != tt.wantErr {
 				t.Errorf("Client.SetClusterACLRules() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_SetPoolLabels(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		ctx    context.Context
+		poolID string
+		labels map[string]string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+		expect  func(d *mock_client.MockK8sAPIMockRecorder)
+	}{
+		{
+			name: "set pool labels",
+			args: args{
+				ctx:    context.TODO(),
+				poolID: poolID,
+				labels: map[string]string{
+					"test": "value",
+				},
+			},
+			expect: func(d *mock_client.MockK8sAPIMockRecorder) {
+				d.SetPoolLabels(&k8s.SetPoolLabelsRequest{
+					PoolID: poolID,
+					Labels: map[string]string{
+						"test": "value",
+					},
+				}, gomock.Any())
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			k8sMock := mock_client.NewMockK8sAPI(mockCtrl)
+
+			tt.expect(k8sMock.EXPECT())
+
+			c := &Client{
+				k8s: k8sMock,
+			}
+			if err := c.SetPoolLabels(tt.args.ctx, tt.args.poolID, tt.args.labels); (err != nil) != tt.wantErr {
+				t.Errorf("Client.SetPoolLabels() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

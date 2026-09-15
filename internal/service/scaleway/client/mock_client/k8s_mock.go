@@ -526,6 +526,50 @@ func (c *MockK8sAPISetClusterTypeCall) DoAndReturn(f func(*k8s.SetClusterTypeReq
 	return c
 }
 
+// SetPoolLabels mocks base method.
+func (m *MockK8sAPI) SetPoolLabels(req *k8s.SetPoolLabelsRequest, opts ...scw.RequestOption) (*k8s.Pool, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SetPoolLabels", varargs...)
+	ret0, _ := ret[0].(*k8s.Pool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetPoolLabels indicates an expected call of SetPoolLabels.
+func (mr *MockK8sAPIMockRecorder) SetPoolLabels(req any, opts ...any) *MockK8sAPISetPoolLabelsCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPoolLabels", reflect.TypeOf((*MockK8sAPI)(nil).SetPoolLabels), varargs...)
+	return &MockK8sAPISetPoolLabelsCall{Call: call}
+}
+
+// MockK8sAPISetPoolLabelsCall wrap *gomock.Call
+type MockK8sAPISetPoolLabelsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockK8sAPISetPoolLabelsCall) Return(arg0 *k8s.Pool, arg1 error) *MockK8sAPISetPoolLabelsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockK8sAPISetPoolLabelsCall) Do(f func(*k8s.SetPoolLabelsRequest, ...scw.RequestOption) (*k8s.Pool, error)) *MockK8sAPISetPoolLabelsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockK8sAPISetPoolLabelsCall) DoAndReturn(f func(*k8s.SetPoolLabelsRequest, ...scw.RequestOption) (*k8s.Pool, error)) *MockK8sAPISetPoolLabelsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpdateCluster mocks base method.
 func (m *MockK8sAPI) UpdateCluster(req *k8s.UpdateClusterRequest, opts ...scw.RequestOption) (*k8s.Cluster, error) {
 	m.ctrl.T.Helper()
@@ -766,18 +810,18 @@ func (c *MockK8sCreateClusterCall) DoAndReturn(f func(context.Context, string, s
 }
 
 // CreatePool mocks base method.
-func (m *MockK8s) CreatePool(ctx context.Context, zone scw.Zone, clusterID, name, nodeType string, placementGroupID, securityGroupID *string, autoscaling, autohealing, publicIPDisabled bool, size uint32, minSize, maxSize *uint32, tags []string, kubeletArgs map[string]string, rootVolumeType k8s.PoolVolumeType, rootVolumeSizeGB *uint64, upgradePolicy *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error) {
+func (m *MockK8s) CreatePool(ctx context.Context, zone scw.Zone, clusterID, name, nodeType string, placementGroupID, securityGroupID *string, autoscaling, autohealing, publicIPDisabled bool, size uint32, minSize, maxSize *uint32, tags []string, kubeletArgs, labels map[string]string, rootVolumeType k8s.PoolVolumeType, rootVolumeSizeGB *uint64, upgradePolicy *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePool", ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, rootVolumeType, rootVolumeSizeGB, upgradePolicy)
+	ret := m.ctrl.Call(m, "CreatePool", ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, labels, rootVolumeType, rootVolumeSizeGB, upgradePolicy)
 	ret0, _ := ret[0].(*k8s.Pool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreatePool indicates an expected call of CreatePool.
-func (mr *MockK8sMockRecorder) CreatePool(ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, rootVolumeType, rootVolumeSizeGB, upgradePolicy any) *MockK8sCreatePoolCall {
+func (mr *MockK8sMockRecorder) CreatePool(ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, labels, rootVolumeType, rootVolumeSizeGB, upgradePolicy any) *MockK8sCreatePoolCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePool", reflect.TypeOf((*MockK8s)(nil).CreatePool), ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, rootVolumeType, rootVolumeSizeGB, upgradePolicy)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePool", reflect.TypeOf((*MockK8s)(nil).CreatePool), ctx, zone, clusterID, name, nodeType, placementGroupID, securityGroupID, autoscaling, autohealing, publicIPDisabled, size, minSize, maxSize, tags, kubeletArgs, labels, rootVolumeType, rootVolumeSizeGB, upgradePolicy)
 	return &MockK8sCreatePoolCall{Call: call}
 }
 
@@ -793,13 +837,13 @@ func (c *MockK8sCreatePoolCall) Return(arg0 *k8s.Pool, arg1 error) *MockK8sCreat
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockK8sCreatePoolCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, bool, bool, bool, uint32, *uint32, *uint32, []string, map[string]string, k8s.PoolVolumeType, *uint64, *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error)) *MockK8sCreatePoolCall {
+func (c *MockK8sCreatePoolCall) Do(f func(context.Context, scw.Zone, string, string, string, *string, *string, bool, bool, bool, uint32, *uint32, *uint32, []string, map[string]string, map[string]string, k8s.PoolVolumeType, *uint64, *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error)) *MockK8sCreatePoolCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockK8sCreatePoolCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, bool, bool, bool, uint32, *uint32, *uint32, []string, map[string]string, k8s.PoolVolumeType, *uint64, *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error)) *MockK8sCreatePoolCall {
+func (c *MockK8sCreatePoolCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, string, *string, *string, bool, bool, bool, uint32, *uint32, *uint32, []string, map[string]string, map[string]string, k8s.PoolVolumeType, *uint64, *k8s.CreatePoolRequestUpgradePolicy) (*k8s.Pool, error)) *MockK8sCreatePoolCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1147,6 +1191,44 @@ func (c *MockK8sSetClusterTypeCall) Do(f func(context.Context, string, string) e
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockK8sSetClusterTypeCall) DoAndReturn(f func(context.Context, string, string) error) *MockK8sSetClusterTypeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetPoolLabels mocks base method.
+func (m *MockK8s) SetPoolLabels(ctx context.Context, poolID string, labels map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetPoolLabels", ctx, poolID, labels)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetPoolLabels indicates an expected call of SetPoolLabels.
+func (mr *MockK8sMockRecorder) SetPoolLabels(ctx, poolID, labels any) *MockK8sSetPoolLabelsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPoolLabels", reflect.TypeOf((*MockK8s)(nil).SetPoolLabels), ctx, poolID, labels)
+	return &MockK8sSetPoolLabelsCall{Call: call}
+}
+
+// MockK8sSetPoolLabelsCall wrap *gomock.Call
+type MockK8sSetPoolLabelsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockK8sSetPoolLabelsCall) Return(arg0 error) *MockK8sSetPoolLabelsCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockK8sSetPoolLabelsCall) Do(f func(context.Context, string, map[string]string) error) *MockK8sSetPoolLabelsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockK8sSetPoolLabelsCall) DoAndReturn(f func(context.Context, string, map[string]string) error) *MockK8sSetPoolLabelsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

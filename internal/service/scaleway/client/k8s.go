@@ -25,6 +25,7 @@ type K8sAPI interface {
 	ListNodes(req *k8s.ListNodesRequest, opts ...scw.RequestOption) (*k8s.ListNodesResponse, error)
 	ListClusterACLRules(req *k8s.ListClusterACLRulesRequest, opts ...scw.RequestOption) (*k8s.ListClusterACLRulesResponse, error)
 	SetClusterACLRules(req *k8s.SetClusterACLRulesRequest, opts ...scw.RequestOption) (*k8s.SetClusterACLRulesResponse, error)
+	SetPoolLabels(req *k8s.SetPoolLabelsRequest, opts ...scw.RequestOption) (*k8s.Pool, error)
 }
 
 type K8s interface {
@@ -62,7 +63,7 @@ type K8s interface {
 		size uint32,
 		minSize, maxSize *uint32,
 		tags []string,
-		kubeletArgs map[string]string,
+		kubeletArgs, labels map[string]string,
 		rootVolumeType k8s.PoolVolumeType,
 		rootVolumeSizeGB *uint64,
 		upgradePolicy *k8s.CreatePoolRequestUpgradePolicy,
@@ -81,6 +82,7 @@ type K8s interface {
 	ListNodes(ctx context.Context, clusterID, poolID string) ([]*k8s.Node, error)
 	ListClusterACLRules(ctx context.Context, clusterID string) ([]*k8s.ACLRule, error)
 	SetClusterACLRules(ctx context.Context, clusterID string, rules []*k8s.ACLRuleRequest) error
+	SetPoolLabels(ctx context.Context, poolID string, labels map[string]string) error
 }
 
 func (c *Client) FindCluster(ctx context.Context, name string) (*k8s.Cluster, error) {
@@ -252,7 +254,7 @@ func (c *Client) CreatePool(
 	size uint32,
 	minSize, maxSize *uint32,
 	tags []string,
-	kubeletArgs map[string]string,
+	kubeletArgs, labels map[string]string,
 	rootVolumeType k8s.PoolVolumeType,
 	rootVolumeSizeGB *uint64,
 	upgradePolicy *k8s.CreatePoolRequestUpgradePolicy,
@@ -280,6 +282,7 @@ func (c *Client) CreatePool(
 		RootVolumeSize:   rootVolumeSize,
 		SecurityGroupID:  securityGroupID,
 		UpgradePolicy:    upgradePolicy,
+		Labels:           labels,
 	}, scw.WithContext(ctx))
 	if err != nil {
 		return nil, newCallError("CreatePool", err)
@@ -372,6 +375,17 @@ func (c *Client) SetClusterACLRules(ctx context.Context, clusterID string, rules
 		ACLs:      rules,
 	}, scw.WithContext(ctx)); err != nil {
 		return newCallError("SetClusterACLRules", err)
+	}
+
+	return nil
+}
+
+func (c *Client) SetPoolLabels(ctx context.Context, poolID string, labels map[string]string) error {
+	if _, err := c.k8s.SetPoolLabels(&k8s.SetPoolLabelsRequest{
+		PoolID: poolID,
+		Labels: labels,
+	}, scw.WithContext(ctx)); err != nil {
+		return newCallError("SetPoolLabels", err)
 	}
 
 	return nil
