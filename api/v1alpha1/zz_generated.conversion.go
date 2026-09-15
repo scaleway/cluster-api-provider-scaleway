@@ -1254,6 +1254,7 @@ func autoConvert_v1alpha1_ScalewayManagedMachinePoolSpec_To_v1alpha2_ScalewayMan
 	}
 	out.PublicIPDisabled = (*bool)(unsafe.Pointer(in.PublicIPDisabled))
 	// WARNING: in.SecurityGroupID requires manual conversion: inconvertible types (*string vs github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2.UUID)
+	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	return nil
 }
@@ -1275,6 +1276,7 @@ func autoConvert_v1alpha2_ScalewayManagedMachinePoolSpec_To_v1alpha1_ScalewayMan
 	}
 	out.PublicIPDisabled = (*bool)(unsafe.Pointer(in.PublicIPDisabled))
 	// WARNING: in.SecurityGroupID requires manual conversion: inconvertible types (github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2.UUID vs *string)
+	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
 	out.ProviderIDList = *(*[]string)(unsafe.Pointer(&in.ProviderIDList))
 	return nil
 }

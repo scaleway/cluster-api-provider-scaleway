@@ -67,6 +67,12 @@ spec:
                 description: KubeletArgs defines Kubelet arguments to be used by this
                   pool.
                 type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: Labels are kubernetes labels applied and reconciled on
+                  the nodes.
+                type: object
               nodeType:
                 description: |-
                   NodeType is the type of Scaleway Instance wanted for the pool. Nodes with
@@ -273,6 +279,12 @@ spec:
                   type: string
                 description: kubeletArgs defines Kubelet arguments to be used by this
                   pool.
+                type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: labels are kubernetes labels applied and reconciled on
+                  the nodes.
                 type: object
               nodeType:
                 description: |-

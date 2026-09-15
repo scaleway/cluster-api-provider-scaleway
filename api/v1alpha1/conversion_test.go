@@ -906,6 +906,9 @@ var (
 				"arg1": "val1",
 				"arg2": "val2",
 			},
+			Labels: map[string]string{
+				"test": "value",
+			},
 			UpgradePolicy: &UpgradePolicySpec{
 				MaxUnavailable: new(int32(0)),
 				MaxSurge:       new(int32(5)),
@@ -936,6 +939,9 @@ var (
 			KubeletArgs: map[string]string{
 				"arg1": "val1",
 				"arg2": "val2",
+			},
+			Labels: map[string]string{
+				"test": "value",
 			},
 			UpgradePolicy: infrav1.UpgradePolicy{
 				MaxUnavailable: new(int32(0)),
