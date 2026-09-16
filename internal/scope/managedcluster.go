@@ -7,7 +7,9 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/scaleway/scaleway-sdk-go/scw"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,16 +101,22 @@ func (c *ManagedCluster) Cloud() scwClient.Interface {
 	return c.ScalewayClient
 }
 
-// HasPrivateNetwork returns true if the cluster should have a Private Network.
-// It's only false if the multicloud cluster type is used.
-func (c *ManagedCluster) HasPrivateNetwork() bool {
-	// On Cluster deletion, we no longer have the info, we have to return true
-	// to force private network cleanup.
+// IsMulticloud returns true if the multicloud cluster type is used. It returns
+// false if the ScalewayManagedControlPlane no longer exists, which only happens
+// while the ScalewayManagedCluster is being deleted.
+func (c *ManagedCluster) IsMulticloud() bool {
 	if c.ScalewayManagedControlPlane == nil {
-		return true
+		return false
 	}
 
-	return !strings.HasPrefix(c.ScalewayManagedControlPlane.Spec.Type, "multicloud")
+	return strings.HasPrefix(c.ScalewayManagedControlPlane.Spec.Type, "multicloud")
+}
+
+// HasPrivateNetwork returns true if the cluster should have a Private Network.
+// It's only false if the multicloud cluster type is used. On Cluster deletion,
+// it returns true to force Private Network cleanup.
+func (c *ManagedCluster) HasPrivateNetwork() bool {
+	return !c.IsMulticloud()
 }
 
 // IsVPCStatusSet returns true if the VPC fields are set in the status.
@@ -143,6 +151,19 @@ func (c *ManagedCluster) PrivateNetworkID() (string, error) {
 // PublicGateways returns the desired Public Gateways.
 func (c *ManagedCluster) PublicGateways() []infrav1.PublicGateway {
 	return c.ScalewayManagedCluster.Spec.Network.PublicGateways
+}
+
+// SetFailureDomains sets the failure domains of the managed cluster.
+func (c *ManagedCluster) SetFailureDomains(zones []scw.Zone) {
+	failureDomains := make([]clusterv1.FailureDomain, 0, len(zones))
+
+	for _, zone := range zones {
+		failureDomains = append(failureDomains, clusterv1.FailureDomain{
+			Name: string(zone),
+		})
+	}
+
+	c.ScalewayManagedCluster.Status.FailureDomains = failureDomains
 }
 
 func (c *ManagedCluster) SetConditions(cond []metav1.Condition) {

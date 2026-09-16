@@ -40,40 +40,40 @@ func (m *MockZones) EXPECT() *MockZonesMockRecorder {
 	return m.recorder
 }
 
-// GetControlPlaneZones mocks base method.
-func (m *MockZones) GetControlPlaneZones() []scw.Zone {
+// GetAllZones mocks base method.
+func (m *MockZones) GetAllZones() []scw.Zone {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetControlPlaneZones")
+	ret := m.ctrl.Call(m, "GetAllZones")
 	ret0, _ := ret[0].([]scw.Zone)
 	return ret0
 }
 
-// GetControlPlaneZones indicates an expected call of GetControlPlaneZones.
-func (mr *MockZonesMockRecorder) GetControlPlaneZones() *MockZonesGetControlPlaneZonesCall {
+// GetAllZones indicates an expected call of GetAllZones.
+func (mr *MockZonesMockRecorder) GetAllZones() *MockZonesGetAllZonesCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetControlPlaneZones", reflect.TypeOf((*MockZones)(nil).GetControlPlaneZones))
-	return &MockZonesGetControlPlaneZonesCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllZones", reflect.TypeOf((*MockZones)(nil).GetAllZones))
+	return &MockZonesGetAllZonesCall{Call: call}
 }
 
-// MockZonesGetControlPlaneZonesCall wrap *gomock.Call
-type MockZonesGetControlPlaneZonesCall struct {
+// MockZonesGetAllZonesCall wrap *gomock.Call
+type MockZonesGetAllZonesCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockZonesGetControlPlaneZonesCall) Return(arg0 []scw.Zone) *MockZonesGetControlPlaneZonesCall {
+func (c *MockZonesGetAllZonesCall) Return(arg0 []scw.Zone) *MockZonesGetAllZonesCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockZonesGetControlPlaneZonesCall) Do(f func() []scw.Zone) *MockZonesGetControlPlaneZonesCall {
+func (c *MockZonesGetAllZonesCall) Do(f func() []scw.Zone) *MockZonesGetAllZonesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockZonesGetControlPlaneZonesCall) DoAndReturn(f func() []scw.Zone) *MockZonesGetControlPlaneZonesCall {
+func (c *MockZonesGetAllZonesCall) DoAndReturn(f func() []scw.Zone) *MockZonesGetAllZonesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -113,6 +113,44 @@ func (c *MockZonesGetZoneOrDefaultCall) Do(f func(string) (scw.Zone, error)) *Mo
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockZonesGetZoneOrDefaultCall) DoAndReturn(f func(string) (scw.Zone, error)) *MockZonesGetZoneOrDefaultCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetZones mocks base method.
+func (m *MockZones) GetZones() []scw.Zone {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetZones")
+	ret0, _ := ret[0].([]scw.Zone)
+	return ret0
+}
+
+// GetZones indicates an expected call of GetZones.
+func (mr *MockZonesMockRecorder) GetZones() *MockZonesGetZonesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetZones", reflect.TypeOf((*MockZones)(nil).GetZones))
+	return &MockZonesGetZonesCall{Call: call}
+}
+
+// MockZonesGetZonesCall wrap *gomock.Call
+type MockZonesGetZonesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockZonesGetZonesCall) Return(arg0 []scw.Zone) *MockZonesGetZonesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockZonesGetZonesCall) Do(f func() []scw.Zone) *MockZonesGetZonesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockZonesGetZonesCall) DoAndReturn(f func() []scw.Zone) *MockZonesGetZonesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -1015,6 +1015,13 @@ func (in *ScalewayManagedClusterStatus) DeepCopyInto(out *ScalewayManagedCluster
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.FailureDomains != nil {
+		in, out := &in.FailureDomains, &out.FailureDomains
+		*out = make([]v1beta2.FailureDomain, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	in.Initialization.DeepCopyInto(&out.Initialization)
 	out.Network = in.Network
 }

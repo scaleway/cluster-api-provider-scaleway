@@ -1008,6 +1008,7 @@ func autoConvert_v1alpha1_ScalewayManagedClusterStatus_To_v1alpha2_ScalewayManag
 
 func autoConvert_v1alpha2_ScalewayManagedClusterStatus_To_v1alpha1_ScalewayManagedClusterStatus(in *v1alpha2.ScalewayManagedClusterStatus, out *ScalewayManagedClusterStatus, s conversion.Scope) error {
 	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	// WARNING: in.Network requires manual conversion: inconvertible types (github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2.ScalewayManagedClusterNetworkStatus vs *github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha1.ManagedNetworkStatus)
 	return nil

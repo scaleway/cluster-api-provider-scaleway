@@ -73,6 +73,14 @@ type ScalewayManagedClusterStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
+	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
+
 	// initialization provides observations of the ScalewayManagedCluster initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
