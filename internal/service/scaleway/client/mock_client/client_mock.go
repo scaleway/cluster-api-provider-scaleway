@@ -2136,6 +2136,44 @@ func (c *MockInterfaceGetAllServerUserDataCall) DoAndReturn(f func(context.Conte
 	return c
 }
 
+// GetAllZones mocks base method.
+func (m *MockInterface) GetAllZones() []scw.Zone {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllZones")
+	ret0, _ := ret[0].([]scw.Zone)
+	return ret0
+}
+
+// GetAllZones indicates an expected call of GetAllZones.
+func (mr *MockInterfaceMockRecorder) GetAllZones() *MockInterfaceGetAllZonesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllZones", reflect.TypeOf((*MockInterface)(nil).GetAllZones))
+	return &MockInterfaceGetAllZonesCall{Call: call}
+}
+
+// MockInterfaceGetAllZonesCall wrap *gomock.Call
+type MockInterfaceGetAllZonesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceGetAllZonesCall) Return(arg0 []scw.Zone) *MockInterfaceGetAllZonesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceGetAllZonesCall) Do(f func() []scw.Zone) *MockInterfaceGetAllZonesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceGetAllZonesCall) DoAndReturn(f func() []scw.Zone) *MockInterfaceGetAllZonesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetClusterKubeConfig mocks base method.
 func (m *MockInterface) GetClusterKubeConfig(ctx context.Context, id string) (*k8s.Kubeconfig, error) {
 	m.ctrl.T.Helper()
@@ -2171,44 +2209,6 @@ func (c *MockInterfaceGetClusterKubeConfigCall) Do(f func(context.Context, strin
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceGetClusterKubeConfigCall) DoAndReturn(f func(context.Context, string) (*k8s.Kubeconfig, error)) *MockInterfaceGetClusterKubeConfigCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// GetControlPlaneZones mocks base method.
-func (m *MockInterface) GetControlPlaneZones() []scw.Zone {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetControlPlaneZones")
-	ret0, _ := ret[0].([]scw.Zone)
-	return ret0
-}
-
-// GetControlPlaneZones indicates an expected call of GetControlPlaneZones.
-func (mr *MockInterfaceMockRecorder) GetControlPlaneZones() *MockInterfaceGetControlPlaneZonesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetControlPlaneZones", reflect.TypeOf((*MockInterface)(nil).GetControlPlaneZones))
-	return &MockInterfaceGetControlPlaneZonesCall{Call: call}
-}
-
-// MockInterfaceGetControlPlaneZonesCall wrap *gomock.Call
-type MockInterfaceGetControlPlaneZonesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockInterfaceGetControlPlaneZonesCall) Return(arg0 []scw.Zone) *MockInterfaceGetControlPlaneZonesCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockInterfaceGetControlPlaneZonesCall) Do(f func() []scw.Zone) *MockInterfaceGetControlPlaneZonesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInterfaceGetControlPlaneZonesCall) DoAndReturn(f func() []scw.Zone) *MockInterfaceGetControlPlaneZonesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2364,6 +2364,44 @@ func (c *MockInterfaceGetZoneOrDefaultCall) Do(f func(string) (scw.Zone, error))
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceGetZoneOrDefaultCall) DoAndReturn(f func(string) (scw.Zone, error)) *MockInterfaceGetZoneOrDefaultCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetZones mocks base method.
+func (m *MockInterface) GetZones() []scw.Zone {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetZones")
+	ret0, _ := ret[0].([]scw.Zone)
+	return ret0
+}
+
+// GetZones indicates an expected call of GetZones.
+func (mr *MockInterfaceMockRecorder) GetZones() *MockInterfaceGetZonesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetZones", reflect.TypeOf((*MockInterface)(nil).GetZones))
+	return &MockInterfaceGetZonesCall{Call: call}
+}
+
+// MockInterfaceGetZonesCall wrap *gomock.Call
+type MockInterfaceGetZonesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceGetZonesCall) Return(arg0 []scw.Zone) *MockInterfaceGetZonesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceGetZonesCall) Do(f func() []scw.Zone) *MockInterfaceGetZonesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceGetZonesCall) DoAndReturn(f func() []scw.Zone) *MockInterfaceGetZonesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

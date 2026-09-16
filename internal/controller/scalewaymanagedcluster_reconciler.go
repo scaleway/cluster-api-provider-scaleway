@@ -36,6 +36,8 @@ func newScalewayManagedClusterService(s *scope.ManagedCluster) *scalewayManagedC
 }
 
 func (s *scalewayManagedClusterService) reconcile(ctx context.Context) error {
+	s.setFailureDomains()
+
 	for _, service := range s.services {
 		if err := service.Reconcile(ctx); err != nil {
 			return fmt.Errorf("failed to reconcile ScalewayManagedCluster service %s: %w", service.Name(), err)
@@ -53,4 +55,17 @@ func (s *scalewayManagedClusterService) delete(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// setFailureDomains sets the ScalewayManagedCluster Status failure domains
+// based on the zones where the pools of the cluster can be created.
+func (s *scalewayManagedClusterService) setFailureDomains() {
+	// Pools of multicloud clusters can be created in any zone. For other cluster
+	// types, pools must be in the same region as the control plane.
+	if s.scope.IsMulticloud() {
+		s.scope.SetFailureDomains(s.scope.ScalewayClient.GetAllZones())
+		return
+	}
+
+	s.scope.SetFailureDomains(s.scope.ScalewayClient.GetZones())
 }

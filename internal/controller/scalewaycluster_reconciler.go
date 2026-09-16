@@ -71,7 +71,7 @@ func (s *scalewayClusterService) delete(ctx context.Context) error {
 // based on which Scaleway Availability Zones are available in the cluster location
 // and the FailureDomains requested by user.
 func (s *scalewayClusterService) setFailureDomainsForLocation() error {
-	availableZones := s.scope.ScalewayClient.GetControlPlaneZones()
+	availableZones := s.scope.ScalewayClient.GetZones()
 
 	var failureDomains []scw.Zone
 
