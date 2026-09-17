@@ -311,8 +311,9 @@ spec:
                         x-kubernetes-validations:
                         - message: Value is immutable
                           rule: self == oldSelf
-                        - message: value must be a valid CIDR network address
-                          rule: isCIDR(self)
+                        - message: value must be a valid CIDR network address without
+                            host bits set
+                          rule: isCIDR(self) && cidr(self) == cidr(self).masked()
                       vpcID:
                         description: vpcID defines the ID of the VPC where the new
                           Private Network will be created if none is provided.

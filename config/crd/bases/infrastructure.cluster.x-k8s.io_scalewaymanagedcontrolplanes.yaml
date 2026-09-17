@@ -77,14 +77,16 @@ spec:
                       the managed cluster. When empty, all IP ranges are DENIED. Make sure the nodes
                       of your management cluster can still access the cluster by allowing their IPs.
                     items:
-                      description: CIDR is an IP address range in CIDR notation (for
-                        example, "10.0.0.0/8" or "fd00::/8").
+                      description: |-
+                        CIDR is an IP address range in CIDR notation (for example, "10.0.0.0/8" or "fd00::/8").
+                        Host bits must not be set (for example, "10.0.0.1/8" is rejected).
                       maxLength: 43
                       minLength: 1
                       type: string
                       x-kubernetes-validations:
-                      - message: value must be a valid CIDR network address
-                        rule: isCIDR(self)
+                      - message: value must be a valid CIDR network address without
+                          host bits set
+                        rule: isCIDR(self) && cidr(self) == cidr(self).masked()
                     maxItems: 30
                     type: array
                     x-kubernetes-list-type: set
@@ -456,14 +458,16 @@ spec:
                       the managed cluster. When empty, all IP ranges are DENIED. Make sure the nodes
                       of your management cluster can still access the cluster by allowing their IPs.
                     items:
-                      description: CIDR is an IP address range in CIDR notation (for
-                        example, "10.0.0.0/8" or "fd00::/8").
+                      description: |-
+                        CIDR is an IP address range in CIDR notation (for example, "10.0.0.0/8" or "fd00::/8").
+                        Host bits must not be set (for example, "10.0.0.1/8" is rejected).
                       maxLength: 43
                       minLength: 1
                       type: string
                       x-kubernetes-validations:
-                      - message: value must be a valid CIDR network address
-                        rule: isCIDR(self)
+                      - message: value must be a valid CIDR network address without
+                          host bits set
+                        rule: isCIDR(self) && cidr(self) == cidr(self).masked()
                     maxItems: 30
                     type: array
                     x-kubernetes-list-type: set
