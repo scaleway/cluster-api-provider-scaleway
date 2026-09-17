@@ -1,7 +1,7 @@
 # ScalewayManagedControlPlane
 
 The `ScalewayManagedControlPlane` resource provisions a Scaleway Managed Kubernetes cluster
-using [Kapsule](https://www.scaleway.com/en/kubernetes-kapsule/) or [Kosmos](https://www.scaleway.com/fr/kubernetes-kosmos/).
+using [Kapsule](https://www.scaleway.com/en/kubernetes-kapsule/) or [Kosmos](https://www.scaleway.com/en/kubernetes-kosmos/).
 
 This document describes the various configuration options you can set to configure a `ScalewayManagedControlPlane`.
 
@@ -24,7 +24,7 @@ The `type` field must be set to the desired cluster type (e.g. `kapsule`, `kapsu
 You can list the available cluster types using the Scaleway CLI: `$ scw k8s cluster-type list`.
 The cluster is automatically updated to the desired type when the `type` field is updated.
 
-The `version` field must be set to one of the supported Kubernetes version.
+The `version` field must be set to one of the supported Kubernetes versions.
 You can list the supported Kubernetes versions using the Scaleway CLI: `$ scw k8s version list`.
 The cluster is automatically upgraded when the `version` field is bumped to a
 version that is above the current version of the cluster. It is not possible to

@@ -57,7 +57,7 @@ spec:
 
 ## Security Group and Placement Group
 
-You can set specify a Security Group and Placement Group ID during the creation of the pool:
+You can specify a Security Group and Placement Group ID during the creation of the pool:
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2

@@ -2,7 +2,7 @@
 
 This document will help you provision a management cluster and a Scaleway managed workload cluster.
 
-## Setup a management cluster
+## Set up a management cluster
 
 ### Provision the cluster
 
@@ -99,7 +99,7 @@ export KUBECONFIG=/path/to/your/kubeconfig
 3. Review and edit the `my-cluster.yaml` file as needed.
    For configuring the CAPS CRDs, refer to the [ScalewayManagedCluster](scalewaymanagedcluster.md),
    [ScalewayManagedControlPlane](scalewaymanagedcontrolplane.md) and
-   [ScalewayManagedMachinePool](scalewaymanagedmachinepool.md) documentations.
+   [ScalewayManagedMachinePool](scalewaymanagedmachinepool.md) documentation.
 4. Apply the `my-cluster.yaml` file to create the workload cluster.
 5. Wait for the cluster and machines to be ready.
 
