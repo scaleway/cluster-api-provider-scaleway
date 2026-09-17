@@ -2,7 +2,7 @@
 
 This document will help you provision a management cluster and a workload cluster.
 
-## Setup a management cluster
+## Set up a management cluster
 
 ### Provision the cluster
 
@@ -161,7 +161,7 @@ Then, please follow the [Building Images for Scaleway documentation](https://ima
 
 3. Review and edit the `my-cluster.yaml` file as needed.
    For configuring the CAPS CRDs, refer to the [ScalewayCluster](scalewaycluster.md)
-   and [ScalewayMachine](scalewaymachine.md) documentations.
+   and [ScalewayMachine](scalewaymachine.md) documentation.
 4. Apply the `my-cluster.yaml` file to create the workload cluster.
 5. Wait for the cluster and machines to be ready.
 
@@ -198,7 +198,7 @@ Then, please follow the [Building Images for Scaleway documentation](https://ima
 > [!NOTE]
 > Nodes will have the `NotReady` status until a CNI is installed in the cluster.
 
-### Setup the workload cluster
+### Set up the workload cluster
 
 The workload cluster is ready to use. You should now:
 

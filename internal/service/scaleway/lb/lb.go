@@ -431,7 +431,7 @@ func (d *desiredResourceListManager) CreateResource(
 
 	return &lbWithPrivateIP{
 		LB:        l,
-		privateIP: string(desired.IP),
+		privateIP: string(desired.PrivateIP),
 	}, nil
 }
 

@@ -43,7 +43,7 @@ your suggestions, contributions, and help!
 
 To set up your environment checkout the [development guide](./docs/development.md).
 
-## Github issues
+## GitHub issues
 
 ### Bugs
 

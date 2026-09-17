@@ -469,7 +469,7 @@ func (s *Service) ensurePublicIPs(ctx context.Context, server *instance.Server) 
 	if updateServer {
 		server, err = s.ScalewayClient.UpdateServerPublicIPs(ctx, server.Zone, server.ID, publicIPIDs)
 		if err != nil {
-			return nil, fmt.Errorf("failed to refresh server after updating IPs")
+			return nil, fmt.Errorf("failed to refresh server after updating IPs: %w", err)
 		}
 	}
 

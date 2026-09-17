@@ -34,7 +34,7 @@ to the [Scaleway Secret documentation](secret.md).
 
 ## Failure domains
 
-The `failureDomains` field allows to set the Scaleway availability zones where the
+The `failureDomains` field allows you to set the Scaleway availability zones where the
 control-plane nodes will be deployed. The specified availability zones must be in
 the same region as the region specified in the `region` field. When omitted, all
 availability zones in the specified region are automatically eligible for hosting
@@ -213,8 +213,7 @@ spec:
 
 #### Extra Load Balancers
 
-To specify extra Load Balancers, it is required to also set the `network.controlPlaneDNS`
-or `network.controlPlanePrivateDNS` field.
+To specify extra Load Balancers, it is required to also set the `network.controlPlaneDNS` field.
 
 Here is an example that configures two extra Load Balancers in `nl-ams-2` and `nl-ams-3`.
 
@@ -248,7 +247,7 @@ spec:
 
 #### Allowed ranges (ACLs)
 
-The workload cluster's API server is always exposed publicly though the Load Balancer(s).
+The workload cluster's API server is always exposed publicly through the Load Balancer(s).
 To prevent unauthorized access to the API server, you may configure some allowed network ranges
 in CIDR format. By default, when the `allowedRanges` is unset or set to an empty list (`[]`),
 all network ranges are allowed.
