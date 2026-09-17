@@ -7,7 +7,8 @@ package v1alpha2
 type UUID string
 
 // CIDR is an IP address range in CIDR notation (for example, "10.0.0.0/8" or "fd00::/8").
-// +kubebuilder:validation:XValidation:rule="isCIDR(self)",message="value must be a valid CIDR network address"
+// Host bits must not be set (for example, "10.0.0.1/8" is rejected).
+// +kubebuilder:validation:XValidation:rule="isCIDR(self) && cidr(self) == cidr(self).masked()",message="value must be a valid CIDR network address without host bits set"
 // +kubebuilder:validation:MinLength=1
 // +kubebuilder:validation:MaxLength=43
 type CIDR string
