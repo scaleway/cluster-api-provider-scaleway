@@ -21,6 +21,7 @@ import (
 type ManagedCluster struct {
 	patchHelper *patch.Helper
 
+	Cluster                     *clusterv1.Cluster
 	ScalewayManagedCluster      *infrav1.ScalewayManagedCluster
 	ScalewayManagedControlPlane *infrav1.ScalewayManagedControlPlane // ManagedControlPlane may be nil, on Cluster deletion.
 	ScalewayClient              scwClient.Interface
@@ -29,6 +30,7 @@ type ManagedCluster struct {
 // ClusterParams contains mandatory params for creating the Cluster scope.
 type ManagedClusterParams struct {
 	Client              client.Client
+	Cluster             *clusterv1.Cluster
 	ManagedCluster      *infrav1.ScalewayManagedCluster
 	ManagedControlPlane *infrav1.ScalewayManagedControlPlane
 }
@@ -42,6 +44,7 @@ func NewManagedCluster(ctx context.Context, params *ManagedClusterParams) (*Mana
 
 	mc := &ManagedCluster{
 		patchHelper:                 helper,
+		Cluster:                     params.Cluster,
 		ScalewayManagedCluster:      params.ManagedCluster,
 		ScalewayManagedControlPlane: params.ManagedControlPlane,
 	}

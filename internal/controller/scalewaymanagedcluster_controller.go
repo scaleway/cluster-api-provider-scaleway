@@ -100,6 +100,7 @@ func (r *ScalewayManagedClusterReconciler) Reconcile(ctx context.Context, req ct
 
 	managedClusterScope, err := scope.NewManagedCluster(ctx, &scope.ManagedClusterParams{
 		Client:              r.Client,
+		Cluster:             cluster,
 		ManagedCluster:      managedCluster,
 		ManagedControlPlane: controlPlane,
 	})
@@ -226,8 +227,10 @@ func (r *ScalewayManagedClusterReconciler) SetupWithManager(ctx context.Context,
 		Complete(r)
 }
 
+// dependencyCount returns the number of ScalewayManagedMachinePools that belong
+// to the Cluster.
 func (r *ScalewayManagedClusterReconciler) dependencyCount(ctx context.Context, clusterScope *scope.ManagedCluster) (int, error) {
-	clusterName, clusterNamespace := clusterScope.ScalewayManagedCluster.Name, clusterScope.ScalewayManagedCluster.Namespace
+	clusterName, clusterNamespace := clusterScope.Cluster.Name, clusterScope.Cluster.Namespace
 
 	listOptions := []client.ListOption{
 		client.InNamespace(clusterNamespace),
