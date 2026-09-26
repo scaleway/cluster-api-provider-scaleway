@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -80,7 +81,7 @@ func (m *ManagedControlPlane) PatchObject(ctx context.Context) error {
 	}
 
 	return m.patchHelper.Patch(ctx, m.ScalewayManagedControlPlane, patch.WithOwnedConditions{
-		Conditions: append(summaryConditions, infrav1.ScalewayManagedControlPlaneReadyCondition),
+		Conditions: slices.Concat(summaryConditions, []string{infrav1.ScalewayManagedControlPlaneReadyCondition}),
 	})
 }
 
@@ -106,7 +107,7 @@ func (m *ManagedControlPlane) PrivateNetworkID() *string {
 		return nil
 	}
 
-	return ptr.To(string(m.ScalewayManagedCluster.Status.Network.PrivateNetworkID))
+	return new(string(m.ScalewayManagedCluster.Status.Network.PrivateNetworkID))
 }
 
 // DeleteWithAdditionalResources returns true if we should tell Scaleway k8s API
@@ -123,7 +124,10 @@ func (m *ManagedControlPlane) SetControlPlaneEndpoint(host string, port int32) {
 
 // SetStatusVersion sets the current cluster Kubernetes version in the status.
 func (m *ManagedControlPlane) SetStatusVersion(version string) {
-	m.ScalewayManagedControlPlane.Status.Version = "v" + version
+	m.ScalewayManagedControlPlane.Status.Versions = []clusterv1.StatusVersion{{
+		Version: "v" + version,
+	}}
+	m.ScalewayManagedControlPlane.Status.Version = "v" + version //nolint:staticcheck
 }
 
 // DesiredVersion returns the desired Kubernetes version, without leading "v".
@@ -184,6 +188,8 @@ func (m *ManagedControlPlane) DesiredClusterAutoscalerConfig() (*k8s.ClusterAuto
 		ScaleDownUnneededTime:         "10m",
 		ScaleDownUtilizationThreshold: 0.5,
 		MaxGracefulTerminationSec:     600,
+		SkipNodesWithLocalStorage:     ptr.Deref(autoscaler.SkipNodesWithLocalStorage, true),
+		LogLevel:                      ptr.Deref(autoscaler.LogLevel, 2),
 	}
 
 	if autoscaler.ScaleDownDelayAfterAdd != "" {

@@ -84,7 +84,7 @@ func TestClient_GetZoneOrDefault(t *testing.T) {
 	}
 }
 
-func TestClient_GetControlPlaneZones(t *testing.T) {
+func TestClient_GetZones(t *testing.T) {
 	t.Parallel()
 	type fields struct {
 		region scw.Region
@@ -125,8 +125,60 @@ func TestClient_GetControlPlaneZones(t *testing.T) {
 				region:   tt.fields.region,
 				instance: instanceMock,
 			}
-			if got := c.GetControlPlaneZones(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.GetControlPlaneZones() = %v, want %v", got, tt.want)
+			if got := c.GetZones(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.GetZones() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_GetAllZones(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		region scw.Region
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []scw.Zone
+		expect func(i *mock_client.MockInstanceAPIMockRecorder)
+	}{
+		{
+			name: "zones of all regions",
+			fields: fields{
+				region: scw.RegionFrPar,
+			},
+			want: []scw.Zone{
+				scw.ZoneFrPar1, scw.ZoneFrPar2, scw.ZoneFrPar3,
+				scw.ZoneNlAms1, scw.ZoneNlAms2, scw.ZoneNlAms3,
+				scw.ZonePlWaw1, scw.ZonePlWaw2, scw.ZonePlWaw3,
+			},
+			expect: func(i *mock_client.MockInstanceAPIMockRecorder) {
+				i.Zones().Return([]scw.Zone{
+					scw.ZoneFrPar1, scw.ZoneFrPar2, scw.ZoneFrPar3,
+					scw.ZoneNlAms1, scw.ZoneNlAms2, scw.ZoneNlAms3,
+					scw.ZonePlWaw1, scw.ZonePlWaw2, scw.ZonePlWaw3,
+				})
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			instanceMock := mock_client.NewMockInstanceAPI(mockCtrl)
+
+			tt.expect(instanceMock.EXPECT())
+
+			c := &Client{
+				region:   tt.fields.region,
+				instance: instanceMock,
+			}
+			if got := c.GetAllZones(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.GetAllZones() = %v, want %v", got, tt.want)
 			}
 		})
 	}

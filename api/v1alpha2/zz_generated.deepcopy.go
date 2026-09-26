@@ -6,7 +6,7 @@ package v1alpha2
 
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -86,6 +86,16 @@ func (in *Autoscaler) DeepCopyInto(out *Autoscaler) {
 	}
 	if in.ExpendablePodsPriorityCutoff != nil {
 		in, out := &in.ExpendablePodsPriorityCutoff, &out.ExpendablePodsPriorityCutoff
+		*out = new(int32)
+		**out = **in
+	}
+	if in.SkipNodesWithLocalStorage != nil {
+		in, out := &in.SkipNodesWithLocalStorage, &out.SkipNodesWithLocalStorage
+		*out = new(bool)
+		**out = **in
+	}
+	if in.LogLevel != nil {
+		in, out := &in.LogLevel, &out.LogLevel
 		*out = new(int32)
 		**out = **in
 	}
@@ -1014,6 +1024,13 @@ func (in *ScalewayManagedClusterStatus) DeepCopyInto(out *ScalewayManagedCluster
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.FailureDomains != nil {
+		in, out := &in.FailureDomains, &out.FailureDomains
+		*out = make([]v1beta2.FailureDomain, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	in.Initialization.DeepCopyInto(&out.Initialization)
 	out.Network = in.Network
 }
@@ -1167,6 +1184,11 @@ func (in *ScalewayManagedControlPlaneStatus) DeepCopyInto(out *ScalewayManagedCo
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Versions != nil {
+		in, out := &in.Versions, &out.Versions
+		*out = make([]v1beta2.StatusVersion, len(*in))
+		copy(*out, *in)
+	}
 	if in.ExternalManagedControlPlane != nil {
 		in, out := &in.ExternalManagedControlPlane, &out.ExternalManagedControlPlane
 		*out = new(bool)
@@ -1290,6 +1312,13 @@ func (in *ScalewayManagedMachinePoolSpec) DeepCopyInto(out *ScalewayManagedMachi
 		in, out := &in.PublicIPDisabled, &out.PublicIPDisabled
 		*out = new(bool)
 		**out = **in
+	}
+	if in.Labels != nil {
+		in, out := &in.Labels, &out.Labels
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	if in.ProviderIDList != nil {
 		in, out := &in.ProviderIDList, &out.ProviderIDList

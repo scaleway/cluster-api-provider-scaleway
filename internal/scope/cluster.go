@@ -74,7 +74,7 @@ func (c *Cluster) PatchObject(ctx context.Context) error {
 	}
 
 	return c.patchHelper.Patch(ctx, c.ScalewayCluster, patch.WithOwnedConditions{
-		Conditions: append(summaryConditions, infrav1.ScalewayClusterReadyCondition),
+		Conditions: slices.Concat(summaryConditions, []string{infrav1.ScalewayClusterReadyCondition}),
 	})
 }
 
@@ -272,7 +272,7 @@ func (c *Cluster) SetFailureDomains(zones []scw.Zone) {
 	for _, zone := range zones {
 		failureDomains = append(failureDomains, clusterv1.FailureDomain{
 			Name:         string(zone),
-			ControlPlane: ptr.To(true),
+			ControlPlane: new(true),
 		})
 	}
 

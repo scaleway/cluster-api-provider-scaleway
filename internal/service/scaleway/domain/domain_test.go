@@ -9,7 +9,6 @@ import (
 	domain "github.com/scaleway/scaleway-sdk-go/api/domain/v2beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
-	"k8s.io/utils/ptr"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
@@ -139,10 +138,10 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
-									Private: ptr.To(true),
+									Private: new(true),
 								},
 								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Name: name,
@@ -178,10 +177,10 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
-									Private: ptr.To(true),
+									Private: new(true),
 								},
 								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Name: name,
@@ -368,10 +367,10 @@ func TestService_Delete(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
-									Private: ptr.To(true),
+									Private: new(true),
 								},
 								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Name: name,
@@ -406,10 +405,10 @@ func TestService_Delete(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
-									Private: ptr.To(true),
+									Private: new(true),
 								},
 								ControlPlaneDNS: infrav1.ControlPlaneDNS{
 									Name: name,

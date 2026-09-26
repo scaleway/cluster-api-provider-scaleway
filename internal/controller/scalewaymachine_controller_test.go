@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -158,7 +157,7 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 					},
 					Status: clusterv1.ClusterStatus{
 						Initialization: clusterv1.ClusterInitializationStatus{
-							InfrastructureProvisioned: ptr.To(true),
+							InfrastructureProvisioned: new(true),
 						},
 					},
 				},
@@ -195,7 +194,7 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: ptr.To("bootstrap"),
+							DataSecretName: new("bootstrap"),
 						},
 					},
 				},
@@ -257,7 +256,7 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 					},
 					Status: clusterv1.ClusterStatus{
 						Initialization: clusterv1.ClusterInitializationStatus{
-							InfrastructureProvisioned: ptr.To(true),
+							InfrastructureProvisioned: new(true),
 						},
 					},
 				},
@@ -296,7 +295,7 @@ func TestScalewayMachineReconciler_Reconcile(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: ptr.To("bootstrap"),
+							DataSecretName: new("bootstrap"),
 						},
 					},
 				},

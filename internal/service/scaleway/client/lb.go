@@ -8,7 +8,6 @@ import (
 
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
-	"k8s.io/utils/ptr"
 )
 
 type LBAPI interface {
@@ -200,16 +199,16 @@ func (c *Client) CreateLB(
 		Type:               strings.ToLower(lbType),
 		Tags:               append(tags, createdByTag),
 		Description:        createdByDescription,
-		AssignFlexibleIPv6: ptr.To(false),
+		AssignFlexibleIPv6: new(false),
 	}
 
 	if private {
-		params.AssignFlexibleIP = ptr.To(false)
+		params.AssignFlexibleIP = new(false)
 	} else {
 		if ipID != nil {
 			params.IPIDs = []string{*ipID}
 		}
-		params.AssignFlexibleIP = ptr.To(ipID == nil)
+		params.AssignFlexibleIP = new(ipID == nil)
 	}
 
 	loadbalancer, err := c.lb.CreateLB(params, scw.WithContext(ctx))

@@ -7,7 +7,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -15,6 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -100,6 +100,7 @@ func (r *ScalewayManagedClusterReconciler) Reconcile(ctx context.Context, req ct
 
 	managedClusterScope, err := scope.NewManagedCluster(ctx, &scope.ManagedClusterParams{
 		Client:              r.Client,
+		Cluster:             cluster,
 		ManagedCluster:      managedCluster,
 		ManagedControlPlane: controlPlane,
 	})
@@ -157,7 +158,7 @@ func (r *ScalewayManagedClusterReconciler) reconcileNormal(ctx context.Context, 
 
 	// Infrastructure must be ready before control plane. We should also enqueue
 	// requests from control plane to infra cluster to keep control plane endpoint accurate.
-	s.ScalewayManagedCluster.Status.Initialization.Provisioned = ptr.To(true)
+	s.ScalewayManagedCluster.Status.Initialization.Provisioned = new(true)
 	s.ScalewayManagedCluster.Spec.ControlPlaneEndpoint = s.ScalewayManagedControlPlane.Spec.ControlPlaneEndpoint
 
 	return ctrl.Result{}, nil
@@ -206,7 +207,7 @@ func (r *ScalewayManagedClusterReconciler) reconcileDelete(ctx context.Context, 
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ScalewayManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *ScalewayManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.ScalewayManagedCluster{}).
 		WithEventFilter(predicates.ResourceNotPaused(mgr.GetScheme(), mgr.GetLogger())).
@@ -221,12 +222,15 @@ func (r *ScalewayManagedClusterReconciler) SetupWithManager(ctx context.Context,
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("ScalewayManagedCluster"), mgr.GetClient(), &infrav1.ScalewayManagedCluster{})),
 			builder.WithPredicates(predicates.ClusterUnpaused(mgr.GetScheme(), mgr.GetLogger())),
 		).
+		WithOptions(options).
 		Named("scalewaymanagedcluster").
 		Complete(r)
 }
 
+// dependencyCount returns the number of ScalewayManagedMachinePools that belong
+// to the Cluster.
 func (r *ScalewayManagedClusterReconciler) dependencyCount(ctx context.Context, clusterScope *scope.ManagedCluster) (int, error) {
-	clusterName, clusterNamespace := clusterScope.ScalewayManagedCluster.Name, clusterScope.ScalewayManagedCluster.Namespace
+	clusterName, clusterNamespace := clusterScope.Cluster.Name, clusterScope.Cluster.Namespace
 
 	listOptions := []client.ListOption{
 		client.InNamespace(clusterNamespace),

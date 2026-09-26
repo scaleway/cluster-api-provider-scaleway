@@ -77,6 +77,10 @@ type ScalewayManagedMachinePoolSpec struct {
 	// +optional
 	SecurityGroupID *string `json:"securityGroupID,omitempty"`
 
+	// Labels are kubernetes labels applied and reconciled on the nodes.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
 	// ProviderIDList are the provider IDs of instances in the
 	// managed instance group corresponding to the nodegroup represented by this
 	// machine pool

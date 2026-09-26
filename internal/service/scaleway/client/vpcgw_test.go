@@ -9,7 +9,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
-	"k8s.io/utils/ptr"
 
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
@@ -54,7 +53,7 @@ func TestClient_FindGateways(t *testing.T) {
 				v.Zones()
 				v.ListGateways(&vpcgw.ListGatewaysRequest{
 					Zone:      scw.ZoneFrPar1,
-					ProjectID: ptr.To(projectID),
+					ProjectID: new(projectID),
 					Tags:      []string{"tag1", "tag2"},
 				}, gomock.Any(), gomock.Any(), gomock.Any()).Return(&vpcgw.ListGatewaysResponse{
 					TotalCount: 1,
@@ -198,8 +197,8 @@ func TestClient_FindGatewayIP(t *testing.T) {
 			expect: func(v *mock_client.MockVPCGWAPIMockRecorder) {
 				v.ListIPs(&vpcgw.ListIPsRequest{
 					Zone:      scw.ZoneFrPar1,
-					IsFree:    ptr.To(true),
-					ProjectID: ptr.To(projectID),
+					IsFree:    new(true),
+					ProjectID: new(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&vpcgw.ListIPsResponse{
 					TotalCount: 1,
 					IPs: []*vpcgw.IP{
@@ -275,7 +274,7 @@ func TestClient_CreateGateway(t *testing.T) {
 				name:   "gateway",
 				gwType: "VPC-GW-S",
 				tags:   []string{"tag1", "tag2"},
-				ipID:   ptr.To(ipID),
+				ipID:   new(ipID),
 			},
 			want: &vpcgw.Gateway{
 				ID: vpcgwID,
@@ -286,7 +285,7 @@ func TestClient_CreateGateway(t *testing.T) {
 					Name:       "gateway",
 					Tags:       []string{"tag1", "tag2", createdByTag},
 					Type:       "VPC-GW-S",
-					IPID:       ptr.To(ipID),
+					IPID:       new(ipID),
 					EnableSMTP: false,
 				}, gomock.Any()).Return(&vpcgw.Gateway{
 					ID: vpcgwID,
@@ -305,8 +304,8 @@ func TestClient_CreateGateway(t *testing.T) {
 				name:       "gateway",
 				gwType:     "VPC-GW-S",
 				tags:       []string{"tag1", "tag2"},
-				ipID:       ptr.To(ipID),
-				enableSMTP: ptr.To(true),
+				ipID:       new(ipID),
+				enableSMTP: new(true),
 			},
 			want: &vpcgw.Gateway{
 				ID: vpcgwID,
@@ -317,7 +316,7 @@ func TestClient_CreateGateway(t *testing.T) {
 					Name:       "gateway",
 					Tags:       []string{"tag1", "tag2", createdByTag},
 					Type:       "VPC-GW-S",
-					IPID:       ptr.To(ipID),
+					IPID:       new(ipID),
 					EnableSMTP: true,
 				}, gomock.Any()).Return(&vpcgw.Gateway{
 					ID: vpcgwID,
@@ -454,7 +453,7 @@ func TestClient_UpdateGateway(t *testing.T) {
 				ctx:        context.TODO(),
 				zone:       scw.ZoneFrPar1,
 				gatewayID:  vpcgwID,
-				enableSMTP: ptr.To(true),
+				enableSMTP: new(true),
 			},
 			want: &vpcgw.Gateway{
 				ID: vpcgwID,
@@ -463,7 +462,7 @@ func TestClient_UpdateGateway(t *testing.T) {
 				v.UpdateGateway(&vpcgw.UpdateGatewayRequest{
 					Zone:       scw.ZoneFrPar1,
 					GatewayID:  vpcgwID,
-					EnableSMTP: ptr.To(true),
+					EnableSMTP: new(true),
 				}, gomock.Any()).Return(&vpcgw.Gateway{
 					ID: vpcgwID,
 				}, nil)
@@ -479,7 +478,7 @@ func TestClient_UpdateGateway(t *testing.T) {
 				ctx:        context.TODO(),
 				zone:       scw.ZoneFrPar1,
 				gatewayID:  vpcgwID,
-				enableSMTP: ptr.To(false),
+				enableSMTP: new(false),
 			},
 			want: &vpcgw.Gateway{
 				ID: vpcgwID,
@@ -488,7 +487,7 @@ func TestClient_UpdateGateway(t *testing.T) {
 				v.UpdateGateway(&vpcgw.UpdateGatewayRequest{
 					Zone:       scw.ZoneFrPar1,
 					GatewayID:  vpcgwID,
-					EnableSMTP: ptr.To(false),
+					EnableSMTP: new(false),
 				}, gomock.Any()).Return(&vpcgw.Gateway{
 					ID: vpcgwID,
 				}, nil)
@@ -639,7 +638,7 @@ func TestClient_UpgradeGateway(t *testing.T) {
 				v.UpgradeGateway(&vpcgw.UpgradeGatewayRequest{
 					Zone:      scw.ZoneFrPar1,
 					GatewayID: vpcgwID,
-					Type:      ptr.To("VPC-GW-M"),
+					Type:      new("VPC-GW-M"),
 				}, gomock.Any()).Return(&vpcgw.Gateway{
 					ID: vpcgwID,
 				}, nil)

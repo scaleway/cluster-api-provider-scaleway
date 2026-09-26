@@ -35,7 +35,7 @@ func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *k8s.Cluster,
 			return fmt.Errorf("creating kubeconfig secret: %w", createErr)
 		}
 	} else if updateErr := s.updateCAPIKubeconfigSecret(ctx, configSecret); updateErr != nil {
-		return fmt.Errorf("updating kubeconfig secret: %w", err)
+		return fmt.Errorf("updating kubeconfig secret: %w", updateErr)
 	}
 
 	return nil

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.20.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: scalewaymanagedmachinepools.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -66,6 +66,12 @@ spec:
                   type: string
                 description: KubeletArgs defines Kubelet arguments to be used by this
                   pool.
+                type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: Labels are kubernetes labels applied and reconciled on
+                  the nodes.
                 type: object
               nodeType:
                 description: |-
@@ -273,6 +279,12 @@ spec:
                   type: string
                 description: kubeletArgs defines Kubelet arguments to be used by this
                   pool.
+                type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: labels are kubernetes labels applied and reconciled on
+                  the nodes.
                 type: object
               nodeType:
                 description: |-

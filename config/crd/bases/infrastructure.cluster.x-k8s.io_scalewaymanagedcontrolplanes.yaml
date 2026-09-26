@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.20.1
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: scalewaymanagedcontrolplanes.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -77,14 +77,16 @@ spec:
                       the managed cluster. When empty, all IP ranges are DENIED. Make sure the nodes
                       of your management cluster can still access the cluster by allowing their IPs.
                     items:
-                      description: CIDR is an IP address range in CIDR notation (for
-                        example, "10.0.0.0/8" or "fd00::/8").
+                      description: |-
+                        CIDR is an IP address range in CIDR notation (for example, "10.0.0.0/8" or "fd00::/8").
+                        Host bits must not be set (for example, "10.0.0.1/8" is rejected).
                       maxLength: 43
                       minLength: 1
                       type: string
                       x-kubernetes-validations:
-                      - message: value must be a valid CIDR network address
-                        rule: isCIDR(self)
+                      - message: value must be a valid CIDR network address without
+                          host bits set
+                        rule: isCIDR(self) && cidr(self) == cidr(self).masked()
                     maxItems: 30
                     type: array
                     x-kubernetes-list-type: set
@@ -167,6 +169,15 @@ spec:
                     description: Ignore DaemonSet pods when calculating resource utilization
                       for scaling down.
                     type: boolean
+                  logLevel:
+                    description: |-
+                      LogLevel defines cluster autoscaler logging level expressed from 0 to 4
+                      (4 being the more verbose), defaults to 2.
+
+                      See https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-increase-the-information-that-the-ca-is-logging
+                      for details.
+                    format: int32
+                    type: integer
                   maxGracefulTerminationSec:
                     description: |-
                       Maximum number of seconds the cluster autoscaler waits for pod termination
@@ -188,8 +199,13 @@ spec:
                     description: |-
                       Node utilization level, defined as a sum of requested resources divided
                       by capacity, below which a node can be considered for scale down.
-                    format: float
+                    pattern: ^(0(\.[0-9]{1,2})?|1)$
                     type: string
+                  skipNodesWithLocalStorage:
+                    description: |-
+                      SkipNodesWithLocalStorage defines if cluster autoscaler should skip nodes
+                      with pods with local storage, e.g. EmptyDir or HostPath, defaults to true.
+                    type: boolean
                 type: object
               clusterName:
                 description: |-
@@ -343,6 +359,31 @@ spec:
                 description: Version represents the version of the Scaleway managed
                   control plane.
                 type: string
+              versions:
+                description: Versions is the aggregated Kubernetes versions in this
+                  control plane.
+                items:
+                  description: StatusVersion groups version-related status information.
+                  properties:
+                    replicas:
+                      description: replicas is the number of replicas at this version.
+                      format: int32
+                      minimum: 1
+                      type: integer
+                    version:
+                      description: version is the Kubernetes version.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - version
+                  type: object
+                maxItems: 100
+                minItems: 1
+                type: array
+                x-kubernetes-list-map-keys:
+                - version
+                x-kubernetes-list-type: map
             type: object
         required:
         - spec
@@ -417,14 +458,16 @@ spec:
                       the managed cluster. When empty, all IP ranges are DENIED. Make sure the nodes
                       of your management cluster can still access the cluster by allowing their IPs.
                     items:
-                      description: CIDR is an IP address range in CIDR notation (for
-                        example, "10.0.0.0/8" or "fd00::/8").
+                      description: |-
+                        CIDR is an IP address range in CIDR notation (for example, "10.0.0.0/8" or "fd00::/8").
+                        Host bits must not be set (for example, "10.0.0.1/8" is rejected).
                       maxLength: 43
                       minLength: 1
                       type: string
                       x-kubernetes-validations:
-                      - message: value must be a valid CIDR network address
-                        rule: isCIDR(self)
+                      - message: value must be a valid CIDR network address without
+                          host bits set
+                        rule: isCIDR(self) && cidr(self) == cidr(self).masked()
                     maxItems: 30
                     type: array
                     x-kubernetes-list-type: set
@@ -532,6 +575,15 @@ spec:
                       ignoreDaemonsetsUtilization allows to ignore DaemonSet pods when calculating
                       resource utilization for scaling down.
                     type: boolean
+                  logLevel:
+                    description: |-
+                      logLevel defines cluster autoscaler logging level expressed from 0 to 4
+                      (4 being the more verbose), defaults to 2.
+
+                      See https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-increase-the-information-that-the-ca-is-logging
+                      for details.
+                    format: int32
+                    type: integer
                   maxGracefulTerminationSec:
                     description: |-
                       maxGracefulTerminationSec is the maximum number of seconds the cluster autoscaler
@@ -562,10 +614,15 @@ spec:
                       scaleDownUtilizationThreshold is the Node utilization level, defined as a
                       sum of requested resources divided by capacity, below which a node can be
                       considered for scale down.
-                    format: float
                     maxLength: 10
                     minLength: 1
+                    pattern: ^(0(\.[0-9]{1,2})?|1)$
                     type: string
+                  skipNodesWithLocalStorage:
+                    description: |-
+                      skipNodesWithLocalStorage defines if cluster autoscaler should skip nodes
+                      with pods with local storage, e.g. EmptyDir or HostPath, defaults to true.
+                    type: boolean
                 type: object
               clusterName:
                 description: |-
@@ -824,11 +881,40 @@ spec:
                     type: boolean
                 type: object
               version:
-                description: version defines the desired Kubernetes version for the
-                  control plane.
+                description: |-
+                  version represents the minimum Kubernetes version for the control plane machines
+                  in the cluster.
+
+                  Deprecated: This field is deprecated and is going to be removed in a future API version.
+                  Please use status.versions instead.
                 maxLength: 256
                 minLength: 1
                 type: string
+              versions:
+                description: versions is the aggregated Kubernetes versions in this
+                  control plane.
+                items:
+                  description: StatusVersion groups version-related status information.
+                  properties:
+                    replicas:
+                      description: replicas is the number of replicas at this version.
+                      format: int32
+                      minimum: 1
+                      type: integer
+                    version:
+                      description: version is the Kubernetes version.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - version
+                  type: object
+                maxItems: 100
+                minItems: 1
+                type: array
+                x-kubernetes-list-map-keys:
+                - version
+                x-kubernetes-list-type: map
             type: object
         required:
         - spec

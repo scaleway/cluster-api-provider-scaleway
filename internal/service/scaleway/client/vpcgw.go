@@ -85,7 +85,7 @@ func (c *Client) FindGatewayIP(ctx context.Context, zone scw.Zone, ip string) (*
 
 	ips, err := c.vpcgw.ListIPs(&vpcgw.ListIPsRequest{
 		Zone:      zone,
-		IsFree:    ptr.To(true),
+		IsFree:    new(true),
 		ProjectID: &c.projectID,
 	}, scw.WithContext(ctx), scw.WithAllPages())
 	if err != nil {

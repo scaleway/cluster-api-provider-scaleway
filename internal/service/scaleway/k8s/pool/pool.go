@@ -12,7 +12,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -145,6 +144,10 @@ func (s *Service) Reconcile(ctx context.Context) (retErr error) {
 		return scaleway.WithTransientError(fmt.Errorf("pool %s is being updated", cluster.ID), poolRetryTime)
 	}
 
+	if err := s.updatePoolLabels(ctx, pool); err != nil {
+		return err
+	}
+
 	nodes, err := s.ScalewayClient.ListNodes(ctx, cluster.ID, pool.ID)
 	if err != nil {
 		return err
@@ -184,6 +187,7 @@ func (s *Service) getOrCreatePool(ctx context.Context, cluster *k8s.Cluster) (*k
 			&max,
 			s.DesiredTags(),
 			mmp.Spec.KubeletArgs,
+			mmp.Spec.Labels,
 			s.RootVolumeType(),
 			s.RootVolumeSizeGB(),
 			&k8s.CreatePoolRequestUpgradePolicy{
@@ -205,7 +209,7 @@ func (s *Service) updatePool(ctx context.Context, pool *k8s.Pool) (bool, error) 
 	var autohealing *bool
 	if pool.Autohealing != s.Autohealing() {
 		updateNeeded = true
-		autohealing = ptr.To(s.Autohealing())
+		autohealing = new(s.Autohealing())
 	}
 
 	var autoscaling *bool
@@ -242,7 +246,7 @@ func (s *Service) updatePool(ctx context.Context, pool *k8s.Pool) (bool, error) 
 	var tags *[]string
 	if !common.SlicesEqualIgnoreOrder(client.TagsWithoutCreatedBy(pool.Tags), s.DesiredTags()) {
 		updateNeeded = true
-		tags = ptr.To(s.DesiredTags())
+		tags = new(s.DesiredTags())
 	}
 
 	var kubeletArgs *map[string]string
@@ -282,6 +286,14 @@ func (s *Service) updatePool(ctx context.Context, pool *k8s.Pool) (bool, error) 
 	}
 
 	return true, nil
+}
+
+func (s *Service) updatePoolLabels(ctx context.Context, pool *k8s.Pool) error {
+	if maps.Equal(pool.Labels, s.ScalewayManagedMachinePool.Spec.Labels) {
+		return nil
+	}
+
+	return s.ScalewayClient.SetPoolLabels(ctx, pool.ID, s.ScalewayManagedMachinePool.Spec.Labels)
 }
 
 func poolUpgradePolicyMatchesDesired(current, desired *k8s.PoolUpgradePolicy) bool {

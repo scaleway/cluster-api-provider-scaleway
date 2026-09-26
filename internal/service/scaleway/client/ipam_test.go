@@ -9,7 +9,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/ipam/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
-	"k8s.io/utils/ptr"
 
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
@@ -54,10 +53,10 @@ func TestClient_FindPrivateNICIPs(t *testing.T) {
 			},
 			expect: func(d *mock_client.MockIPAMAPIMockRecorder) {
 				d.ListIPs(&ipam.ListIPsRequest{
-					ProjectID:    ptr.To(projectID),
+					ProjectID:    new(projectID),
 					ResourceType: ipam.ResourceTypeInstancePrivateNic,
-					ResourceID:   ptr.To(privateNICID),
-					IsIPv6:       ptr.To(false),
+					ResourceID:   new(privateNICID),
+					IsIPv6:       new(false),
 				}, gomock.Any(), gomock.Any()).Return(&ipam.ListIPsResponse{
 					TotalCount: 2,
 					IPs: []*ipam.IP{
@@ -131,11 +130,11 @@ func TestClient_FindLBServersIPs(t *testing.T) {
 			},
 			expect: func(d *mock_client.MockIPAMAPIMockRecorder) {
 				d.ListIPs(&ipam.ListIPsRequest{
-					ProjectID:        ptr.To(projectID),
+					ProjectID:        new(projectID),
 					ResourceType:     ipam.ResourceTypeLBServer,
 					ResourceIDs:      []string{lbID},
-					PrivateNetworkID: ptr.To(privateNetworkID),
-					IsIPv6:           ptr.To(false),
+					PrivateNetworkID: new(privateNetworkID),
+					IsIPv6:           new(false),
 				}, gomock.Any(), gomock.Any()).Return(&ipam.ListIPsResponse{
 					TotalCount: 1,
 					IPs: []*ipam.IP{
@@ -207,10 +206,10 @@ func TestClient_FindAvailableIPs(t *testing.T) {
 			},
 			expect: func(d *mock_client.MockIPAMAPIMockRecorder) {
 				d.ListIPs(&ipam.ListIPsRequest{
-					ProjectID:        ptr.To(projectID),
-					PrivateNetworkID: ptr.To(privateNetworkID),
-					IsIPv6:           ptr.To(false),
-					Attached:         ptr.To(false),
+					ProjectID:        new(projectID),
+					PrivateNetworkID: new(privateNetworkID),
+					IsIPv6:           new(false),
+					Attached:         new(false),
 				}, gomock.Any(), gomock.Any()).Return(&ipam.ListIPsResponse{
 					TotalCount: 2,
 					IPs: []*ipam.IP{
@@ -278,9 +277,9 @@ func TestClient_CleanAvailableIPs(t *testing.T) {
 			},
 			expect: func(d *mock_client.MockIPAMAPIMockRecorder) {
 				d.ListIPs(&ipam.ListIPsRequest{
-					ProjectID:        ptr.To(projectID),
-					PrivateNetworkID: ptr.To(privateNetworkID),
-					Attached:         ptr.To(false),
+					ProjectID:        new(projectID),
+					PrivateNetworkID: new(privateNetworkID),
+					Attached:         new(false),
 				}, gomock.Any(), gomock.Any()).Return(&ipam.ListIPsResponse{
 					TotalCount: 2,
 					IPs: []*ipam.IP{

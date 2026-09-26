@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/scope"
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway"
@@ -35,6 +36,8 @@ func newScalewayManagedClusterService(s *scope.ManagedCluster) *scalewayManagedC
 }
 
 func (s *scalewayManagedClusterService) reconcile(ctx context.Context) error {
+	s.setFailureDomains()
+
 	for _, service := range s.services {
 		if err := service.Reconcile(ctx); err != nil {
 			return fmt.Errorf("failed to reconcile ScalewayManagedCluster service %s: %w", service.Name(), err)
@@ -45,11 +48,24 @@ func (s *scalewayManagedClusterService) reconcile(ctx context.Context) error {
 }
 
 func (s *scalewayManagedClusterService) delete(ctx context.Context) error {
-	for i := len(s.services) - 1; i >= 0; i-- {
-		if err := s.services[i].Delete(ctx); err != nil {
-			return fmt.Errorf("failed to delete ScalewayManagedCluster service %s: %w", s.services[i].Name(), err)
+	for _, service := range slices.Backward(s.services) {
+		if err := service.Delete(ctx); err != nil {
+			return fmt.Errorf("failed to delete ScalewayManagedCluster service %s: %w", service.Name(), err)
 		}
 	}
 
 	return nil
+}
+
+// setFailureDomains sets the ScalewayManagedCluster Status failure domains
+// based on the zones where the pools of the cluster can be created.
+func (s *scalewayManagedClusterService) setFailureDomains() {
+	// Pools of multicloud clusters can be created in any zone. For other cluster
+	// types, pools must be in the same region as the control plane.
+	if s.scope.IsMulticloud() {
+		s.scope.SetFailureDomains(s.scope.ScalewayClient.GetAllZones())
+		return
+	}
+
+	s.scope.SetFailureDomains(s.scope.ScalewayClient.GetZones())
 }

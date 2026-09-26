@@ -11,13 +11,13 @@ var _ = Describe("ScalewayManagedControlPlane Webhook", func() {
 	var (
 		obj       *infrav1.ScalewayManagedControlPlane
 		oldObj    *infrav1.ScalewayManagedControlPlane
-		defaulter ScalewayManagedControlPlaneCustomDefaulter
+		defaulter ScalewayManagedControlPlaneDefaulter
 	)
 
 	BeforeEach(func() {
 		obj = &infrav1.ScalewayManagedControlPlane{}
 		oldObj = &infrav1.ScalewayManagedControlPlane{}
-		defaulter = ScalewayManagedControlPlaneCustomDefaulter{}
+		defaulter = ScalewayManagedControlPlaneDefaulter{}
 		Expect(defaulter).NotTo(BeNil(), "Expected defaulter to be initialized")
 		Expect(oldObj).NotTo(BeNil(), "Expected oldObj to be initialized")
 		Expect(obj).NotTo(BeNil(), "Expected obj to be initialized")

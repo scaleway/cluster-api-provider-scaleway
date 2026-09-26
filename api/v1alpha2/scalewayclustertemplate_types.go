@@ -2,6 +2,7 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -50,5 +51,8 @@ type ScalewayClusterTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayClusterTemplate{}, &ScalewayClusterTemplateList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(SchemeGroupVersion, &ScalewayClusterTemplate{}, &ScalewayClusterTemplateList{})
+		return nil
+	})
 }

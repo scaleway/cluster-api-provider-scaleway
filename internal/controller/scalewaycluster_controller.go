@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -14,6 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -173,13 +173,13 @@ func (r *ScalewayClusterReconciler) reconcileNormal(ctx context.Context, cluster
 	}
 
 	// No errors, so mark us ready so the Cluster API Cluster Controller can pull it
-	scalewayCluster.Status.Initialization.Provisioned = ptr.To(true)
+	scalewayCluster.Status.Initialization.Provisioned = new(true)
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ScalewayClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *ScalewayClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.ScalewayCluster{}).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), mgr.GetLogger())).
@@ -189,6 +189,7 @@ func (r *ScalewayClusterReconciler) SetupWithManager(ctx context.Context, mgr ct
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("ScalewayCluster"), mgr.GetClient(), &infrav1.ScalewayCluster{})),
 			builder.WithPredicates(predicates.ClusterPausedTransitions(mgr.GetScheme(), mgr.GetLogger())),
 		).
+		WithOptions(options).
 		Named("scalewaycluster").
 		Complete(r)
 }

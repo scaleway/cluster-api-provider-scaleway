@@ -11,7 +11,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -74,22 +73,25 @@ func TestService_Reconcile(t *testing.T) {
 							PlacementGroupID: placementGroupID,
 							NodeType:         "DEV1-M",
 							Scaling: infrav1.Scaling{
-								Autoscaling: ptr.To(true),
+								Autoscaling: new(true),
 								MinSize:     scw.Int32Ptr(1),
 								MaxSize:     scw.Int32Ptr(5),
 							},
-							Autohealing: ptr.To(true),
+							Autohealing: new(true),
 							UpgradePolicy: infrav1.UpgradePolicy{
 								MaxUnavailable: scw.Int32Ptr(0),
 								MaxSurge:       scw.Int32Ptr(2),
 							},
 							RootVolumeType:   "sbs_15k",
 							RootVolumeSizeGB: 42,
-							PublicIPDisabled: ptr.To(true),
+							PublicIPDisabled: new(true),
 							SecurityGroupID:  securityGroupID,
 							AdditionalTags:   []string{"tag1"},
 							KubeletArgs: map[string]string{
 								"containerLogMaxFiles": "500",
+							},
+							Labels: map[string]string{
+								"test": "value",
 							},
 						},
 					},
@@ -110,8 +112,8 @@ func TestService_Reconcile(t *testing.T) {
 					clusterID,
 					"pool",
 					"DEV1-M",
-					ptr.To(placementGroupID),
-					ptr.To(securityGroupID),
+					new(placementGroupID),
+					new(securityGroupID),
 					true,
 					true,
 					true,
@@ -121,6 +123,9 @@ func TestService_Reconcile(t *testing.T) {
 					[]string{"caps-namespace=default", "caps-scalewaymanagedmachinepool=pool", "tag1"},
 					map[string]string{
 						"containerLogMaxFiles": "500",
+					},
+					map[string]string{
+						"test": "value",
 					},
 					k8s.PoolVolumeType("sbs_15k"),
 					scw.Uint64Ptr(42),
@@ -141,17 +146,20 @@ func TestService_Reconcile(t *testing.T) {
 					MinSize:          1,
 					MaxSize:          5,
 					Tags:             []string{"caps-namespace=default", "caps-scalewaymanagedmachinepool=pool", "tag1", "created-by=cluster-api-provider-scaleway"},
-					PlacementGroupID: ptr.To(placementGroupID),
+					PlacementGroupID: new(placementGroupID),
 					SecurityGroupID:  securityGroupID,
 					KubeletArgs: map[string]string{
 						"containerLogMaxFiles": "500",
+					},
+					Labels: map[string]string{
+						"test": "value",
 					},
 					UpgradePolicy: &k8s.PoolUpgradePolicy{
 						MaxUnavailable: 0,
 						MaxSurge:       2,
 					},
 					RootVolumeType: k8s.PoolVolumeTypeSbs15k,
-					RootVolumeSize: ptr.To(42 * scw.GB),
+					RootVolumeSize: new(42 * scw.GB),
 				}, nil)
 				i.ListNodes(gomock.Any(), clusterID, poolID).Return([]*k8s.Node{
 					{
@@ -200,22 +208,25 @@ func TestService_Reconcile(t *testing.T) {
 							PlacementGroupID: placementGroupID,
 							NodeType:         "DEV1-M",
 							Scaling: infrav1.Scaling{
-								Autoscaling: ptr.To(true),
+								Autoscaling: new(true),
 								MinSize:     scw.Int32Ptr(1),
 								MaxSize:     scw.Int32Ptr(5),
 							},
-							Autohealing: ptr.To(true),
+							Autohealing: new(true),
 							UpgradePolicy: infrav1.UpgradePolicy{
 								MaxUnavailable: scw.Int32Ptr(0),
 								MaxSurge:       scw.Int32Ptr(2),
 							},
 							RootVolumeType:   "sbs_15k",
 							RootVolumeSizeGB: 42,
-							PublicIPDisabled: ptr.To(true),
+							PublicIPDisabled: new(true),
 							SecurityGroupID:  securityGroupID,
 							AdditionalTags:   []string{"tag1"},
 							KubeletArgs: map[string]string{
 								"containerLogMaxFiles": "500",
+							},
+							Labels: map[string]string{
+								"test": "value",
 							},
 						},
 					},
@@ -242,18 +253,133 @@ func TestService_Reconcile(t *testing.T) {
 					MinSize:          1,
 					MaxSize:          5,
 					Tags:             []string{"caps-namespace=default", "caps-scalewaymanagedmachinepool=pool", "tag1", "created-by=cluster-api-provider-scaleway"},
-					PlacementGroupID: ptr.To(placementGroupID),
+					PlacementGroupID: new(placementGroupID),
 					SecurityGroupID:  securityGroupID,
 					KubeletArgs: map[string]string{
 						"containerLogMaxFiles": "500",
+					},
+					Labels: map[string]string{
+						"test": "value",
 					},
 					UpgradePolicy: &k8s.PoolUpgradePolicy{
 						MaxUnavailable: 0,
 						MaxSurge:       2,
 					},
 					RootVolumeType: k8s.PoolVolumeTypeSbs15k,
-					RootVolumeSize: ptr.To(42 * scw.GB),
+					RootVolumeSize: new(42 * scw.GB),
 				}, nil)
+				i.ListNodes(gomock.Any(), clusterID, poolID).Return([]*k8s.Node{
+					{
+						ProviderID: "providerID1",
+					},
+					{
+						ProviderID: "providerID2",
+					},
+				}, nil)
+			},
+			asserts: func(g *WithT, s *scope.ManagedMachinePool) {
+				g.Expect(s.ScalewayManagedMachinePool.Spec.ProviderIDList).To(Equal([]string{
+					"providerID1", "providerID2",
+				}))
+				g.Expect(s.ScalewayManagedMachinePool.Status.Replicas).NotTo(BeNil())
+				g.Expect(*s.ScalewayManagedMachinePool.Status.Replicas).To(BeEquivalentTo(2))
+			},
+		},
+		{
+			name: "pool exists and needs to be updated",
+			fields: fields{
+				ManagedMachinePool: &scope.ManagedMachinePool{
+					ScalewayManagedControlPlane: &infrav1.ScalewayManagedControlPlane{
+						Spec: infrav1.ScalewayManagedControlPlaneSpec{
+							ClusterName: "default-controlplane",
+							Version:     "v1.30.0",
+						},
+					},
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
+							Replicas: scw.Int32Ptr(2),
+							Template: clusterv1.MachineTemplateSpec{
+								Spec: clusterv1.MachineSpec{
+									Version: "v1.30.0",
+								},
+							},
+						},
+					},
+					ScalewayManagedMachinePool: &infrav1.ScalewayManagedMachinePool{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pool",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayManagedMachinePoolSpec{
+							Zone:             infrav1.ScalewayZone(scw.ZoneFrPar1),
+							PlacementGroupID: placementGroupID,
+							NodeType:         "DEV1-M",
+							Scaling: infrav1.Scaling{
+								Autoscaling: new(true),
+								MinSize:     scw.Int32Ptr(1),
+								MaxSize:     scw.Int32Ptr(5),
+							},
+							Autohealing: new(true),
+							UpgradePolicy: infrav1.UpgradePolicy{
+								MaxUnavailable: scw.Int32Ptr(0),
+								MaxSurge:       scw.Int32Ptr(2),
+							},
+							RootVolumeType:   "sbs_15k",
+							RootVolumeSizeGB: 42,
+							PublicIPDisabled: new(true),
+							SecurityGroupID:  securityGroupID,
+							AdditionalTags:   []string{"tag1"},
+							KubeletArgs: map[string]string{
+								"containerLogMaxFiles": "500",
+							},
+							Labels: map[string]string{
+								"test":  "value",
+								"test1": "value1",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				i.FindCluster(gomock.Any(), "default-controlplane").Return(&k8s.Cluster{
+					ID:     clusterID,
+					Status: k8s.ClusterStatusReady,
+				}, nil)
+				i.FindPool(gomock.Any(), clusterID, "pool").Return(&k8s.Pool{
+					ID:               poolID,
+					Status:           k8s.PoolStatusReady,
+					Version:          "1.30.0",
+					NodeType:         "DEV1-M",
+					Autoscaling:      true,
+					Autohealing:      true,
+					PublicIPDisabled: true,
+					Name:             "pool",
+					Size:             2,
+					MinSize:          1,
+					MaxSize:          5,
+					Tags:             []string{"caps-namespace=default", "caps-scalewaymanagedmachinepool=pool", "tag1", "created-by=cluster-api-provider-scaleway"},
+					PlacementGroupID: new(placementGroupID),
+					SecurityGroupID:  securityGroupID,
+					KubeletArgs: map[string]string{
+						"containerLogMaxFiles": "500",
+					},
+					Labels: map[string]string{
+						"test": "value",
+					},
+					UpgradePolicy: &k8s.PoolUpgradePolicy{
+						MaxUnavailable: 0,
+						MaxSurge:       2,
+					},
+					RootVolumeType: k8s.PoolVolumeTypeSbs15k,
+					RootVolumeSize: new(42 * scw.GB),
+				}, nil)
+				i.SetPoolLabels(gomock.Any(), poolID, map[string]string{
+					"test":  "value",
+					"test1": "value1",
+				})
 				i.ListNodes(gomock.Any(), clusterID, poolID).Return([]*k8s.Node{
 					{
 						ProviderID: "providerID1",

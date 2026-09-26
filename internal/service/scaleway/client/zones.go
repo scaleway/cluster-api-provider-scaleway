@@ -9,7 +9,8 @@ import (
 
 type Zones interface {
 	GetZoneOrDefault(zone string) (scw.Zone, error)
-	GetControlPlaneZones() []scw.Zone
+	GetZones() []scw.Zone
+	GetAllZones() []scw.Zone
 }
 
 // GetZoneOrDefault parses the provided zone, or returns the default zone if empty.
@@ -31,9 +32,14 @@ func (c *Client) defaultZone() scw.Zone {
 	return scw.Zone(fmt.Sprintf("%s-1", c.region))
 }
 
-// GetControlPlaneZones returns the availables zone for the control plane machines.
-func (c *Client) GetControlPlaneZones() []scw.Zone {
+// GetZones returns the available Instance zones in the region of the client.
+func (c *Client) GetZones() []scw.Zone {
 	return c.productZones(c.instance)
+}
+
+// GetAllZones returns the available Instance zones in all regions.
+func (c *Client) GetAllZones() []scw.Zone {
+	return c.instance.Zones()
 }
 
 type zonesGetter interface {

@@ -7,10 +7,10 @@ the name of an existing `Secret` in the same namespace as the `ScalewayCluster`.
 
 The Secret can have the following data keys:
 
-| Key            | Required | Description                                               |
-| -------------- | -------- | --------------------------------------------------------- |
-| SCW_ACCESS_KEY | yes      | Your Scaleway Access Key                                  |
-| SCW_SECRET_KEY | yes      | You Scaleway Secret Key                                   |
+| Key            | Required | Description                                              |
+| -------------- | -------- | -------------------------------------------------------- |
+| SCW_ACCESS_KEY | yes      | Your Scaleway Access Key                                 |
+| SCW_SECRET_KEY | yes      | Your Scaleway Secret Key                                 |
 | SCW_API_URL    | no       | Scaleway API URL. Defaults to <https://api.scaleway.com> |
 
 **All other keys inside the secret will be ignored.**
@@ -37,7 +37,7 @@ If a permission set is missing, you may encounter reconcile errors in the logs o
 
 ## Example
 
-Here is an example of valid secret, please update the values of `SCW_ACCESS_KEY`
+Here is an example of a valid secret, please update the values of `SCW_ACCESS_KEY`
 and `SCW_SECRET_KEY` before applying it:
 
 ```yaml

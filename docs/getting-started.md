@@ -2,7 +2,7 @@
 
 This document will help you provision a management cluster and a workload cluster.
 
-## Setup a management cluster
+## Set up a management cluster
 
 ### Provision the cluster
 
@@ -89,16 +89,16 @@ Set the following environment variable:
 export SCW_PROJECT_ID="<PROJECT_ID>"
 ```
 
-Use the following command to import the `cluster-api-ubuntu-2404-v1.34.3` image provided by Scaleway:
+Use the following command to import the `cluster-api-ubuntu-2604-v1.36.1` image provided by Scaleway:
 
 > [!WARNING]
 > This image is provided only for testing and should not be used in production.
 
 ```bash
 export SNAPSHOT_ID=$(scw block snapshot import-from-object-storage \
-    name=cluster-api-ubuntu-2404-v1.34.3 \
+    name=cluster-api-ubuntu-2604-v1.36.1 \
     bucket=scwcaps \
-    key=images/cluster-api-ubuntu-2404-v1.34.3.qcow2 \
+    key=images/cluster-api-ubuntu-2604-v1.36.1.qcow2 \
     project-id=${SCW_PROJECT_ID} \
     -o json | jq -r .id)
 ```
@@ -109,11 +109,11 @@ Wait for the snapshot to have the `available` status:
 watch scw block snapshot get ${SNAPSHOT_ID}
 ```
 
-Finally, create an Instance image with the name `cluster-api-ubuntu-2404-v1.34.3` from the previously imported snapshot:
+Finally, create an Instance image with the name `cluster-api-ubuntu-2604-v1.36.1` from the previously imported snapshot:
 
 ```bash
 scw instance image create \
-   name=cluster-api-ubuntu-2404-v1.34.3 \
+   name=cluster-api-ubuntu-2604-v1.36.1 \
    arch=x86_64 \
    snapshot-id=${SNAPSHOT_ID} \
    project-id=${SCW_PROJECT_ID}
@@ -154,14 +154,14 @@ Then, please follow the [Building Images for Scaleway documentation](https://ima
 
    ```bash
    clusterctl generate cluster ${CLUSTER_NAME} \
-      --kubernetes-version v1.34.3 \
+      --kubernetes-version v1.36.1 \
       --control-plane-machine-count 1 \
       --worker-machine-count 1 > my-cluster.yaml
    ```
 
 3. Review and edit the `my-cluster.yaml` file as needed.
    For configuring the CAPS CRDs, refer to the [ScalewayCluster](scalewaycluster.md)
-   and [ScalewayMachine](scalewaymachine.md) documentations.
+   and [ScalewayMachine](scalewaymachine.md) documentation.
 4. Apply the `my-cluster.yaml` file to create the workload cluster.
 5. Wait for the cluster and machines to be ready.
 
@@ -191,14 +191,14 @@ Then, please follow the [Building Images for Scaleway documentation](https://ima
    ```bash
    $ kubectl get nodes
    NAME                             STATUS     ROLES           AGE     VERSION
-   my-cluster-control-plane-pxpdl   NotReady   control-plane   3m46s   v1.34.3
-   my-cluster-md-0-bgzv8-5k96v      NotReady   <none>          2m57s   v1.34.3
+   my-cluster-control-plane-pxpdl   NotReady   control-plane   3m46s   v1.36.1
+   my-cluster-md-0-bgzv8-5k96v      NotReady   <none>          2m57s   v1.36.1
    ```
 
 > [!NOTE]
 > Nodes will have the `NotReady` status until a CNI is installed in the cluster.
 
-### Setup the workload cluster
+### Set up the workload cluster
 
 The workload cluster is ready to use. You should now:
 

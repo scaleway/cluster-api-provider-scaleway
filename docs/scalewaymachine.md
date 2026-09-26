@@ -7,7 +7,7 @@ an [Instance server](https://www.scaleway.com/en/virtual-instances/).
 This document describes the various configuration options you can set to enable or disable
 important features on a `ScalewayMachine`.
 
-The infrastucture resources for the `ScalewayMachine` will be created in a
+The infrastructure resources for the `ScalewayMachine` will be created in a
 Scaleway availability zone that is based on the associated `Machine`'s `failureDomain`.
 
 You will usually never create a `ScalewayMachine` directly, `ScalewayMachineTemplate` should be used instead:
@@ -22,7 +22,7 @@ spec:
   template:
     spec: # Put your ScalewayMachine spec here:
       image:
-        name: cluster-api-rockylinux-9-v1.34.3
+        name: cluster-api-rockylinux-9-v1.36.1
       commercialType: DEV1-S
       rootVolume:
         type: block
@@ -75,7 +75,7 @@ The `image` field must contain one of the following:
     namespace: default
   spec:
     image:
-      name: cluster-api-rockylinux-9-v1.34.3
+      name: cluster-api-rockylinux-9-v1.36.1
     # some fields were omitted...
   ```
 
@@ -256,7 +256,7 @@ The `placementGroup` field must contain one of the following:
   You can list placement groups by name with this command:
 
   ```bash
-  scw instance placement-group list name=${IMAGE_NAME} zone=${SCW_ZONE}
+  scw instance placement-group list name=${PLACEMENT_GROUP_NAME} zone=${SCW_ZONE}
   ```
 
 ## Security Group
@@ -294,7 +294,7 @@ The `securityGroup` field must contain one of the following:
     namespace: default
   spec:
     securityGroup:
-      name: my-placement-group
+      name: my-security-group
     # some fields were omitted...
   ```
 
@@ -302,5 +302,5 @@ The `securityGroup` field must contain one of the following:
   You can list security groups by name with this command:
 
   ```bash
-  scw instance security-group list name=${IMAGE_NAME} zone=${SCW_ZONE}
+  scw instance security-group list name=${SECURITY_GROUP_NAME} zone=${SCW_ZONE}
   ```

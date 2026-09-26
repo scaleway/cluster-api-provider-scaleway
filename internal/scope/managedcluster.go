@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
+	"github.com/scaleway/scaleway-sdk-go/scw"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,6 +21,7 @@ import (
 type ManagedCluster struct {
 	patchHelper *patch.Helper
 
+	Cluster                     *clusterv1.Cluster
 	ScalewayManagedCluster      *infrav1.ScalewayManagedCluster
 	ScalewayManagedControlPlane *infrav1.ScalewayManagedControlPlane // ManagedControlPlane may be nil, on Cluster deletion.
 	ScalewayClient              scwClient.Interface
@@ -26,6 +30,7 @@ type ManagedCluster struct {
 // ClusterParams contains mandatory params for creating the Cluster scope.
 type ManagedClusterParams struct {
 	Client              client.Client
+	Cluster             *clusterv1.Cluster
 	ManagedCluster      *infrav1.ScalewayManagedCluster
 	ManagedControlPlane *infrav1.ScalewayManagedControlPlane
 }
@@ -39,6 +44,7 @@ func NewManagedCluster(ctx context.Context, params *ManagedClusterParams) (*Mana
 
 	mc := &ManagedCluster{
 		patchHelper:                 helper,
+		Cluster:                     params.Cluster,
 		ScalewayManagedCluster:      params.ManagedCluster,
 		ScalewayManagedControlPlane: params.ManagedControlPlane,
 	}
@@ -63,7 +69,7 @@ func (m *ManagedCluster) PatchObject(ctx context.Context) error {
 	}
 
 	return m.patchHelper.Patch(ctx, m.ScalewayManagedCluster, patch.WithOwnedConditions{
-		Conditions: append(summaryConditions, infrav1.ScalewayManagedClusterReadyCondition),
+		Conditions: slices.Concat(summaryConditions, []string{infrav1.ScalewayManagedClusterReadyCondition}),
 	})
 }
 
@@ -98,16 +104,22 @@ func (c *ManagedCluster) Cloud() scwClient.Interface {
 	return c.ScalewayClient
 }
 
-// HasPrivateNetwork returns true if the cluster should have a Private Network.
-// It's only false if the multicloud cluster type is used.
-func (c *ManagedCluster) HasPrivateNetwork() bool {
-	// On Cluster deletion, we no longer have the info, we have to return true
-	// to force private network cleanup.
+// IsMulticloud returns true if the multicloud cluster type is used. It returns
+// false if the ScalewayManagedControlPlane no longer exists, which only happens
+// while the ScalewayManagedCluster is being deleted.
+func (c *ManagedCluster) IsMulticloud() bool {
 	if c.ScalewayManagedControlPlane == nil {
-		return true
+		return false
 	}
 
-	return !strings.HasPrefix(c.ScalewayManagedControlPlane.Spec.Type, "multicloud")
+	return strings.HasPrefix(c.ScalewayManagedControlPlane.Spec.Type, "multicloud")
+}
+
+// HasPrivateNetwork returns true if the cluster should have a Private Network.
+// It's only false if the multicloud cluster type is used. On Cluster deletion,
+// it returns true to force Private Network cleanup.
+func (c *ManagedCluster) HasPrivateNetwork() bool {
+	return !c.IsMulticloud()
 }
 
 // IsVPCStatusSet returns true if the VPC fields are set in the status.
@@ -142,6 +154,19 @@ func (c *ManagedCluster) PrivateNetworkID() (string, error) {
 // PublicGateways returns the desired Public Gateways.
 func (c *ManagedCluster) PublicGateways() []infrav1.PublicGateway {
 	return c.ScalewayManagedCluster.Spec.Network.PublicGateways
+}
+
+// SetFailureDomains sets the failure domains of the managed cluster.
+func (c *ManagedCluster) SetFailureDomains(zones []scw.Zone) {
+	failureDomains := make([]clusterv1.FailureDomain, 0, len(zones))
+
+	for _, zone := range zones {
+		failureDomains = append(failureDomains, clusterv1.FailureDomain{
+			Name: string(zone),
+		})
+	}
+
+	c.ScalewayManagedCluster.Status.FailureDomains = failureDomains
 }
 
 func (c *ManagedCluster) SetConditions(cond []metav1.Condition) {

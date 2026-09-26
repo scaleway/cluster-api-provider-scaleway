@@ -7,8 +7,12 @@ import (
 )
 
 var (
-	// GroupVersion is group version used to register these objects.
-	GroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha1"}
+	// SchemeGroupVersion is group version used to register these objects.
+	// This name is used by applyconfiguration generators (e.g. controller-gen).
+	SchemeGroupVersion = schema.GroupVersion{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha1"}
+
+	// GroupVersion is an alias for SchemeGroupVersion, for backward compatibility.
+	GroupVersion = SchemeGroupVersion
 
 	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)

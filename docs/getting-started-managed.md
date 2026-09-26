@@ -2,7 +2,7 @@
 
 This document will help you provision a management cluster and a Scaleway managed workload cluster.
 
-## Setup a management cluster
+## Set up a management cluster
 
 ### Provision the cluster
 
@@ -91,7 +91,7 @@ export KUBECONFIG=/path/to/your/kubeconfig
 
    ```bash
    clusterctl generate cluster ${CLUSTER_NAME} \
-      --kubernetes-version v1.34.3 \
+      --kubernetes-version v1.36.1 \
       --flavor managed \
       --worker-machine-count 1 > my-cluster.yaml
    ```
@@ -99,7 +99,7 @@ export KUBECONFIG=/path/to/your/kubeconfig
 3. Review and edit the `my-cluster.yaml` file as needed.
    For configuring the CAPS CRDs, refer to the [ScalewayManagedCluster](scalewaymanagedcluster.md),
    [ScalewayManagedControlPlane](scalewaymanagedcontrolplane.md) and
-   [ScalewayManagedMachinePool](scalewaymanagedmachinepool.md) documentations.
+   [ScalewayManagedMachinePool](scalewaymanagedmachinepool.md) documentation.
 4. Apply the `my-cluster.yaml` file to create the workload cluster.
 5. Wait for the cluster and machines to be ready.
 
@@ -126,5 +126,5 @@ export KUBECONFIG=/path/to/your/kubeconfig
    ```bash
    $ kubectl get nodes
    NAME                                             STATUS   ROLES    AGE     VERSION
-   scw-default-my-cluster-control-my-clust-c8e009   Ready    <none>   4m13s   v1.34.3
+   scw-default-my-cluster-control-my-clust-c8e009   Ready    <none>   4m13s   v1.36.1
    ```

@@ -547,6 +547,8 @@ func Convert_v1alpha1_ScalewayManagedControlPlaneSpec_To_v1alpha2_ScalewayManage
 		out.Autoscaler.ScaleDownUnneededTime = ptr.Deref(in.Autoscaler.ScaleDownUnneededTime, "")
 		out.Autoscaler.ScaleDownUtilizationThreshold = ptr.Deref(in.Autoscaler.ScaleDownUtilizationThreshold, "")
 		out.Autoscaler.MaxGracefulTerminationSec = ptr.Deref(in.Autoscaler.MaxGracefulTerminationSec, 0)
+		out.Autoscaler.SkipNodesWithLocalStorage = in.Autoscaler.SkipNodesWithLocalStorage
+		out.Autoscaler.LogLevel = in.Autoscaler.LogLevel
 	}
 
 	if in.AutoUpgrade != nil {
@@ -592,6 +594,8 @@ func Convert_v1alpha2_ScalewayManagedControlPlaneSpec_To_v1alpha1_ScalewayManage
 			ScaleDownUnneededTime:         ptrIfNotZero(in.Autoscaler.ScaleDownUnneededTime),
 			ScaleDownUtilizationThreshold: ptrIfNotZero(in.Autoscaler.ScaleDownUtilizationThreshold),
 			MaxGracefulTerminationSec:     ptrIfNotZero(in.Autoscaler.MaxGracefulTerminationSec),
+			SkipNodesWithLocalStorage:     in.Autoscaler.SkipNodesWithLocalStorage,
+			LogLevel:                      in.Autoscaler.LogLevel,
 		}
 	}
 

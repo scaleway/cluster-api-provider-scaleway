@@ -7,7 +7,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/instance/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -251,7 +250,7 @@ func TestMachine_HasPublicIPv4(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 							},
 						},
@@ -269,7 +268,7 @@ func TestMachine_HasPublicIPv4(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 							},
 						},
@@ -278,7 +277,7 @@ func TestMachine_HasPublicIPv4(t *testing.T) {
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
 						PublicNetwork: infrav1.PublicNetwork{
-							EnableIPv4: ptr.To(true),
+							EnableIPv4: new(true),
 						},
 					},
 				},
@@ -323,7 +322,7 @@ func TestMachine_HasPublicIPv6(t *testing.T) {
 				ScalewayMachine: &infrav1.ScalewayMachine{
 					Spec: infrav1.ScalewayMachineSpec{
 						PublicNetwork: infrav1.PublicNetwork{
-							EnableIPv6: ptr.To(true),
+							EnableIPv6: new(true),
 						},
 					},
 				},

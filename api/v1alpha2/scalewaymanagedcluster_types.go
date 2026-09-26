@@ -2,6 +2,7 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -71,6 +72,14 @@ type ScalewayManagedClusterStatus struct {
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 
 	// initialization provides observations of the ScalewayManagedCluster initialization process.
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
@@ -149,5 +158,8 @@ func (s *ScalewayManagedCluster) SetConditions(conditions []metav1.Condition) {
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayManagedCluster{}, &ScalewayManagedClusterList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(SchemeGroupVersion, &ScalewayManagedCluster{}, &ScalewayManagedClusterList{})
+		return nil
+	})
 }

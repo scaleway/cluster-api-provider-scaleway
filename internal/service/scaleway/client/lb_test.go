@@ -8,7 +8,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/lb/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
-	"k8s.io/utils/ptr"
 
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/client/mock_client"
 )
@@ -69,7 +68,7 @@ func TestClient_FindLB(t *testing.T) {
 				l.ListLBs(&lb.ZonedAPIListLBsRequest{
 					Zone:      scw.ZoneFrPar1,
 					Tags:      []string{"tag1", "tag2"},
-					ProjectID: ptr.To(projectID),
+					ProjectID: new(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&lb.ListLBsResponse{
 					LBs: []*lb.LB{},
 				}, nil)
@@ -95,7 +94,7 @@ func TestClient_FindLB(t *testing.T) {
 				l.ListLBs(&lb.ZonedAPIListLBsRequest{
 					Zone:      scw.ZoneFrPar1,
 					Tags:      []string{"tag1", "tag2"},
-					ProjectID: ptr.To(projectID),
+					ProjectID: new(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&lb.ListLBsResponse{
 					LBs: []*lb.LB{
 						{
@@ -123,7 +122,7 @@ func TestClient_FindLB(t *testing.T) {
 				l.ListLBs(&lb.ZonedAPIListLBsRequest{
 					Zone:      scw.ZoneFrPar1,
 					Tags:      []string{"tag1", "tag2"},
-					ProjectID: ptr.To(projectID),
+					ProjectID: new(projectID),
 				}, gomock.Any(), gomock.Any()).Return(&lb.ListLBsResponse{
 					LBs: []*lb.LB{
 						{
@@ -285,8 +284,8 @@ func TestClient_FindLBIP(t *testing.T) {
 			expect: func(l *mock_client.MockLBAPIMockRecorder) {
 				l.ListIPs(&lb.ZonedAPIListIPsRequest{
 					Zone:      scw.ZoneFrPar1,
-					ProjectID: ptr.To(projectID),
-					IPAddress: ptr.To("42.42.42.42"),
+					ProjectID: new(projectID),
+					IPAddress: new("42.42.42.42"),
 				}, gomock.Any()).Return(&lb.ListIPsResponse{
 					IPs: []*lb.IP{},
 				}, nil)
@@ -309,8 +308,8 @@ func TestClient_FindLBIP(t *testing.T) {
 			expect: func(l *mock_client.MockLBAPIMockRecorder) {
 				l.ListIPs(&lb.ZonedAPIListIPsRequest{
 					Zone:      scw.ZoneFrPar1,
-					ProjectID: ptr.To(projectID),
-					IPAddress: ptr.To("42.42.42.42"),
+					ProjectID: new(projectID),
+					IPAddress: new("42.42.42.42"),
 				}, gomock.Any()).Return(&lb.ListIPsResponse{
 					IPs:        []*lb.IP{{IPAddress: "42.42.42.42"}},
 					TotalCount: 1,
@@ -383,7 +382,7 @@ func TestClient_CreateLB(t *testing.T) {
 				zone:   scw.ZoneFrPar1,
 				name:   "my-lb",
 				lbType: "LB-GP-M",
-				ipID:   ptr.To(lbIPID),
+				ipID:   new(lbIPID),
 				tags:   []string{"tag1", "tag2"},
 			},
 			want: &lb.LB{
@@ -401,8 +400,8 @@ func TestClient_CreateLB(t *testing.T) {
 					IPIDs:              []string{lbIPID},
 					Tags:               []string{"tag1", "tag2", createdByTag},
 					Description:        createdByDescription,
-					AssignFlexibleIP:   ptr.To(false),
-					AssignFlexibleIPv6: ptr.To(false),
+					AssignFlexibleIP:   new(false),
+					AssignFlexibleIPv6: new(false),
 				}, gomock.Any()).Return(&lb.LB{
 					ID:   lbID,
 					Name: "my-lb",
@@ -439,8 +438,8 @@ func TestClient_CreateLB(t *testing.T) {
 					Type:               "lb-gp-m",
 					Tags:               []string{"tag1", "tag2", createdByTag},
 					Description:        createdByDescription,
-					AssignFlexibleIP:   ptr.To(true),
-					AssignFlexibleIPv6: ptr.To(false),
+					AssignFlexibleIP:   new(true),
+					AssignFlexibleIPv6: new(false),
 				}, gomock.Any()).Return(&lb.LB{
 					ID:   lbID,
 					Name: "my-lb",
@@ -581,7 +580,7 @@ func TestClient_FindLBs(t *testing.T) {
 				l.ListLBs(&lb.ZonedAPIListLBsRequest{
 					Zone:      scw.ZoneFrPar1,
 					Tags:      []string{"tag1", "tag2"},
-					ProjectID: ptr.To(projectID),
+					ProjectID: new(projectID),
 				}, gomock.Any(), gomock.Any(), gomock.Any()).Return(&lb.ListLBsResponse{
 					LBs: []*lb.LB{},
 				}, nil)
@@ -604,7 +603,7 @@ func TestClient_FindLBs(t *testing.T) {
 				l.ListLBs(&lb.ZonedAPIListLBsRequest{
 					Zone:      scw.ZoneFrPar1,
 					Tags:      []string{"tag1", "tag2"},
-					ProjectID: ptr.To(projectID),
+					ProjectID: new(projectID),
 				}, gomock.Any(), gomock.Any(), gomock.Any()).Return(&lb.ListLBsResponse{
 					TotalCount: 2,
 					LBs:        []*lb.LB{&lb1, &lb2},
@@ -1410,7 +1409,7 @@ func TestClient_FindLBACLByName(t *testing.T) {
 				l.ListACLs(&lb.ZonedAPIListACLsRequest{
 					Zone:       scw.ZoneFrPar1,
 					FrontendID: frontendID,
-					Name:       ptr.To("acl-name"),
+					Name:       new("acl-name"),
 				}, gomock.Any(), gomock.Any()).Return(&lb.ListACLResponse{
 					ACLs: []*lb.ACL{},
 				}, nil)
@@ -1436,7 +1435,7 @@ func TestClient_FindLBACLByName(t *testing.T) {
 				l.ListACLs(&lb.ZonedAPIListACLsRequest{
 					Zone:       scw.ZoneFrPar1,
 					FrontendID: frontendID,
-					Name:       ptr.To("acl-name"),
+					Name:       new("acl-name"),
 				}, gomock.Any(), gomock.Any()).Return(&lb.ListACLResponse{
 					TotalCount: 1,
 					ACLs:       []*lb.ACL{{ID: aclID, Name: "acl-name"}},
@@ -1460,7 +1459,7 @@ func TestClient_FindLBACLByName(t *testing.T) {
 				l.ListACLs(&lb.ZonedAPIListACLsRequest{
 					Zone:       scw.ZoneFrPar1,
 					FrontendID: frontendID,
-					Name:       ptr.To("acl-name"),
+					Name:       new("acl-name"),
 				}, gomock.Any(), gomock.Any()).Return(&lb.ListACLResponse{
 					TotalCount: 1,
 					ACLs: []*lb.ACL{

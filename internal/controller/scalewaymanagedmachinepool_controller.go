@@ -8,7 +8,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -16,6 +15,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -162,8 +162,8 @@ func (r *ScalewayManagedMachinePoolReconciler) reconcileNormal(ctx context.Conte
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile cluster services: %w", err)
 	}
 
-	s.ScalewayManagedMachinePool.Status.Initialization.Provisioned = ptr.To(true)
-	s.ScalewayManagedMachinePool.Status.Ready = ptr.To(true)
+	s.ScalewayManagedMachinePool.Status.Initialization.Provisioned = new(true)
+	s.ScalewayManagedMachinePool.Status.Ready = new(true)
 
 	return ctrl.Result{}, nil
 }
@@ -193,7 +193,7 @@ func (r *ScalewayManagedMachinePoolReconciler) reconcileDelete(ctx context.Conte
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ScalewayManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *ScalewayManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	scalewayManagedMachinePoolMapper, err := util.ClusterToTypedObjectsMapper(r.Client, &infrav1.ScalewayManagedMachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return fmt.Errorf("failed to create mapper for Cluster to ScalewayManagedMachinePools: %w", err)
@@ -219,6 +219,7 @@ func (r *ScalewayManagedMachinePoolReconciler) SetupWithManager(ctx context.Cont
 			handler.EnqueueRequestsFromMapFunc(scalewayManagedMachinePoolMapper),
 			builder.WithPredicates(predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), mgr.GetLogger())),
 		).
+		WithOptions(options).
 		Complete(r)
 }
 

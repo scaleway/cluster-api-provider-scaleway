@@ -13,7 +13,6 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 	infrav1 "github.com/scaleway/cluster-api-provider-scaleway/api/v1alpha2"
@@ -217,7 +216,7 @@ func TestService_Reconcile(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
 									AdditionalPorts: []infrav1.LoadBalancerPort{{
@@ -771,7 +770,7 @@ func TestService_Delete(t *testing.T) {
 						Spec: infrav1.ScalewayClusterSpec{
 							Network: infrav1.ScalewayClusterNetwork{
 								PrivateNetwork: infrav1.PrivateNetworkSpec{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								},
 								ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
 									AllowedRanges: []infrav1.CIDR{"10.10.0.0/16"},

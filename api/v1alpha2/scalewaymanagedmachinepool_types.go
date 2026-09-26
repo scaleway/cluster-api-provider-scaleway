@@ -2,6 +2,7 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -105,6 +106,10 @@ type ScalewayManagedMachinePoolSpec struct {
 	// +optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	SecurityGroupID UUID `json:"securityGroupID,omitempty"`
+
+	// labels are kubernetes labels applied and reconciled on the nodes.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 
 	// providerIDList are the identification IDs of machine instances provided by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
@@ -235,5 +240,8 @@ func (s *ScalewayManagedMachinePool) SetConditions(conditions []metav1.Condition
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayManagedMachinePool{}, &ScalewayManagedMachinePoolList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(SchemeGroupVersion, &ScalewayManagedMachinePool{}, &ScalewayManagedMachinePoolList{})
+		return nil
+	})
 }

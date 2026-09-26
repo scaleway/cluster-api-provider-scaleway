@@ -430,6 +430,81 @@ func TestScalewayManagedClusterReconciler_Reconcile(t *testing.T) {
 				g.Expect(s.OwnerReferences).To(BeEmpty())
 			},
 		},
+		{
+			name: "should wait for managed machine pools before deletion",
+			fields: fields{
+				createScalewayManagedClusterService: func(managedClusterScope *scope.ManagedCluster) *scalewayManagedClusterService {
+					return &scalewayManagedClusterService{
+						scope:     managedClusterScope,
+						Reconcile: func(ctx context.Context) error { return nil },
+						Delete:    func(ctx context.Context) error { return nil },
+					}
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				req: reconcile.Request{NamespacedName: scalewayManagedClusterNamespacedName},
+			},
+			want: reconcile.Result{RequeueAfter: DefaultRetryTime},
+			objects: []client.Object{
+				&infrav1.ScalewayManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      scalewayManagedClusterNamespacedName.Name,
+						Namespace: scalewayManagedClusterNamespacedName.Namespace,
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								Name:       clusterNamespacedName.Name,
+								Kind:       "Cluster",
+								APIVersion: clusterv1.GroupVersion.String(),
+							},
+						},
+						Finalizers:        []string{infrav1.ScalewayManagedClusterFinalizer},
+						DeletionTimestamp: &metav1.Time{Time: time.Now()},
+					},
+					Spec: infrav1.ScalewayManagedClusterSpec{
+						Region:             "fr-par",
+						ScalewaySecretName: secretNamespacedName.Name,
+						ProjectID:          "11111111-1111-1111-1111-111111111111",
+					},
+				},
+				&infrav1.ScalewayManagedMachinePool{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "scalewaymanagedmachinepool",
+						Namespace: clusterNamespacedName.Namespace,
+						Labels: map[string]string{
+							clusterv1.ClusterNameLabel: clusterNamespacedName.Name,
+						},
+					},
+				},
+				&clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      clusterNamespacedName.Name,
+						Namespace: clusterNamespacedName.Namespace,
+					},
+					Spec: clusterv1.ClusterSpec{
+						ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+							Name: scalewayManagedControlPlaneNamespacedName.Name,
+						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretNamespacedName.Name,
+						Namespace: secretNamespacedName.Namespace,
+					},
+					Data: map[string][]byte{
+						scw.ScwAccessKeyEnv: []byte("SCWXXXXXXXXXXXXXXXXX"),
+						scw.ScwSecretKeyEnv: []byte("11111111-1111-1111-1111-111111111111"),
+					},
+				},
+			},
+			asserts: func(g *WithT, c client.Client) {
+				// ScalewayManagedCluster should still exist with its finalizer.
+				sc := &infrav1.ScalewayManagedCluster{}
+				g.Expect(c.Get(context.TODO(), scalewayManagedClusterNamespacedName, sc)).To(Succeed())
+				g.Expect(sc.Finalizers).To(ContainElement(infrav1.ScalewayManagedClusterFinalizer))
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

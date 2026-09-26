@@ -1,3 +1,5 @@
+//go:build e2e
+
 package e2e
 
 import (
@@ -10,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -77,8 +78,8 @@ var _ = Describe("Managed workload cluster creation", func() {
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eConfig.MustGetVariable(capi_e2e.KubernetesVersion),
-					ControlPlaneMachineCount: ptr.To[int64](1),
-					WorkerMachineCount:       ptr.To[int64](3),
+					ControlPlaneMachineCount: new(int64(1)),
+					WorkerMachineCount:       new(int64(3)),
 					ClusterctlVariables: map[string]string{
 						"WORKER_PUBLIC_IP_DISABLED": "true",
 						"SMC_NETWORK":               "{publicGateways: [{}]}",

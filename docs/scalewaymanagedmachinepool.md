@@ -57,7 +57,7 @@ spec:
 
 ## Security Group and Placement Group
 
-You can set specify a Security Group and Placement Group ID during the creation of the pool:
+You can specify a Security Group and Placement Group ID during the creation of the pool:
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
@@ -159,3 +159,19 @@ spec:
 Setting `publicIPDisabled: true` is only possible with a Kapsule cluster.
 The Private Network of the cluster must also have at least one public gateway that
 advertises a default route.
+
+## Labels
+
+You can configure labels that will be reconciled on each node of the pool:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: ScalewayManagedMachinePool
+metadata:
+  name: my-cluster-managed-machine-pool
+  namespace: default
+spec:
+  # some fields were omitted...
+  labels:
+    hello: world
+```

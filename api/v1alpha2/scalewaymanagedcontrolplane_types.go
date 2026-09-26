@@ -2,6 +2,7 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -186,7 +187,7 @@ type Autoscaler struct {
 	// sum of requested resources divided by capacity, below which a node can be
 	// considered for scale down.
 	// +optional
-	// +kubebuilder:validation:Format="float"
+	// +kubebuilder:validation:Pattern=`^(0(\.[0-9]{1,2})?|1)$`
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=10
 	ScaleDownUtilizationThreshold string `json:"scaleDownUtilizationThreshold,omitempty"`
@@ -196,6 +197,19 @@ type Autoscaler struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=1
 	MaxGracefulTerminationSec int32 `json:"maxGracefulTerminationSec,omitempty"`
+
+	// skipNodesWithLocalStorage defines if cluster autoscaler should skip nodes
+	// with pods with local storage, e.g. EmptyDir or HostPath, defaults to true.
+	// +optional
+	SkipNodesWithLocalStorage *bool `json:"skipNodesWithLocalStorage,omitempty"`
+
+	// logLevel defines cluster autoscaler logging level expressed from 0 to 4
+	// (4 being the more verbose), defaults to 2.
+	//
+	// See https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-can-i-increase-the-information-that-the-ca-is-logging
+	// for details.
+	// +optional
+	LogLevel *int32 `json:"logLevel,omitempty"`
 }
 
 // AutoUpgrade allows to set a specific 2-hour time window in which the cluster
@@ -320,7 +334,20 @@ type ScalewayManagedControlPlaneStatus struct {
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// version defines the desired Kubernetes version for the control plane.
+	// versions is the aggregated Kubernetes versions in this control plane.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	Versions []clusterv1.StatusVersion `json:"versions,omitempty"`
+
+	// version represents the minimum Kubernetes version for the control plane machines
+	// in the cluster.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in a future API version.
+	// Please use status.versions instead.
+	//
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
@@ -399,5 +426,8 @@ func (s *ScalewayManagedControlPlane) SetConditions(conditions []metav1.Conditio
 }
 
 func init() {
-	SchemeBuilder.Register(&ScalewayManagedControlPlane{}, &ScalewayManagedControlPlaneList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(SchemeGroupVersion, &ScalewayManagedControlPlane{}, &ScalewayManagedControlPlaneList{})
+		return nil
+	})
 }

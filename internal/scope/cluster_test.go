@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 
@@ -156,7 +155,7 @@ func TestCluster_HasPrivateNetwork(t *testing.T) {
 					Spec: infrav1.ScalewayClusterSpec{
 						Network: infrav1.ScalewayClusterNetwork{
 							PrivateNetwork: infrav1.PrivateNetworkSpec{
-								Enabled: ptr.To(true),
+								Enabled: new(true),
 							},
 						},
 					},
@@ -202,7 +201,7 @@ func TestCluster_PrivateNetworkID(t *testing.T) {
 					Spec: infrav1.ScalewayClusterSpec{
 						Network: infrav1.ScalewayClusterNetwork{
 							PrivateNetwork: infrav1.PrivateNetworkSpec{
-								Enabled: ptr.To(true),
+								Enabled: new(true),
 							},
 						},
 					},
@@ -217,7 +216,7 @@ func TestCluster_PrivateNetworkID(t *testing.T) {
 					Spec: infrav1.ScalewayClusterSpec{
 						Network: infrav1.ScalewayClusterNetwork{
 							PrivateNetwork: infrav1.PrivateNetworkSpec{
-								Enabled: ptr.To(true),
+								Enabled: new(true),
 							},
 						},
 					},
@@ -379,10 +378,10 @@ func TestCluster_ControlPlaneDNSZoneAndName(t *testing.T) {
 					Spec: infrav1.ScalewayClusterSpec{
 						Network: infrav1.ScalewayClusterNetwork{
 							PrivateNetwork: infrav1.PrivateNetworkSpec{
-								Enabled: ptr.To(true),
+								Enabled: new(true),
 							},
 							ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
-								Private: ptr.To(true),
+								Private: new(true),
 							},
 							ControlPlaneDNS: infrav1.ControlPlaneDNS{
 								Name: "domain",
@@ -463,10 +462,10 @@ func TestCluster_ControlPlaneHost(t *testing.T) {
 					Spec: infrav1.ScalewayClusterSpec{
 						Network: infrav1.ScalewayClusterNetwork{
 							PrivateNetwork: infrav1.PrivateNetworkSpec{
-								Enabled: ptr.To(true),
+								Enabled: new(true),
 							},
 							ControlPlaneLoadBalancer: infrav1.ControlPlaneLoadBalancer{
-								Private: ptr.To(true),
+								Private: new(true),
 							},
 							ControlPlaneDNS: infrav1.ControlPlaneDNS{
 								Name: "domain",
