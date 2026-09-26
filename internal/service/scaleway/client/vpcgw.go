@@ -19,6 +19,7 @@ type VPCGWAPI interface {
 	CreateGatewayNetwork(req *vpcgw.CreateGatewayNetworkRequest, opts ...scw.RequestOption) (*vpcgw.GatewayNetwork, error)
 	ListGatewayTypes(req *vpcgw.ListGatewayTypesRequest, opts ...scw.RequestOption) (*vpcgw.ListGatewayTypesResponse, error)
 	UpgradeGateway(req *vpcgw.UpgradeGatewayRequest, opts ...scw.RequestOption) (*vpcgw.Gateway, error)
+	UpdateGateway(req *vpcgw.UpdateGatewayRequest, opts ...scw.RequestOption) (*vpcgw.Gateway, error)
 }
 
 type VPCGW interface {
@@ -31,10 +32,12 @@ type VPCGW interface {
 		name, gwType string,
 		tags []string,
 		ipID *string,
+		enableSMTP *bool,
 	) (*vpcgw.Gateway, error)
 	CreateGatewayNetwork(ctx context.Context, zone scw.Zone, gatewayID, privateNetworkID string) error
 	ListGatewayTypes(ctx context.Context, zone scw.Zone) ([]string, error)
 	UpgradeGateway(ctx context.Context, zone scw.Zone, gatewayID, newType string) (*vpcgw.Gateway, error)
+	UpdateGateway(ctx context.Context, zone scw.Zone, gatewayID string, enableSMTP *bool) (*vpcgw.Gateway, error)
 }
 
 func (c *Client) FindGateways(ctx context.Context, tags []string) ([]*vpcgw.Gateway, error) {
@@ -104,20 +107,39 @@ func (c *Client) CreateGateway(
 	name, gwType string,
 	tags []string,
 	ipID *string,
+	enableSMTP *bool,
 ) (*vpcgw.Gateway, error) {
 	if err := c.validateZone(c.vpcgw, zone); err != nil {
 		return nil, err
 	}
 
 	gateway, err := c.vpcgw.CreateGateway(&vpcgw.CreateGatewayRequest{
-		Zone: zone,
-		Name: name,
-		Tags: append(tags, createdByTag),
-		Type: gwType,
-		IPID: ipID,
+		Zone:       zone,
+		Name:       name,
+		Tags:       append(tags, createdByTag),
+		Type:       gwType,
+		IPID:       ipID,
+		EnableSMTP: ptr.Deref(enableSMTP, false),
 	}, scw.WithContext(ctx))
 	if err != nil {
 		return nil, newCallError("CreateGateway", err)
+	}
+
+	return gateway, nil
+}
+
+func (c *Client) UpdateGateway(ctx context.Context, zone scw.Zone, gatewayID string, enableSMTP *bool) (*vpcgw.Gateway, error) {
+	if err := c.validateZone(c.vpcgw, zone); err != nil {
+		return nil, err
+	}
+
+	gateway, err := c.vpcgw.UpdateGateway(&vpcgw.UpdateGatewayRequest{
+		Zone:       zone,
+		GatewayID:  gatewayID,
+		EnableSMTP: enableSMTP,
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, newCallError("UpdateGateway", err)
 	}
 
 	return gateway, nil

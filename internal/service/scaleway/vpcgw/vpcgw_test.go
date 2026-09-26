@@ -325,6 +325,7 @@ func TestService_Reconcile(t *testing.T) {
 					"cluster-2", "",
 					tags,
 					ptr.To(ipID),
+					nil,
 				).Return(&vpcgw.Gateway{
 					ID:     gwID3,
 					Name:   "cluster-2",
@@ -337,6 +338,7 @@ func TestService_Reconcile(t *testing.T) {
 					scw.ZoneFrPar1,
 					"cluster-3", "",
 					append(tags, capsManagedIPTag),
+					nil,
 					nil,
 				).Return(&vpcgw.Gateway{
 					ID:     gwID4,
@@ -430,6 +432,221 @@ func TestService_Reconcile(t *testing.T) {
 					IPv4:            &vpcgw.IP{},
 					GatewayNetworks: []*vpcgw.GatewayNetwork{{PrivateNetworkID: privateNetworkID}},
 					Type:            "VPC-GW-M",
+				}, nil)
+			},
+		},
+		{
+			name: "gateways configured: create with smtp enabled",
+			fields: fields{
+				Scope: &scope.Cluster{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "cluster",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
+								},
+								PublicGateways: []infrav1.PublicGateway{
+									{Zone: infrav1.ScalewayZone("fr-par-1"), EnableSMTP: ptr.To(true)},
+								},
+							},
+						},
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
+							},
+						},
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
+
+				i.FindGateways(gomock.Any(), tags).Return([]*vpcgw.Gateway{}, nil)
+
+				i.CreateGateway(
+					gomock.Any(),
+					scw.ZoneFrPar1,
+					"cluster-0", "",
+					append(tags, capsManagedIPTag),
+					nil,
+					ptr.To(true),
+				).Return(&vpcgw.Gateway{
+					ID:          gwID1,
+					Name:        "cluster-0",
+					Status:      vpcgw.GatewayStatusRunning,
+					Zone:        scw.ZoneFrPar1,
+					Tags:        []string{capsManagedIPTag},
+					IPv4:        &vpcgw.IP{},
+					SMTPEnabled: true,
+				}, nil)
+
+				i.CreateGatewayNetwork(gomock.Any(), scw.ZoneFrPar1, gwID1, privateNetworkID)
+			},
+		},
+		{
+			name: "gateways configured: enable smtp on existing gateway",
+			fields: fields{
+				Scope: &scope.Cluster{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "cluster",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
+								},
+								PublicGateways: []infrav1.PublicGateway{
+									{Zone: infrav1.ScalewayZone("fr-par-1"), EnableSMTP: ptr.To(true)},
+								},
+							},
+						},
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
+							},
+						},
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
+
+				i.FindGateways(gomock.Any(), tags).Return([]*vpcgw.Gateway{
+					{
+						ID:              gwID1,
+						Status:          vpcgw.GatewayStatusRunning,
+						Name:            "cluster-0",
+						Zone:            scw.ZoneFrPar1,
+						Tags:            []string{capsManagedIPTag},
+						IPv4:            &vpcgw.IP{},
+						GatewayNetworks: []*vpcgw.GatewayNetwork{{PrivateNetworkID: privateNetworkID}},
+						SMTPEnabled:     false,
+					},
+				}, nil)
+
+				i.UpdateGateway(gomock.Any(), scw.ZoneFrPar1, gwID1, ptr.To(true)).Return(&vpcgw.Gateway{
+					ID:              gwID1,
+					Status:          vpcgw.GatewayStatusRunning,
+					Name:            "cluster-0",
+					Zone:            scw.ZoneFrPar1,
+					Tags:            []string{capsManagedIPTag},
+					IPv4:            &vpcgw.IP{},
+					GatewayNetworks: []*vpcgw.GatewayNetwork{{PrivateNetworkID: privateNetworkID}},
+					SMTPEnabled:     true,
+				}, nil)
+			},
+		},
+		{
+			name: "gateways configured: disable smtp on existing gateway",
+			fields: fields{
+				Scope: &scope.Cluster{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "cluster",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
+								},
+								PublicGateways: []infrav1.PublicGateway{
+									{Zone: infrav1.ScalewayZone("fr-par-1"), EnableSMTP: ptr.To(false)},
+								},
+							},
+						},
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
+							},
+						},
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
+
+				i.FindGateways(gomock.Any(), tags).Return([]*vpcgw.Gateway{
+					{
+						ID:              gwID1,
+						Status:          vpcgw.GatewayStatusRunning,
+						Name:            "cluster-0",
+						Zone:            scw.ZoneFrPar1,
+						Tags:            []string{capsManagedIPTag},
+						IPv4:            &vpcgw.IP{},
+						GatewayNetworks: []*vpcgw.GatewayNetwork{{PrivateNetworkID: privateNetworkID}},
+						SMTPEnabled:     true,
+					},
+				}, nil)
+
+				i.UpdateGateway(gomock.Any(), scw.ZoneFrPar1, gwID1, ptr.To(false)).Return(&vpcgw.Gateway{
+					ID:              gwID1,
+					Status:          vpcgw.GatewayStatusRunning,
+					Name:            "cluster-0",
+					Zone:            scw.ZoneFrPar1,
+					Tags:            []string{capsManagedIPTag},
+					IPv4:            &vpcgw.IP{},
+					GatewayNetworks: []*vpcgw.GatewayNetwork{{PrivateNetworkID: privateNetworkID}},
+					SMTPEnabled:     false,
+				}, nil)
+			},
+		},
+		{
+			name: "gateways configured: smtp unmanaged when field unset",
+			fields: fields{
+				Scope: &scope.Cluster{
+					ScalewayCluster: &infrav1.ScalewayCluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "cluster",
+							Namespace: "default",
+						},
+						Spec: infrav1.ScalewayClusterSpec{
+							Network: infrav1.ScalewayClusterNetwork{
+								PrivateNetwork: infrav1.PrivateNetworkSpec{
+									Enabled: ptr.To(true),
+								},
+								PublicGateways: []infrav1.PublicGateway{
+									{Zone: infrav1.ScalewayZone("fr-par-1")},
+								},
+							},
+						},
+						Status: infrav1.ScalewayClusterStatus{
+							Network: infrav1.ScalewayClusterNetworkStatus{
+								PrivateNetworkID: privateNetworkID,
+							},
+						},
+					},
+				},
+			},
+			expect: func(i *mock_client.MockInterfaceMockRecorder) {
+				tags := []string{"caps-namespace=default", "caps-scalewaycluster=cluster"}
+
+				i.GetZoneOrDefault("fr-par-1").Return(scw.ZoneFrPar1, nil)
+
+				// Gateway has SMTP enabled but spec doesn't set EnableSMTP → no UpdateGateway call.
+				i.FindGateways(gomock.Any(), tags).Return([]*vpcgw.Gateway{
+					{
+						ID:              gwID1,
+						Status:          vpcgw.GatewayStatusRunning,
+						Name:            "cluster-0",
+						Zone:            scw.ZoneFrPar1,
+						Tags:            []string{capsManagedIPTag},
+						IPv4:            &vpcgw.IP{},
+						GatewayNetworks: []*vpcgw.GatewayNetwork{{PrivateNetworkID: privateNetworkID}},
+						SMTPEnabled:     true,
+					},
 				}, nil)
 			},
 		},
