@@ -321,18 +321,18 @@ func (c *MockInterfaceCreateFrontendCall) DoAndReturn(f func(context.Context, sc
 }
 
 // CreateGateway mocks base method.
-func (m *MockInterface) CreateGateway(ctx context.Context, zone scw.Zone, name, gwType string, tags []string, ipID *string) (*vpcgw.Gateway, error) {
+func (m *MockInterface) CreateGateway(ctx context.Context, zone scw.Zone, name, gwType string, tags []string, ipID *string, enableSMTP bool) (*vpcgw.Gateway, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateGateway", ctx, zone, name, gwType, tags, ipID)
+	ret := m.ctrl.Call(m, "CreateGateway", ctx, zone, name, gwType, tags, ipID, enableSMTP)
 	ret0, _ := ret[0].(*vpcgw.Gateway)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateGateway indicates an expected call of CreateGateway.
-func (mr *MockInterfaceMockRecorder) CreateGateway(ctx, zone, name, gwType, tags, ipID any) *MockInterfaceCreateGatewayCall {
+func (mr *MockInterfaceMockRecorder) CreateGateway(ctx, zone, name, gwType, tags, ipID, enableSMTP any) *MockInterfaceCreateGatewayCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGateway", reflect.TypeOf((*MockInterface)(nil).CreateGateway), ctx, zone, name, gwType, tags, ipID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGateway", reflect.TypeOf((*MockInterface)(nil).CreateGateway), ctx, zone, name, gwType, tags, ipID, enableSMTP)
 	return &MockInterfaceCreateGatewayCall{Call: call}
 }
 
@@ -348,13 +348,13 @@ func (c *MockInterfaceCreateGatewayCall) Return(arg0 *vpcgw.Gateway, arg1 error)
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockInterfaceCreateGatewayCall) Do(f func(context.Context, scw.Zone, string, string, []string, *string) (*vpcgw.Gateway, error)) *MockInterfaceCreateGatewayCall {
+func (c *MockInterfaceCreateGatewayCall) Do(f func(context.Context, scw.Zone, string, string, []string, *string, bool) (*vpcgw.Gateway, error)) *MockInterfaceCreateGatewayCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockInterfaceCreateGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, []string, *string) (*vpcgw.Gateway, error)) *MockInterfaceCreateGatewayCall {
+func (c *MockInterfaceCreateGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, []string, *string, bool) (*vpcgw.Gateway, error)) *MockInterfaceCreateGatewayCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3134,6 +3134,45 @@ func (c *MockInterfaceUpdateClusterCall) Do(f func(context.Context, string, *[]s
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockInterfaceUpdateClusterCall) DoAndReturn(f func(context.Context, string, *[]string, *[]string, *[]string, *[]string, *k8s.UpdateClusterRequestAutoscalerConfig, *k8s.UpdateClusterRequestAutoUpgrade, *k8s.UpdateClusterRequestOpenIDConnectConfig) error) *MockInterfaceUpdateClusterCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateGateway mocks base method.
+func (m *MockInterface) UpdateGateway(ctx context.Context, zone scw.Zone, gatewayID string, enableSMTP *bool) (*vpcgw.Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateGateway", ctx, zone, gatewayID, enableSMTP)
+	ret0, _ := ret[0].(*vpcgw.Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateGateway indicates an expected call of UpdateGateway.
+func (mr *MockInterfaceMockRecorder) UpdateGateway(ctx, zone, gatewayID, enableSMTP any) *MockInterfaceUpdateGatewayCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGateway", reflect.TypeOf((*MockInterface)(nil).UpdateGateway), ctx, zone, gatewayID, enableSMTP)
+	return &MockInterfaceUpdateGatewayCall{Call: call}
+}
+
+// MockInterfaceUpdateGatewayCall wrap *gomock.Call
+type MockInterfaceUpdateGatewayCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockInterfaceUpdateGatewayCall) Return(arg0 *vpcgw.Gateway, arg1 error) *MockInterfaceUpdateGatewayCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockInterfaceUpdateGatewayCall) Do(f func(context.Context, scw.Zone, string, *bool) (*vpcgw.Gateway, error)) *MockInterfaceUpdateGatewayCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockInterfaceUpdateGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, *bool) (*vpcgw.Gateway, error)) *MockInterfaceUpdateGatewayCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

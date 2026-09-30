@@ -216,9 +216,10 @@ func Convert_v1alpha1_ScalewayClusterSpec_To_v1alpha2_ScalewayClusterSpec(in *Sc
 
 	for _, pgw := range in.Network.PublicGateways {
 		out.Network.PublicGateways = append(out.Network.PublicGateways, infrav1.PublicGateway{
-			Type: ptr.Deref(pgw.Type, ""),
-			IP:   infrav1.IPv4(ptr.Deref(pgw.IP, "")),
-			Zone: infrav1.ScalewayZone(ptr.Deref(pgw.Zone, "")),
+			Type:       ptr.Deref(pgw.Type, ""),
+			IP:         infrav1.IPv4(ptr.Deref(pgw.IP, "")),
+			Zone:       infrav1.ScalewayZone(ptr.Deref(pgw.Zone, "")),
+			EnableSMTP: pgw.EnableSMTP,
 		})
 	}
 
@@ -290,9 +291,10 @@ func Convert_v1alpha2_ScalewayClusterSpec_To_v1alpha1_ScalewayClusterSpec(in *in
 
 	for _, pgw := range in.Network.PublicGateways {
 		out.Network.PublicGateways = append(out.Network.PublicGateways, PublicGatewaySpec{
-			IP:   ptrIfNotZero(string(pgw.IP)),
-			Type: ptrIfNotZero(pgw.Type),
-			Zone: ptrIfNotZero(string(pgw.Zone)),
+			IP:         ptrIfNotZero(string(pgw.IP)),
+			Type:       ptrIfNotZero(pgw.Type),
+			Zone:       ptrIfNotZero(string(pgw.Zone)),
+			EnableSMTP: pgw.EnableSMTP,
 		})
 	}
 
@@ -462,9 +464,10 @@ func Convert_v1alpha1_ScalewayManagedClusterSpec_To_v1alpha2_ScalewayManagedClus
 
 	for _, pgw := range in.Network.PublicGateways {
 		out.Network.PublicGateways = append(out.Network.PublicGateways, infrav1.PublicGateway{
-			Type: ptr.Deref(pgw.Type, ""),
-			IP:   infrav1.IPv4(ptr.Deref(pgw.IP, "")),
-			Zone: infrav1.ScalewayZone(ptr.Deref(pgw.Zone, "")),
+			Type:       ptr.Deref(pgw.Type, ""),
+			IP:         infrav1.IPv4(ptr.Deref(pgw.IP, "")),
+			Zone:       infrav1.ScalewayZone(ptr.Deref(pgw.Zone, "")),
+			EnableSMTP: pgw.EnableSMTP,
 		})
 	}
 
@@ -492,9 +495,10 @@ func Convert_v1alpha2_ScalewayManagedClusterSpec_To_v1alpha1_ScalewayManagedClus
 
 	for _, pgw := range in.Network.PublicGateways {
 		out.Network.PublicGateways = append(out.Network.PublicGateways, PublicGatewaySpec{
-			Type: ptrIfNotZero(pgw.Type),
-			IP:   ptrIfNotZero(string(pgw.IP)),
-			Zone: ptrIfNotZero(string(pgw.Zone)),
+			Type:       ptrIfNotZero(pgw.Type),
+			IP:         ptrIfNotZero(string(pgw.IP)),
+			Zone:       ptrIfNotZero(string(pgw.Zone)),
+			EnableSMTP: pgw.EnableSMTP,
 		})
 	}
 

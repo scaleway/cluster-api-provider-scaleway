@@ -16,6 +16,13 @@ type PublicGatewaySpec struct {
 	// cluster. Defaults to the first zone of the region.
 	// +optional
 	Zone *string `json:"zone,omitempty"`
+
+	// EnableSMTP defines whether SMTP traffic is allowed to pass through the
+	// Public Gateway. Required to send email via the gateway (ports 25/465/587).
+	// On create, defaults to false when unset. On update, unset leaves the
+	// gateway's existing SMTP setting unchanged.
+	// +optional
+	EnableSMTP *bool `json:"enableSMTP,omitempty"`
 }
 
 // PrivateNetworkParams allows to set the params of the Private Network.

@@ -246,12 +246,13 @@ func TestClient_CreateGateway(t *testing.T) {
 		region    scw.Region
 	}
 	type args struct {
-		ctx    context.Context
-		zone   scw.Zone
-		name   string
-		gwType string
-		tags   []string
-		ipID   *string
+		ctx        context.Context
+		zone       scw.Zone
+		name       string
+		gwType     string
+		tags       []string
+		ipID       *string
+		enableSMTP bool
 	}
 	tests := []struct {
 		name    string
@@ -280,11 +281,43 @@ func TestClient_CreateGateway(t *testing.T) {
 			},
 			expect: func(v *mock_client.MockVPCGWAPIMockRecorder) {
 				v.CreateGateway(&vpcgw.CreateGatewayRequest{
-					Zone: scw.ZoneFrPar1,
-					Name: "gateway",
-					Tags: []string{"tag1", "tag2", createdByTag},
-					Type: "VPC-GW-S",
-					IPID: new(ipID),
+					Zone:       scw.ZoneFrPar1,
+					Name:       "gateway",
+					Tags:       []string{"tag1", "tag2", createdByTag},
+					Type:       "VPC-GW-S",
+					IPID:       new(ipID),
+					EnableSMTP: false,
+				}, gomock.Any()).Return(&vpcgw.Gateway{
+					ID: vpcgwID,
+				}, nil)
+			},
+		},
+		{
+			name: "create gateway with smtp enabled",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:        context.TODO(),
+				zone:       scw.ZoneFrPar1,
+				name:       "gateway",
+				gwType:     "VPC-GW-S",
+				tags:       []string{"tag1", "tag2"},
+				ipID:       new(ipID),
+				enableSMTP: true,
+			},
+			want: &vpcgw.Gateway{
+				ID: vpcgwID,
+			},
+			expect: func(v *mock_client.MockVPCGWAPIMockRecorder) {
+				v.CreateGateway(&vpcgw.CreateGatewayRequest{
+					Zone:       scw.ZoneFrPar1,
+					Name:       "gateway",
+					Tags:       []string{"tag1", "tag2", createdByTag},
+					Type:       "VPC-GW-S",
+					IPID:       new(ipID),
+					EnableSMTP: true,
 				}, gomock.Any()).Return(&vpcgw.Gateway{
 					ID: vpcgwID,
 				}, nil)
@@ -310,7 +343,7 @@ func TestClient_CreateGateway(t *testing.T) {
 				region:    tt.fields.region,
 				vpcgw:     vpcgwMock,
 			}
-			got, err := c.CreateGateway(tt.args.ctx, tt.args.zone, tt.args.name, tt.args.gwType, tt.args.tags, tt.args.ipID)
+			got, err := c.CreateGateway(tt.args.ctx, tt.args.zone, tt.args.name, tt.args.gwType, tt.args.tags, tt.args.ipID, tt.args.enableSMTP)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.CreateGateway() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -385,6 +418,108 @@ func TestClient_CreateGatewayNetwork(t *testing.T) {
 			}
 			if err := c.CreateGatewayNetwork(tt.args.ctx, tt.args.zone, tt.args.gatewayID, tt.args.privateNetworkID); (err != nil) != tt.wantErr {
 				t.Errorf("Client.CreateGatewayNetwork() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_UpdateGateway(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		projectID string
+		region    scw.Region
+	}
+	type args struct {
+		ctx        context.Context
+		zone       scw.Zone
+		gatewayID  string
+		enableSMTP *bool
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *vpcgw.Gateway
+		wantErr bool
+		expect  func(v *mock_client.MockVPCGWAPIMockRecorder)
+	}{
+		{
+			name: "enable smtp",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:        context.TODO(),
+				zone:       scw.ZoneFrPar1,
+				gatewayID:  vpcgwID,
+				enableSMTP: new(true),
+			},
+			want: &vpcgw.Gateway{
+				ID: vpcgwID,
+			},
+			expect: func(v *mock_client.MockVPCGWAPIMockRecorder) {
+				v.UpdateGateway(&vpcgw.UpdateGatewayRequest{
+					Zone:       scw.ZoneFrPar1,
+					GatewayID:  vpcgwID,
+					EnableSMTP: new(true),
+				}, gomock.Any()).Return(&vpcgw.Gateway{
+					ID: vpcgwID,
+				}, nil)
+			},
+		},
+		{
+			name: "disable smtp",
+			fields: fields{
+				projectID: projectID,
+				region:    scw.RegionFrPar,
+			},
+			args: args{
+				ctx:        context.TODO(),
+				zone:       scw.ZoneFrPar1,
+				gatewayID:  vpcgwID,
+				enableSMTP: new(false),
+			},
+			want: &vpcgw.Gateway{
+				ID: vpcgwID,
+			},
+			expect: func(v *mock_client.MockVPCGWAPIMockRecorder) {
+				v.UpdateGateway(&vpcgw.UpdateGatewayRequest{
+					Zone:       scw.ZoneFrPar1,
+					GatewayID:  vpcgwID,
+					EnableSMTP: new(false),
+				}, gomock.Any()).Return(&vpcgw.Gateway{
+					ID: vpcgwID,
+				}, nil)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			vpcgwMock := mock_client.NewMockVPCGWAPI(mockCtrl)
+
+			// Every API call must be preceded by a zone check.
+			vpcgwMock.EXPECT().Zones().Return(tt.fields.region.GetZones())
+
+			tt.expect(vpcgwMock.EXPECT())
+
+			c := &Client{
+				projectID: tt.fields.projectID,
+				region:    tt.fields.region,
+				vpcgw:     vpcgwMock,
+			}
+			got, err := c.UpdateGateway(tt.args.ctx, tt.args.zone, tt.args.gatewayID, tt.args.enableSMTP)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.UpdateGateway() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.UpdateGateway() = %v, want %v", got, tt.want)
 			}
 		})
 	}
