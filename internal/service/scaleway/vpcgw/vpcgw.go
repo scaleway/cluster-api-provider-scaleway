@@ -10,6 +10,7 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -267,7 +268,7 @@ func (d *desiredResourceListManager) CreateResource(
 
 	logf.FromContext(ctx).Info("Creating Gateway", "gatewayName", name, "zone", zone)
 
-	gateway, err := d.Cloud().CreateGateway(ctx, zone, name, gwType, tags, ipID, desired.EnableSMTP)
+	gateway, err := d.Cloud().CreateGateway(ctx, zone, name, gwType, tags, ipID, ptr.Deref(desired.EnableSMTP, false))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway: %w", err)
 	}

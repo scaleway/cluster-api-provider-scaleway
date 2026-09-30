@@ -252,7 +252,7 @@ func TestClient_CreateGateway(t *testing.T) {
 		gwType     string
 		tags       []string
 		ipID       *string
-		enableSMTP *bool
+		enableSMTP bool
 	}
 	tests := []struct {
 		name    string
@@ -305,7 +305,7 @@ func TestClient_CreateGateway(t *testing.T) {
 				gwType:     "VPC-GW-S",
 				tags:       []string{"tag1", "tag2"},
 				ipID:       new(ipID),
-				enableSMTP: new(true),
+				enableSMTP: true,
 			},
 			want: &vpcgw.Gateway{
 				ID: vpcgwID,

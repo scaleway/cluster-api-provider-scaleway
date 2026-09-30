@@ -325,7 +325,7 @@ func TestService_Reconcile(t *testing.T) {
 					"cluster-2", "",
 					tags,
 					new(ipID),
-					nil,
+					false,
 				).Return(&vpcgw.Gateway{
 					ID:     gwID3,
 					Name:   "cluster-2",
@@ -339,7 +339,7 @@ func TestService_Reconcile(t *testing.T) {
 					"cluster-3", "",
 					slices.Concat(tags, []string{capsManagedIPTag}),
 					nil,
-					nil,
+					false,
 				).Return(&vpcgw.Gateway{
 					ID:     gwID4,
 					Name:   "cluster-3",
@@ -475,7 +475,7 @@ func TestService_Reconcile(t *testing.T) {
 					"cluster-0", "",
 					slices.Concat(tags, []string{capsManagedIPTag}),
 					nil,
-					new(true),
+					true,
 				).Return(&vpcgw.Gateway{
 					ID:          gwID1,
 					Name:        "cluster-0",

@@ -6,7 +6,6 @@ import (
 
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
-	"k8s.io/utils/ptr"
 )
 
 type VPCGWAPI interface {
@@ -32,7 +31,7 @@ type VPCGW interface {
 		name, gwType string,
 		tags []string,
 		ipID *string,
-		enableSMTP *bool,
+		enableSMTP bool,
 	) (*vpcgw.Gateway, error)
 	CreateGatewayNetwork(ctx context.Context, zone scw.Zone, gatewayID, privateNetworkID string) error
 	ListGatewayTypes(ctx context.Context, zone scw.Zone) ([]string, error)
@@ -107,7 +106,7 @@ func (c *Client) CreateGateway(
 	name, gwType string,
 	tags []string,
 	ipID *string,
-	enableSMTP *bool,
+	enableSMTP bool,
 ) (*vpcgw.Gateway, error) {
 	if err := c.validateZone(c.vpcgw, zone); err != nil {
 		return nil, err
@@ -119,7 +118,7 @@ func (c *Client) CreateGateway(
 		Tags:       append(tags, createdByTag),
 		Type:       gwType,
 		IPID:       ipID,
-		EnableSMTP: ptr.Deref(enableSMTP, false),
+		EnableSMTP: enableSMTP,
 	}, scw.WithContext(ctx))
 	if err != nil {
 		return nil, newCallError("CreateGateway", err)

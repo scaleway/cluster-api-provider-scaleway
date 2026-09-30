@@ -457,7 +457,7 @@ func (m *MockVPCGW) EXPECT() *MockVPCGWMockRecorder {
 }
 
 // CreateGateway mocks base method.
-func (m *MockVPCGW) CreateGateway(ctx context.Context, zone scw.Zone, name, gwType string, tags []string, ipID *string, enableSMTP *bool) (*vpcgw.Gateway, error) {
+func (m *MockVPCGW) CreateGateway(ctx context.Context, zone scw.Zone, name, gwType string, tags []string, ipID *string, enableSMTP bool) (*vpcgw.Gateway, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateGateway", ctx, zone, name, gwType, tags, ipID, enableSMTP)
 	ret0, _ := ret[0].(*vpcgw.Gateway)
@@ -484,13 +484,13 @@ func (c *MockVPCGWCreateGatewayCall) Return(arg0 *vpcgw.Gateway, arg1 error) *Mo
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockVPCGWCreateGatewayCall) Do(f func(context.Context, scw.Zone, string, string, []string, *string, *bool) (*vpcgw.Gateway, error)) *MockVPCGWCreateGatewayCall {
+func (c *MockVPCGWCreateGatewayCall) Do(f func(context.Context, scw.Zone, string, string, []string, *string, bool) (*vpcgw.Gateway, error)) *MockVPCGWCreateGatewayCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockVPCGWCreateGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, []string, *string, *bool) (*vpcgw.Gateway, error)) *MockVPCGWCreateGatewayCall {
+func (c *MockVPCGWCreateGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, []string, *string, bool) (*vpcgw.Gateway, error)) *MockVPCGWCreateGatewayCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
