@@ -84,12 +84,17 @@ spec:
       - type: VPC-GW-S
         zone: fr-par-2
         # ip: 42.42.42.42
+        # enableSMTP: true
       # Note: the Public Gateway product is currently not available in fr-par-3.
   # some fields were omitted...
 ```
 
 The `ip` field can be set on the spec of a Public Gateway to use an existing Public IP.
 If not set, a new IP will be created.
+The `enableSMTP` field can be set on the spec of a Public Gateway to allow SMTP traffic
+(ports 25, 465 and 587) to pass through it. This is required if your workloads send email
+through the gateway. If not set, SMTP is disabled on newly created Public Gateways, and the
+setting of existing Public Gateways is left unchanged.
 
 > [!CAUTION]
 > The `publicGateways` field is fully mutable, but changes should be avoided as much as possible.
@@ -98,8 +103,9 @@ If not set, a new IP will be created.
 > very careful when updating this field.
 >
 > 🚮 Updating a Public Gateway will lead to its re-creation, which will make its private IP change.
-> The only change that won't lead to a re-creation of the Public Gateway is a type upgrade
-> (e.g. VPC-GW-S to VPC-GW-M). Downgrading a Public Gateway is only possible through a re-creation.
+> The only changes that won't lead to a re-creation of the Public Gateway are a type upgrade
+> (e.g. VPC-GW-S to VPC-GW-M) and a change of `enableSMTP`. Downgrading a Public Gateway is
+> only possible through a re-creation.
 >
 > ⏳ Because the default routes are advertised via DHCP, the DHCP leases of the nodes must
 > be renewed for changes to be propagated (~24 hours). You can reboot the nodes or
