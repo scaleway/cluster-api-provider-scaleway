@@ -1,6 +1,6 @@
 module github.com/scaleway/cluster-api-provider-scaleway
 
-go 1.25.8
+go 1.26
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.0

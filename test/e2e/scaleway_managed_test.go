@@ -10,11 +10,14 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
-	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
+
+// kubernetesVersionManaged is the Kubernetes version used for Scaleway managed (Kapsule) clusters.
+// It is separate from KUBERNETES_VERSION as Kapsule supports a different set of versions than the machine images.
+const kubernetesVersionManaged = "KUBERNETES_VERSION_MANAGED"
 
 var _ = Describe("Managed workload cluster creation", func() {
 	var (
@@ -32,7 +35,7 @@ var _ = Describe("Managed workload cluster creation", func() {
 		Expect(clusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. clusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. bootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(artifactFolder, 0o755)).To(Succeed(), "Invalid argument. artifactFolder can't be created for %s spec", specName)
-		Expect(e2eConfig.Variables).To(HaveKey(capi_e2e.KubernetesVersion))
+		Expect(e2eConfig.Variables).To(HaveKey(kubernetesVersionManaged))
 
 		clusterName = fmt.Sprintf("caps-e2e-%s", util.RandomString(6))
 
@@ -75,7 +78,7 @@ var _ = Describe("Managed workload cluster creation", func() {
 					Flavor:                   "managed",
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
-					KubernetesVersion:        e2eConfig.MustGetVariable(capi_e2e.KubernetesVersion),
+					KubernetesVersion:        e2eConfig.MustGetVariable(kubernetesVersionManaged),
 					ControlPlaneMachineCount: ptr.To[int64](1),
 					WorkerMachineCount:       ptr.To[int64](3),
 					ClusterctlVariables: map[string]string{

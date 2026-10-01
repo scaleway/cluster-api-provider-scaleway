@@ -14,6 +14,7 @@ import (
 	"github.com/scaleway/cluster-api-provider-scaleway/internal/service/scaleway/common"
 	"github.com/scaleway/scaleway-sdk-go/api/vpcgw/v2"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"k8s.io/utils/ptr"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -153,6 +154,11 @@ func (d *desiredResourceListManager) UpdateResource(
 		}
 	}
 
+	if desired.EnableSMTP != nil && resource.SMTPEnabled != *desired.EnableSMTP {
+		logf.FromContext(ctx).Info("Updating Gateway SMTP", "gatewayName", resource.Name, "zone", resource.Zone, "enableSMTP", *desired.EnableSMTP)
+		return d.Cloud().UpdateGateway(ctx, resource.Zone, resource.ID, desired.EnableSMTP)
+	}
+
 	return resource, nil
 }
 
@@ -235,7 +241,7 @@ func (d *desiredResourceListManager) CreateResource(
 
 	logf.FromContext(ctx).Info("Creating Gateway", "gatewayName", name, "zone", zone)
 
-	gateway, err := d.Cloud().CreateGateway(ctx, zone, name, gwType, tags, ipID)
+	gateway, err := d.Cloud().CreateGateway(ctx, zone, name, gwType, tags, ipID, ptr.Deref(desired.EnableSMTP, false))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway: %w", err)
 	}

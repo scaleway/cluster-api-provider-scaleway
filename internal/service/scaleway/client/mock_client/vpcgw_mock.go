@@ -306,6 +306,50 @@ func (c *MockVPCGWAPIListIPsCall) DoAndReturn(f func(*vpcgw.ListIPsRequest, ...s
 	return c
 }
 
+// UpdateGateway mocks base method.
+func (m *MockVPCGWAPI) UpdateGateway(req *vpcgw.UpdateGatewayRequest, opts ...scw.RequestOption) (*vpcgw.Gateway, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{req}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateGateway", varargs...)
+	ret0, _ := ret[0].(*vpcgw.Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateGateway indicates an expected call of UpdateGateway.
+func (mr *MockVPCGWAPIMockRecorder) UpdateGateway(req any, opts ...any) *MockVPCGWAPIUpdateGatewayCall {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{req}, opts...)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGateway", reflect.TypeOf((*MockVPCGWAPI)(nil).UpdateGateway), varargs...)
+	return &MockVPCGWAPIUpdateGatewayCall{Call: call}
+}
+
+// MockVPCGWAPIUpdateGatewayCall wrap *gomock.Call
+type MockVPCGWAPIUpdateGatewayCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockVPCGWAPIUpdateGatewayCall) Return(arg0 *vpcgw.Gateway, arg1 error) *MockVPCGWAPIUpdateGatewayCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockVPCGWAPIUpdateGatewayCall) Do(f func(*vpcgw.UpdateGatewayRequest, ...scw.RequestOption) (*vpcgw.Gateway, error)) *MockVPCGWAPIUpdateGatewayCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockVPCGWAPIUpdateGatewayCall) DoAndReturn(f func(*vpcgw.UpdateGatewayRequest, ...scw.RequestOption) (*vpcgw.Gateway, error)) *MockVPCGWAPIUpdateGatewayCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpgradeGateway mocks base method.
 func (m *MockVPCGWAPI) UpgradeGateway(req *vpcgw.UpgradeGatewayRequest, opts ...scw.RequestOption) (*vpcgw.Gateway, error) {
 	m.ctrl.T.Helper()
@@ -413,18 +457,18 @@ func (m *MockVPCGW) EXPECT() *MockVPCGWMockRecorder {
 }
 
 // CreateGateway mocks base method.
-func (m *MockVPCGW) CreateGateway(ctx context.Context, zone scw.Zone, name, gwType string, tags []string, ipID *string) (*vpcgw.Gateway, error) {
+func (m *MockVPCGW) CreateGateway(ctx context.Context, zone scw.Zone, name, gwType string, tags []string, ipID *string, enableSMTP bool) (*vpcgw.Gateway, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateGateway", ctx, zone, name, gwType, tags, ipID)
+	ret := m.ctrl.Call(m, "CreateGateway", ctx, zone, name, gwType, tags, ipID, enableSMTP)
 	ret0, _ := ret[0].(*vpcgw.Gateway)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateGateway indicates an expected call of CreateGateway.
-func (mr *MockVPCGWMockRecorder) CreateGateway(ctx, zone, name, gwType, tags, ipID any) *MockVPCGWCreateGatewayCall {
+func (mr *MockVPCGWMockRecorder) CreateGateway(ctx, zone, name, gwType, tags, ipID, enableSMTP any) *MockVPCGWCreateGatewayCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGateway", reflect.TypeOf((*MockVPCGW)(nil).CreateGateway), ctx, zone, name, gwType, tags, ipID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGateway", reflect.TypeOf((*MockVPCGW)(nil).CreateGateway), ctx, zone, name, gwType, tags, ipID, enableSMTP)
 	return &MockVPCGWCreateGatewayCall{Call: call}
 }
 
@@ -440,13 +484,13 @@ func (c *MockVPCGWCreateGatewayCall) Return(arg0 *vpcgw.Gateway, arg1 error) *Mo
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockVPCGWCreateGatewayCall) Do(f func(context.Context, scw.Zone, string, string, []string, *string) (*vpcgw.Gateway, error)) *MockVPCGWCreateGatewayCall {
+func (c *MockVPCGWCreateGatewayCall) Do(f func(context.Context, scw.Zone, string, string, []string, *string, bool) (*vpcgw.Gateway, error)) *MockVPCGWCreateGatewayCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockVPCGWCreateGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, []string, *string) (*vpcgw.Gateway, error)) *MockVPCGWCreateGatewayCall {
+func (c *MockVPCGWCreateGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, string, []string, *string, bool) (*vpcgw.Gateway, error)) *MockVPCGWCreateGatewayCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -640,6 +684,45 @@ func (c *MockVPCGWListGatewayTypesCall) Do(f func(context.Context, scw.Zone) ([]
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockVPCGWListGatewayTypesCall) DoAndReturn(f func(context.Context, scw.Zone) ([]string, error)) *MockVPCGWListGatewayTypesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateGateway mocks base method.
+func (m *MockVPCGW) UpdateGateway(ctx context.Context, zone scw.Zone, gatewayID string, enableSMTP *bool) (*vpcgw.Gateway, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateGateway", ctx, zone, gatewayID, enableSMTP)
+	ret0, _ := ret[0].(*vpcgw.Gateway)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateGateway indicates an expected call of UpdateGateway.
+func (mr *MockVPCGWMockRecorder) UpdateGateway(ctx, zone, gatewayID, enableSMTP any) *MockVPCGWUpdateGatewayCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGateway", reflect.TypeOf((*MockVPCGW)(nil).UpdateGateway), ctx, zone, gatewayID, enableSMTP)
+	return &MockVPCGWUpdateGatewayCall{Call: call}
+}
+
+// MockVPCGWUpdateGatewayCall wrap *gomock.Call
+type MockVPCGWUpdateGatewayCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockVPCGWUpdateGatewayCall) Return(arg0 *vpcgw.Gateway, arg1 error) *MockVPCGWUpdateGatewayCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockVPCGWUpdateGatewayCall) Do(f func(context.Context, scw.Zone, string, *bool) (*vpcgw.Gateway, error)) *MockVPCGWUpdateGatewayCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockVPCGWUpdateGatewayCall) DoAndReturn(f func(context.Context, scw.Zone, string, *bool) (*vpcgw.Gateway, error)) *MockVPCGWUpdateGatewayCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

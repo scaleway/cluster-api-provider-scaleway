@@ -55,6 +55,7 @@ variables:
   CNI: "data/addons/flannel.yaml"
 
   KUBERNETES_VERSION: "${KUBERNETES_VERSION:=null}"
+  KUBERNETES_VERSION_MANAGED: "${KUBERNETES_VERSION_MANAGED:=null}"
 
   SCW_ACCESS_KEY: "${SCW_ACCESS_KEY:=null}"
   SCW_SECRET_KEY: "${SCW_SECRET_KEY:=null}"
