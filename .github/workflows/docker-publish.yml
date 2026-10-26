@@ -3,10 +3,10 @@ name: Docker
 on:
   push:
     branches: [ "main", "release-*" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ "main", "release-*" ]
+  # Semver tags are built by the release workflow, before the release is created.
+  workflow_call:
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer

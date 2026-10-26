@@ -10,7 +10,14 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  image:
+    uses: ./.github/workflows/docker-publish.yml
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # for cosign keyless signing
   release:
+    needs: image
     permissions:
       contents: write  # for softprops/action-gh-release to create/update GitHub release
     name: update release
@@ -19,12 +26,12 @@ jobs:
       - name: Set env
         run: echo "RELEASE_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           ref: ${{ env.RELEASE_TAG }}
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
       - name: generate release artifacts
@@ -34,6 +41,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # tag=v3.0.3
         with:
+          draft: true
           prerelease: true
           generate_release_notes: true
           files: out/*

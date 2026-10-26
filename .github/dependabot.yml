@@ -18,6 +18,7 @@ updates:
       # cluster-api is always updated manually. Refer to the version migration doc:
       # https://cluster-api.sigs.k8s.io/developer/providers/migrations/overview
       - dependency-name: "sigs.k8s.io/cluster-api"
+      - dependency-name: "sigs.k8s.io/cluster-api/api"
       - dependency-name: "sigs.k8s.io/cluster-api/test"
       # These versions should always match with versions used by sigs.k8s.io/cluster-api.
       - dependency-name: "github.com/onsi/ginkgo/v2"
