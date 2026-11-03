@@ -160,6 +160,7 @@ func (c *Client) DeleteCluster(ctx context.Context, id string, withAdditionalRes
 func (c *Client) GetClusterKubeConfig(ctx context.Context, id string) (*k8s.Kubeconfig, error) {
 	kubeconfig, err := c.k8s.GetClusterKubeConfig(&k8s.GetClusterKubeConfigRequest{
 		ClusterID: id,
+		Redacted:  new(true),
 	}, scw.WithContext(ctx))
 	if err != nil {
 		return nil, newCallError("GetClusterKubeConfig", err)
