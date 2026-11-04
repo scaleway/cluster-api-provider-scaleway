@@ -335,6 +335,7 @@ func TestClient_GetClusterKubeConfig(t *testing.T) {
 			expect: func(d *mock_client.MockK8sAPIMockRecorder) {
 				d.GetClusterKubeConfig(&k8s.GetClusterKubeConfigRequest{
 					ClusterID: clusterID,
+					Redacted:  new(true),
 				}, gomock.Any()).Return(&k8s.Kubeconfig{
 					Kind: "Config",
 				}, nil)
